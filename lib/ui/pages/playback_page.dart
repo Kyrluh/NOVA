@@ -66,6 +66,7 @@ class NovaPlaybackPage extends StatefulWidget {
 
 class _NovaPlaybackPageState extends State<NovaPlaybackPage> {
   late String _uri = widget.uri;
+  late final String _profileId = widget.controller.activeProfileId;
   late String _title = widget.title;
   late String? _id = widget.mediaId;
   late Duration _start = _resumePosition(_id);
@@ -113,7 +114,10 @@ class _NovaPlaybackPageState extends State<NovaPlaybackPage> {
       onProgress: id == null
           ? null
           : (position, duration) {
-              if (duration.inSeconds <= 0) return;
+              if (duration.inSeconds <= 0 ||
+                  widget.controller.activeProfileId != _profileId) {
+                return;
+              }
               widget.controller.recordProgress(
                 id,
                 WatchProgress(

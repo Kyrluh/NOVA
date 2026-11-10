@@ -13,6 +13,7 @@ import 'pages/catalog_organization_page.dart';
 import 'pages/catalog_page.dart';
 import 'pages/details_dialog.dart';
 import 'pages/home_page.dart';
+import 'pages/home_hub.dart';
 import 'pages/live_page.dart';
 import 'pages/platforms_page.dart';
 import 'pages/settings_page.dart';
@@ -30,6 +31,7 @@ enum NovaSection {
   movies,
   series,
   platforms,
+  trends,
   favorites,
   resume,
   search,
@@ -44,6 +46,7 @@ const _labels = [
   'Films',
   'Séries',
   'Par PlateForme',
+  'Tendances',
   'Favoris',
   'Continuer à regarder',
   'Recherche',
@@ -57,6 +60,7 @@ const _icons = [
   Icons.movie_outlined,
   Icons.video_library_outlined,
   Icons.dashboard_customize_outlined,
+  Icons.trending_up,
   Icons.favorite_border_rounded,
   Icons.history_rounded,
   Icons.search_rounded,
@@ -71,6 +75,7 @@ class NovaShell extends StatefulWidget {
     required this.controller,
     required this.nativeReady,
     required this.manageWindow,
+    this.handleWindowClose = true,
     this.fullscreenController,
     this.mobileUI,
     this.livePlayerBuilder,
@@ -79,6 +84,7 @@ class NovaShell extends StatefulWidget {
   final AppController controller;
   final bool nativeReady;
   final bool manageWindow;
+  final bool handleWindowClose;
   final DesktopFullscreen? fullscreenController;
   final bool? mobileUI;
   @visibleForTesting
@@ -114,7 +120,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
     if (_windowShortcuts) {
       HardwareKeyboard.instance.addHandler(_handleWindowKey);
     }
-    if (widget.manageWindow) {
+    if (widget.manageWindow && widget.handleWindowClose) {
       windowManager.addListener(this);
       unawaited(windowManager.setPreventClose(true));
     }
@@ -136,7 +142,9 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
     if (_windowShortcuts) {
       HardwareKeyboard.instance.removeHandler(_handleWindowKey);
     }
-    if (widget.manageWindow) windowManager.removeListener(this);
+    if (widget.manageWindow && widget.handleWindowClose) {
+      windowManager.removeListener(this);
+    }
     _search.dispose();
     unawaited(app.flush());
     super.dispose();
@@ -393,7 +401,9 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
         title,
         id: id,
         live: item.kind == MediaKind.live,
-        seriesId: item.kind == MediaKind.series ? item.id : null,
+        seriesId: item.kind == MediaKind.series
+            ? (app.seriesForEpisode(id)?.id ?? item.id)
+            : null,
       ),
     );
   }
@@ -489,12 +499,18 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
   );
 
   Widget _sectionPage() => switch (_section) {
-    NovaSection.home => HomePage(
+    NovaSection.home => HomeHub(
+      controller: app,
+      onDetails: _details,
+      onNavigate: (section) => _navigate(NovaSection.values.byName(section)),
+    ),
+    NovaSection.trends => HomePage(
       controller: app,
       onDetails: _details,
       onOpenFile: _openFile,
       onNavigate: _navigate,
       onManageSources: _openSources,
+      trends: true,
     ),
     NovaSection.live => LivePage(
       key: _livePageKey,

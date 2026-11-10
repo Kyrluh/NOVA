@@ -55,7 +55,10 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
             .where((item) => item.kind == widget.kind)
             .toList();
         final categories = catalog
-            .map((item) => item.category)
+            .expand(
+              (item) =>
+                  widget.controller.variantsFor(item).map((v) => v.category),
+            )
             .toSet()
             .toList();
         if (widget.controller.catalogPreferences.ruleFor(widget.kind).order !=
@@ -67,7 +70,9 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
         var items = catalog.where((item) {
           return (_category == null ||
                   _category == _recent ||
-                  item.category == _category) &&
+                  widget.controller
+                      .variantsFor(item)
+                      .any((v) => v.category == _category)) &&
               (query.isEmpty || _searchText(item).contains(query));
         }).toList();
         if (_category == _recent || _sort == 'recent') {
@@ -350,9 +355,12 @@ class HistoryPage extends StatelessWidget {
       final visible = {for (final item in controller.items) item.id: item};
       final episodeParents = <String, MediaItem>{};
       for (final item in visible.values) {
-        for (final season in item.seasons) {
-          for (final episode in season.episodes) {
-            episodeParents[episode.id] = item;
+        for (final variant in controller.variantsFor(item)) {
+          episodeParents[variant.id] = item;
+          for (final season in variant.seasons) {
+            for (final episode in season.episodes) {
+              episodeParents[episode.id] = item;
+            }
           }
         }
       }

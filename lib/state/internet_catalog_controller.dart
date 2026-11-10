@@ -92,6 +92,7 @@ class InternetCatalogController extends ChangeNotifier {
     for (final kind in [MediaKind.movie, MediaKind.series]) {
       yield 'trends/${kind.name}';
       for (final platform in CatalogPlatform.values) {
+        if (platform.asset.isEmpty) continue;
         yield '${platform.name}/${kind.name}';
       }
     }

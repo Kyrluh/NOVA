@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/platform_logo.dart';
+import '../pages/profiles_page.dart';
+import '../pages/home_hub.dart';
+
 import '../../domain/models.dart';
 import '../../domain/platform_catalog.dart';
 import '../../state/app_controller.dart';
@@ -33,11 +37,12 @@ class _NovaTvShellState extends State<NovaTvShell> {
     'live': ('TV en direct', Icons.live_tv_rounded),
     'movies': ('Films', Icons.movie_outlined),
     'series': ('Séries', Icons.video_library_outlined),
+    'platforms': ('Plateformes', Icons.dashboard_outlined),
+    'trends': ('Tendances', Icons.trending_up),
     'resume': ('Reprendre', Icons.history_rounded),
     'favorites': ('Favoris', Icons.favorite_border),
     'history': ('Historique', Icons.history),
     'search': ('Recherche', Icons.search),
-    'platforms': ('Plateformes', Icons.dashboard_outlined),
     'sources': ('Sources', Icons.cloud_outlined),
     'settings': ('Paramètres', Icons.settings_outlined),
   };
@@ -241,6 +246,12 @@ class _NovaTvShellState extends State<NovaTvShell> {
   );
 
   Widget _body() => switch (_section) {
+    'home' => HomeHub(
+      controller: app,
+      onNavigate: _select,
+      onDetails: _details,
+    ),
+    'trends' => _home(),
     'live' => TvLive(
       key: _liveKey,
       controller: app,
@@ -277,11 +288,16 @@ class _NovaTvShellState extends State<NovaTvShell> {
     final ids = app.recentIds.toSet();
     final items = app.items
         .where(
-          (item) =>
-              ids.contains(item.id) ||
-              item.seasons.any(
-                (season) =>
-                    season.episodes.any((episode) => ids.contains(episode.id)),
+          (item) => app
+              .variantsFor(item)
+              .any(
+                (variant) =>
+                    ids.contains(variant.id) ||
+                    variant.seasons.any(
+                      (season) => season.episodes.any(
+                        (episode) => ids.contains(episode.id),
+                      ),
+                    ),
               ),
         )
         .toList();
@@ -301,7 +317,6 @@ class _NovaTvShellState extends State<NovaTvShell> {
   );
 
   Widget _home() {
-    final resume = app.resumeItems;
     final movies = app.items
         .where((i) => i.kind == MediaKind.movie)
         .take(20)
@@ -352,11 +367,9 @@ class _NovaTvShellState extends State<NovaTvShell> {
                 spacing: 14,
                 children: [
                   FilledButton.icon(
-                    onPressed: () => _select(app.isDemo ? 'sources' : 'live'),
-                    icon: Icon(app.isDemo ? Icons.add : Icons.live_tv),
-                    label: Text(
-                      app.isDemo ? 'Ajouter mes sources' : 'Regarder la TV',
-                    ),
+                    onPressed: () => _select('movies'),
+                    icon: const Icon(Icons.movie_outlined),
+                    label: Text('Explorer les films'),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _select('search'),
@@ -368,7 +381,6 @@ class _NovaTvShellState extends State<NovaTvShell> {
             ],
           ),
         ),
-        if (resume.isNotEmpty) _rail('Reprendre', resume),
         if (app.recentlyAddedItems.isNotEmpty)
           _rail('Récemment ajoutés', app.recentlyAddedItems.take(24).toList()),
         if (trending.isNotEmpty) _rail('Tendances dans vos sources', trending),
@@ -483,11 +495,10 @@ class _NovaTvShellState extends State<NovaTvShell> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          platform.assetPath,
+                        PlatformLogo(
+                          platform: platform,
                           height: 34,
                           width: 110,
-                          fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -509,6 +520,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
 
   Widget _settings() => ListView(
     children: [
+      ProfileSettingsTile(controller: app),
       ListTile(
         title: const Text('Mes sources'),
         subtitle: const Text(

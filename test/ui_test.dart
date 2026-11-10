@@ -5,7 +5,7 @@ import 'package:nova_iptv/data/local_store.dart';
 import 'package:nova_iptv/domain/models.dart';
 import 'package:nova_iptv/state/app_controller.dart';
 import 'package:nova_iptv/ui/pages/catalog_page.dart';
-import 'package:nova_iptv/ui/pages/home_page.dart';
+import 'package:nova_iptv/ui/pages/home_hub.dart';
 import 'package:nova_iptv/ui/pages/live_page.dart';
 import 'package:nova_iptv/ui/pages/settings_page.dart';
 
@@ -14,7 +14,7 @@ void main() {
     tester,
   ) async {
     await _startApp(tester);
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(HomeHub), findsOneWidget);
 
     await _navigate(tester, 'Films');
     expect(find.byType(MediaCatalogPage), findsOneWidget);
@@ -80,7 +80,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await _navigate(tester, 'Accueil');
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(HomeHub), findsOneWidget);
   });
 
   testWidgets('Favorites and the chosen playback speed survive saving', (
@@ -179,7 +179,7 @@ void main() {
       size: const Size(1000, 680),
       settings: {'posterScale': 1.5},
     );
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(HomeHub), findsOneWidget);
     expect(tester.takeException(), isNull, reason: 'Home at 1000 × 680');
     for (final section in ['Films', 'Séries', 'TV en direct', 'Paramètres']) {
       await _navigate(tester, section);

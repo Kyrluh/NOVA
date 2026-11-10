@@ -46,12 +46,14 @@ class PublicCatalogClient {
   Future<List<InternetTitle>> platforms(
     CatalogPlatform platform,
     MediaKind kind,
-  ) => _catalog(
-    _platformsBase.resolve(
-      'catalog/${kind.name}/${publicPlatformIds[platform]}.json',
-    ),
-    kind,
-  );
+  ) => !publicPlatformIds.containsKey(platform)
+      ? Future.value(const [])
+      : _catalog(
+          _platformsBase.resolve(
+            'catalog/${kind.name}/${publicPlatformIds[platform]}.json',
+          ),
+          kind,
+        );
   Future<List<InternetTitle>> trends(MediaKind kind) =>
       _catalog(_trendsBase.resolve('catalog/${kind.name}/top.json'), kind);
 

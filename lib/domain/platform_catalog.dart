@@ -11,7 +11,15 @@ enum CatalogPlatform {
   paramountPlus('Paramount+', 'paramount-plus-light', 0xff3478ff),
   crunchyroll('Crunchyroll', 'crunchyroll', 0xfff47521),
   hulu('Hulu', 'hulu', 0xff1ce783),
-  peacock('Peacock', 'peacock-light', 0xffd0b75a);
+  peacock('Peacock', 'peacock-light', 0xffd0b75a),
+  canalPlus('CANAL+', '', 0xffeeeeee),
+  starz('STARZ', '', 0xffc7b092),
+  ocs('OCS', '', 0xfff29a38),
+  variety('VARIETY', '', 0xffd04260),
+  frenchTv('TF1+ | M6+ | FTV', '', 0xff5189e8),
+  documentaries('DOCUMENTAIRES', '', 0xff4db89a),
+  reality('ÉMISSION / REALITY TV', '', 0xffd27bdc),
+  kids('KIDS', '', 0xfff2cc54);
 
   const CatalogPlatform(this.label, this.asset, this.color);
   final String label;
@@ -107,13 +115,45 @@ class PlatformPreferences {
 }
 
 Set<CatalogPlatform> detectPlatforms(String category) {
-  final normalized = category.toLowerCase().replaceAll(
-    RegExp(r'[^a-z0-9+]'),
-    ' ',
-  );
+  final normalized = category
+      .toLowerCase()
+      .replaceAll(RegExp('[éèêë]'), 'e')
+      .replaceAll(RegExp('[àâä]'), 'a')
+      .replaceAll(RegExp('[îï]'), 'i')
+      .replaceAll(RegExp('[ôö]'), 'o')
+      .replaceAll(RegExp('[ùûü]'), 'u')
+      .replaceAll('ç', 'c')
+      .replaceAll(RegExp(r'[^a-z0-9+]'), ' ');
   final compact = normalized.replaceAll(' ', '');
   final tokens = normalized.split(RegExp(r'\s+')).toSet();
   return {
+    if (tokens.contains('canal') ||
+        tokens.contains('canal+') ||
+        compact.contains('canalplus'))
+      CatalogPlatform.canalPlus,
+    if (tokens.contains('starz') || tokens.contains('starzplay'))
+      CatalogPlatform.starz,
+    if (tokens.contains('ocs')) CatalogPlatform.ocs,
+    if (tokens.contains('variety')) CatalogPlatform.variety,
+    if (compact.contains('tf1') ||
+        compact.contains('m6') ||
+        tokens.contains('ftv') ||
+        compact.contains('francetv'))
+      CatalogPlatform.frenchTv,
+    if (tokens.any(
+      (word) => word.startsWith('documentair') || word.startsWith('documentar'),
+    ))
+      CatalogPlatform.documentaries,
+    if (tokens.any((word) => word.startsWith('emission')) ||
+        tokens.contains('reality') ||
+        compact.contains('telerealite'))
+      CatalogPlatform.reality,
+    if (tokens.any(
+          (word) => word.startsWith('anime') || word.startsWith('animat'),
+        ) ||
+        tokens.contains('kids') ||
+        compact.contains('dessinanime'))
+      CatalogPlatform.kids,
     if (tokens.contains('netflix')) CatalogPlatform.netflix,
     if (compact.contains('primevideo') ||
         compact.contains('amazonprime') ||

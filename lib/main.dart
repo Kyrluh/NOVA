@@ -81,6 +81,7 @@ Future<void> main() async {
   runApp(
     NovaApp(
       television: television,
+      requireProfiles: true,
       controller: controller,
       nativeReady: nativeReady,
       manageWindow: Platform.isWindows,

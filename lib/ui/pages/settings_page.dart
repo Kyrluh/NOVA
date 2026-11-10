@@ -5,6 +5,8 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'profiles_page.dart';
+
 import '../../domain/models.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
@@ -182,8 +184,8 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => AlertDialog(
         title: const Text('Réinitialiser les données locales ?'),
         content: const Text(
-          'Les favoris, l’historique, les progressions et vos '
-          'réglages seront effacés sur cet appareil. '
+          'Les favoris, l’historique, les progressions et les '
+          'réglages du profil actuel seront effacés. Les autres profils sont conservés. '
           'Cette action ne peut pas être annulée.',
         ),
         actions: [
@@ -232,6 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: 'Votre espace, vos préférences. Les changements sont enregistrés automatiquement.',
             ),
             const SizedBox(height: 28),
+            ProfileSettingsTile(controller: widget.controller),
             if (NovaAdaptiveScope.isAndroid(context)) ...[
               _SettingsSection(
                 icon: Icons.touch_app_outlined,

@@ -14,7 +14,7 @@ import 'package:nova_iptv/sources/iptv_client.dart';
 import 'package:nova_iptv/state/app_controller.dart';
 import 'package:nova_iptv/state/source_controller.dart';
 import 'package:nova_iptv/ui/pages/catalog_page.dart';
-import 'package:nova_iptv/ui/pages/home_page.dart';
+import 'package:nova_iptv/ui/pages/home_hub.dart';
 import 'package:nova_iptv/ui/pages/live_page.dart';
 import 'package:nova_iptv/ui/pages/sources_page.dart';
 
@@ -47,7 +47,7 @@ void main() {
       );
       await _back(tester);
       await _navigate(tester, 'Accueil');
-      expect(find.byType(HomePage), findsOneWidget);
+      expect(find.byType(HomeHub), findsOneWidget);
       expect(
         find.text('Chaîne locale A'),
         findsOneWidget,

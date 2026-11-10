@@ -17,12 +17,14 @@ class HomePage extends StatelessWidget {
     required this.onOpenFile,
     required this.onNavigate,
     this.onManageSources,
+    this.trends = false,
   });
   final AppController controller;
   final void Function(MediaItem) onDetails;
   final VoidCallback onOpenFile;
   final void Function(NovaSection) onNavigate;
   final VoidCallback? onManageSources;
+  final bool trends;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,7 @@ class HomePage extends StatelessWidget {
         .take(android ? 24 : controller.items.length)
         .toList();
     final featured =
+        controller.recommendations.firstOrNull ??
         movies.firstOrNull ??
         series.firstOrNull ??
         controller.items.firstOrNull;
@@ -258,7 +261,7 @@ class HomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _quickActions(context, compact),
+        if (!trends) _quickActions(context, compact),
         if (onManageSources != null) ...[
           const SizedBox(height: 18),
           Align(
@@ -274,7 +277,7 @@ class HomePage extends StatelessWidget {
             ),
           ),
         ],
-        if (resume.isNotEmpty) ...[
+        if (!trends && resume.isNotEmpty) ...[
           const SizedBox(height: 28),
           _heading(
             'Reprendre',
@@ -330,7 +333,7 @@ class HomePage extends StatelessWidget {
             onDetails: onDetails,
           ),
         ],
-        if (favorites.isNotEmpty) ...[
+        if (!trends && favorites.isNotEmpty) ...[
           const SizedBox(height: 26),
           _heading(
             'Votre sélection',

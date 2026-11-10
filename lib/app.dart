@@ -7,6 +7,8 @@ import 'ui/shell.dart';
 import 'ui/theme.dart';
 import 'ui/tv/tv_shell.dart';
 import 'ui/tv/tv_widgets.dart';
+import 'ui/pages/profiles_page.dart';
+import 'ui/window_close_host.dart';
 
 class NovaApp extends StatelessWidget {
   const NovaApp({
@@ -17,6 +19,7 @@ class NovaApp extends StatelessWidget {
     this.fullscreenController,
     this.mobileUI,
     this.television = false,
+    this.requireProfiles = false,
   });
   final AppController controller;
   final bool nativeReady;
@@ -24,33 +27,52 @@ class NovaApp extends StatelessWidget {
   final DesktopFullscreen? fullscreenController;
   final bool? mobileUI;
   final bool television;
+  final bool requireProfiles;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: controller,
-    builder: (context, _) => MaterialApp(
-      title: television ? 'NOVA IPTV TV' : 'NOVA IPTV',
-      debugShowCheckedModeBanner: false,
-      locale: const Locale('fr'),
-      supportedLocales: const [Locale('fr')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      theme: television
-          ? novaTvTheme(controller.settings.accent)
-          : novaTheme(controller.settings.accent),
-      themeAnimationDuration: controller.settings.animations
-          ? const Duration(milliseconds: 180)
-          : Duration.zero,
-      home: !controller.isReady
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : television
-          ? NovaTvShell(controller: controller, nativeReady: nativeReady)
-          : NovaShell(
-              controller: controller,
-              nativeReady: nativeReady,
-              manageWindow: manageWindow,
-              fullscreenController: fullscreenController,
-              mobileUI: mobileUI,
-            ),
+  Widget build(BuildContext context) => WindowCloseHost(
+    controller: controller,
+    enabled: manageWindow,
+    child: ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => MaterialApp(
+        title: television ? 'NOVA IPTV TV' : 'NOVA IPTV',
+        debugShowCheckedModeBanner: false,
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        theme: television
+            ? novaTvTheme(controller.settings.accent)
+            : novaTheme(controller.settings.accent),
+        themeAnimationDuration: controller.settings.animations
+            ? const Duration(milliseconds: 180)
+            : Duration.zero,
+        home: !controller.isReady
+            ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+            : requireProfiles && !controller.profileChosen
+            ? ProfilesPage(controller: controller)
+            : requireProfiles && !controller.activeProfile.genresConfigured
+            ? ProfileEditor(
+                key: ValueKey(controller.activeProfileId),
+                controller: controller,
+                onboarding: true,
+              )
+            : television
+            ? NovaTvShell(
+                key: ValueKey(controller.activeProfileId),
+                controller: controller,
+                nativeReady: nativeReady,
+              )
+            : NovaShell(
+                key: ValueKey(controller.activeProfileId),
+                controller: controller,
+                nativeReady: nativeReady,
+                manageWindow: manageWindow,
+                handleWindowClose: false,
+                fullscreenController: fullscreenController,
+                mobileUI: mobileUI,
+              ),
+      ),
     ),
   );
 }

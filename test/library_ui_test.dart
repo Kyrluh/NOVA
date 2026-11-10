@@ -13,7 +13,7 @@ import 'package:nova_iptv/sources/iptv_client.dart';
 import 'package:nova_iptv/state/app_controller.dart';
 import 'package:nova_iptv/state/source_controller.dart';
 import 'package:nova_iptv/ui/pages/catalog_page.dart';
-import 'package:nova_iptv/ui/pages/home_page.dart';
+import 'package:nova_iptv/ui/pages/home_hub.dart';
 import 'package:nova_iptv/ui/pages/platforms_page.dart';
 
 void main() {
@@ -134,7 +134,7 @@ void main() {
                   .widget<ListView>(
                     find
                         .descendant(
-                          of: find.byType(HomePage),
+                          of: find.byType(HomeHub),
                           matching: find.byType(ListView),
                         )
                         .first,

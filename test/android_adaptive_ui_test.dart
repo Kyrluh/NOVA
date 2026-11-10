@@ -14,7 +14,7 @@ import 'package:nova_iptv/state/source_controller.dart';
 import 'package:nova_iptv/ui/adaptive.dart';
 import 'package:nova_iptv/ui/pages/catalog_page.dart';
 import 'package:nova_iptv/ui/pages/live_page.dart';
-import 'package:nova_iptv/ui/pages/home_page.dart';
+import 'package:nova_iptv/ui/pages/home_hub.dart';
 import 'package:nova_iptv/ui/pages/settings_page.dart';
 import 'package:nova_iptv/ui/theme.dart';
 import 'package:nova_iptv/ui/widgets/media_artwork.dart';
@@ -37,7 +37,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(HomePage), findsOneWidget);
+      expect(find.byType(HomeHub), findsOneWidget);
       final rail = tester.widget<MediaRail>(find.byType(MediaRail).first);
       expect(rail.items.length, lessThanOrEqualTo(24));
       expect(app.items.length, 1500);

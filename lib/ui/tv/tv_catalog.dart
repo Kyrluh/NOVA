@@ -47,7 +47,9 @@ class _TvCatalogState extends State<TvCatalog> {
 
   @override
   Widget build(BuildContext context) {
-    final groups = widget.items.map((i) => i.category).toSet();
+    final groups = widget.items
+        .expand((i) => widget.controller.variantsFor(i).map((v) => v.category))
+        .toSet();
     if (_category != null &&
         _category != _recent &&
         !groups.contains(_category)) {
@@ -59,7 +61,9 @@ class _TvCatalogState extends State<TvCatalog> {
           (i) =>
               (_category == null ||
                   _category == _recent ||
-                  _category == i.category) &&
+                  widget.controller
+                      .variantsFor(i)
+                      .any((v) => _category == v.category)) &&
               (query.isEmpty ||
                   '${i.title} ${i.category}'.toLowerCase().contains(query)),
         )

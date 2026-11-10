@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/platform_logo.dart';
+
 import '../../domain/models.dart';
 import '../../domain/platform_catalog.dart';
 import '../../state/app_controller.dart';
@@ -384,14 +386,7 @@ class _PlatformsPageState extends State<PlatformsPage> {
     height: size,
     child: platform == null
         ? const Icon(Icons.video_library_outlined, size: 38, color: novaMuted)
-        : ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              platform.assetPath,
-              fit: BoxFit.contain,
-              semanticLabel: 'Logo ${platform.label}',
-            ),
-          ),
+        : PlatformLogo(platform: platform, width: size, height: size),
   );
 
   Future<void> _configure(CatalogPlatform platform) async {

@@ -126,15 +126,17 @@ void main() {
         expect(find.byKey(const ValueKey('mobile-navigation')), findsNothing);
         expect(tester.takeException(), isNull);
       }
-      for (var n = 0; n < 9; n++) {
+      for (var n = 0; n < 10; n++) {
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
         await tester.pumpAndSettle();
       }
       await tester.sendKeyEvent(LogicalKeyboardKey.select);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('add-source')), findsOneWidget);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-      await tester.pumpAndSettle();
+      for (var n = 0; n < 6; n++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+      }
       await tester.sendKeyEvent(LogicalKeyboardKey.select);
       await tester.pumpAndSettle();
       expect(find.byType(Image), findsWidgets);

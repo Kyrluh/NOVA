@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../adaptive.dart';
 import '../widgets/media_artwork.dart';
 import '../widgets/page_widgets.dart';
+import '../widgets/variant_picker.dart';
 
 void showMediaDetails(
   BuildContext context, {
@@ -43,14 +44,16 @@ class _DetailsDialogState extends State<_DetailsDialog> {
   int _season = 0;
   bool _loading = false;
   String? _error;
+  int _request = 0;
   @override
   void initState() {
     super.initState();
-    _item = widget.item;
+    _item = widget.controller.preferredVariant(widget.item);
     _load();
   }
 
   Future<void> _load() async {
+    final request = ++_request;
     if (_item.isDemo || _item.detailsLoaded) return;
     setState(() {
       _loading = true;
@@ -58,20 +61,20 @@ class _DetailsDialogState extends State<_DetailsDialog> {
     });
     try {
       final detailed = await widget.controller.loadDetails(_item);
-      if (mounted) {
+      if (mounted && request == _request) {
         setState(() {
           _item = detailed;
           _season = 0;
         });
       }
     } catch (error) {
-      if (mounted) {
+      if (mounted && request == _request) {
         setState(
           () => _error = error is SourceException ? error.message : 'Impossible de charger les informations. Réessayez dans un instant.',
         );
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && request == _request) setState(() => _loading = false);
     }
   }
 
@@ -211,6 +214,19 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        VariantPicker(
+                          controller: app,
+                          item: item,
+                          onChanged: (version) {
+                            setState(() {
+                              _item = version;
+                              _season = 0;
+                              _error = null;
+                              _loading = false;
+                            });
+                            _load();
+                          },
+                        ),
                         Text(
                           metadata,
                           style: const TextStyle(color: novaMuted),
