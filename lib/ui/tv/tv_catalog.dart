@@ -64,7 +64,7 @@ class _TvCatalogState extends State<TvCatalog> {
                   '${i.title} ${i.category}'.toLowerCase().contains(query)),
         )
         .toList();
-    if (_category == _recent) items = recentlyAdded(items);
+    if (widget.recentCategory) items = recentlyAdded(items);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

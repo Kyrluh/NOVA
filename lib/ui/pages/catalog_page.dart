@@ -28,13 +28,14 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
   final _search = TextEditingController();
   static const _recent = '\u0000recent';
   String? _category = _recent;
-  String _sort = 'catalogue';
+  String _sort = 'recent';
 
   @override
   void didUpdateWidget(covariant MediaCatalogPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.kind != widget.kind) {
       _category = _recent;
+      _sort = 'recent';
       _search.clear();
     }
   }
@@ -69,7 +70,7 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                   item.category == _category) &&
               (query.isEmpty || _searchText(item).contains(query));
         }).toList();
-        if (_category == _recent) {
+        if (_category == _recent || _sort == 'recent') {
           items = recentlyAdded(items);
         } else {
           switch (_sort) {
@@ -115,8 +116,9 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                     ),
                   );
                   final sort = DropdownButtonFormField<String>(
+                    key: ValueKey(_category == _recent),
                     isExpanded: true,
-                    initialValue: _sort,
+                    initialValue: _category == _recent ? 'recent' : _sort,
                     decoration: const InputDecoration(
                       labelText: 'Trier par',
                       contentPadding: EdgeInsets.symmetric(
@@ -125,6 +127,14 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                       ),
                     ),
                     items: const [
+                      DropdownMenuItem(
+                        value: 'recent',
+                        child: Text(
+                          'Récemment ajoutés',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       DropdownMenuItem(
                         value: 'catalogue',
                         child: Text(
