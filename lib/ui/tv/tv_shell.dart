@@ -280,7 +280,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
     'sources' =>
       app.sources == null
           ? const Center(child: Text('Gestion des sources indisponible.'))
-          : SourcesPage(controller: app.sources!),
+          : SourcesPage(controller: app.sources!, television: true),
     'settings' => _settings(),
     _ => _home(),
   };

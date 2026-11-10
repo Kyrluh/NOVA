@@ -4,7 +4,7 @@ Application dédiée aux téléviseurs et boîtiers Android, conçue pour les fl
 
 ## APK et compatibilité
 
-- Fichier : **NOVA-IPTV-TV-0.7.0-universal.apk**.
+- Fichier : **NOVA-IPTV-TV-0.8.2-universal.apk**.
 - Package de production : **`app.nova.iptv.tv`** ; application téléphone : `app.nova.iptv`.
 - Android **API24/7.0 minimum**, cible API36 ; architectures ARM32, ARM64 et x86_64.
 - Android TV / Google TV et Fire TV sous **Fire OS basé sur Android**, sous réserve de respecter l'API minimum et les capacités vidéo de l'appareil.
@@ -58,7 +58,7 @@ Les réglages audio/vidéo et les reconnections restent ceux du moteur partagé.
 
 ## Sources et mises à jour
 
-Le formulaire reprend le correctif télécommande0.6.6 : Suivant/Valider passe au champ suivant ; haut/bas fonctionne avec le clavier masqué ; le champ reste visible. Après le champ XMLTV facultatif, Valider sélectionne Ajouter/Enregistrer.
+Depuis la version TV 0.8.2, les flèches haut/bas déplacent le focus entre les champs du formulaire sans ouvrir le clavier. Sur le champ URL, appuyer sur **OK** ouvre un éditeur **Android natif** avec le clavier système de la TV. **Valider** enregistre le texte ; **Annuler** ou Retour conserve la valeur précédente. Le focus revient au champ modifié, puis la flèche bas passe au suivant. La même saisie est utilisée pour le nom, l'identifiant, le mot de passe personnalisé et XMLTV. Les caractères de l'URL, notamment `:`, `/`, `?`, `&`, `%` et `=`, sont conservés.
 
 Les catalogues sont actualisés au lancement avec la progression partagée. Les sources restent chiffrées dans le stockage de ce package. Aucun transfert automatique de mots de passe depuis une autre application ou un téléphone n'est effectué.
 

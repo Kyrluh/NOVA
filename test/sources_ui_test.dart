@@ -4,11 +4,183 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nova_iptv/domain/source_models.dart';
+import 'package:nova_iptv/domain/provider_presets.dart';
 import 'package:nova_iptv/state/source_controller.dart';
 import 'package:nova_iptv/ui/pages/sources_page.dart';
 import 'package:nova_iptv/ui/theme.dart';
+import 'package:nova_iptv/ui/tv/tv_source_field.dart';
 
 void main() {
+  for (final television in [false, true]) {
+    testWidgets(
+      'Xtream server choices and custom URL stay consistent (TV=$television)',
+      (tester) async {
+        final controller = _FakeSources();
+        final keyboardCalls = <MethodCall>[];
+        const nativeChannel = MethodChannel('nova/android');
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          nativeChannel,
+          (call) async {
+            keyboardCalls.add(call);
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            nativeChannel,
+            null,
+          ),
+        );
+        await _start(tester, controller, television: television);
+        await tester.tap(find.byKey(const Key('add-source')));
+        await tester.pumpAndSettle();
+        void text(String key, String value) {
+          final widget = tester.widget(find.byKey(Key(key)));
+          final input = widget is TvSourceField
+              ? widget.controller
+              : (widget as TextFormField).controller!;
+          input.text = value;
+        }
+
+        text('source-name', 'Fixture');
+        text('source-username', 'fixture-user');
+        text('source-password', 'fixture-password');
+        const custom = 'https://custom.example.test:8080/?x=a%2Fb&k=fixture';
+        text('source-address', custom);
+        DropdownButtonFormField<String> choice() =>
+            tester.widget<DropdownButtonFormField<String>>(
+              find.byWidgetPredicate(
+                (w) =>
+                    w is DropdownButtonFormField<String> &&
+                    w.key.toString().contains('source-server-'),
+              ),
+            );
+        for (final url in ProviderPresets.xtreamServers) {
+          choice().onChanged!(url);
+          await tester.pumpAndSettle();
+          expect(find.byKey(const Key('source-address')), findsNothing);
+          final button = find.widgetWithText(
+            OutlinedButton,
+            'Tester la connexion',
+          );
+          await tester.ensureVisible(button);
+          await tester.tap(button);
+          await tester.pumpAndSettle();
+          expect(controller.tested.last.address, url);
+        }
+        choice().onChanged!('custom');
+        await tester.pumpAndSettle();
+        if (television) {
+          expect(
+            keyboardCalls,
+            isEmpty,
+            reason: 'Changing presets or focusing a field must not open the keyboard',
+          );
+        }
+        final widget = tester.widget(find.byKey(const Key('source-address')));
+        expect(
+          widget is TvSourceField
+              ? widget.controller.text
+              : (widget as TextFormField).controller!.text,
+          custom,
+        );
+        await _selectKind(tester, 'Playlist M3U • URL');
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is DropdownButtonFormField<String> &&
+                w.key.toString().contains('source-server-'),
+          ),
+          findsNothing,
+        );
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+  testWidgets(
+    'TV URL edit opens the native keyboard with OK, preserves punctuation and supports cancel',
+    (tester) async {
+      const original =
+          'https://example.test:8080/list.m3u?x=a%2Fb&token=fixture#part';
+      const replacement =
+          'http://example.test:8080/list.m3u?username=fixture&password=fixture%3Avalue&output=ts';
+      final controller = _FakeSources();
+      await controller.add(
+        const SourceDraft(
+          name: 'TV fixture',
+          kind: SourceKind.m3uUrl,
+          address: original,
+        ),
+      );
+      final calls = <MethodCall>[];
+      final response = Completer<String?>();
+      const channel = MethodChannel('nova/android');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        calls.add(call);
+        return calls.length == 1 ? response.future : null;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      await _start(tester, controller, television: true);
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TvSourceField>(
+        find.byKey(const Key('source-address')),
+      );
+      field.focusNode.requestFocus();
+      await tester.pump();
+      expect(calls, isEmpty);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(field.focusNode.hasFocus, isTrue);
+      expect(
+        calls,
+        isEmpty,
+        reason: 'Arrows navigate without opening the native keyboard',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      expect(calls.single.method, 'editSourceText');
+      expect((calls.single.arguments as Map)['value'], original);
+      expect((calls.single.arguments as Map)['url'], isTrue);
+      expect(field.controller.text, original);
+      response.complete(replacement);
+      await tester.pumpAndSettle();
+      expect(field.controller.text, replacement);
+      expect(field.focusNode.hasFocus, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(
+        field.controller.text,
+        replacement,
+        reason: 'Native cancellation must preserve the previous URL',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TvSourceField>(find.byKey(const Key('source-epg')))
+            .focusNode
+            .hasFocus,
+        isTrue,
+      );
+      final save = find.byKey(const Key('save-source'));
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(controller.saved.last.address, replacement);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets(
     'Kyrlu preset and custom password apply only to default-first Xtream',
     (tester) async {
@@ -127,6 +299,12 @@ void main() {
       await _selectKind(tester, 'Xtream Codes');
       await _enter(tester, 'source-name', 'TV Xtream');
       tester.testTextInput.hide();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        'Xtream server choice',
+      );
       for (final field in [
         'source-address',
         'source-username',
@@ -312,7 +490,11 @@ bool _fieldFocused(WidgetTester tester, String key) => tester
     .focusNode
     .hasFocus;
 
-Future<void> _start(WidgetTester tester, _FakeSources controller) async {
+Future<void> _start(
+  WidgetTester tester,
+  _FakeSources controller, {
+  bool television = false,
+}) async {
   tester.view.physicalSize = const Size(1000, 680);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -323,7 +505,7 @@ Future<void> _start(WidgetTester tester, _FakeSources controller) async {
       theme: novaTheme(0xff8b5cf6),
       home: Scaffold(
         appBar: AppBar(title: const Text('Sources IPTV')),
-        body: SourcesPage(controller: controller),
+        body: SourcesPage(controller: controller, television: television),
       ),
     ),
   );
@@ -393,6 +575,17 @@ class _FakeSources extends ChangeNotifier implements SourceController {
     final pending = pendingTest;
     if (pending != null) return pending.future;
     return 'Connexion réussie.';
+  }
+
+  @override
+  Future<void> update(
+    String id,
+    SourceDraft draft, {
+    CancellationToken? cancel,
+  }) async {
+    saved.add(draft);
+    _drafts[id] = draft;
+    notifyListeners();
   }
 
   @override

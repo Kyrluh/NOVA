@@ -2,6 +2,7 @@ package app.nova.iptv
 
 import android.app.PictureInPictureParams
 import android.app.PictureInPictureUiState
+import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -24,6 +25,12 @@ import android.view.KeyEvent
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.text.InputFilter
+import android.text.InputType
+import android.widget.EditText
+import android.widget.LinearLayout
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -51,6 +58,9 @@ class MainActivity : FlutterActivity() {
     private var noisyRegistered = false
     private var focusRequest: AudioFocusRequest? = null
     private var exportResult: MethodChannel.Result? = null
+    private var sourceEditor: AlertDialog? = null
+    private var sourceEditorResult: MethodChannel.Result? = null
+    private var sourceEditorField: EditText? = null
     private var exportText: String? = null
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
@@ -72,6 +82,7 @@ class MainActivity : FlutterActivity() {
         channel?.setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
+                    "editSourceText" -> editSourceText(call, result)
                     "protect", "unprotect" -> crypto(call, result)
                     "getBrightness" -> {
                         val value = window.attributes.screenBrightness
@@ -154,6 +165,85 @@ class MainActivity : FlutterActivity() {
                 result.error("android_operation_failed", "Cette opération Android est indisponible.", null)
             }
         }
+    }
+
+    private fun editSourceText(call: MethodCall, result: MethodChannel.Result) {
+        if (sourceEditorResult != null) {
+            result.error("source_editor_busy", "Un champ est déjà en cours de saisie.", null)
+            return
+        }
+        val args = call.arguments as Map<*, *>
+        val initial = args["value"] as? String ?: ""
+        val isUrl = args["url"] == true
+        val secret = args["secret"] == true
+        val limit = (args["maxLength"] as? Number)?.toInt()?.coerceIn(1, 16384) ?: 4096
+        val editor = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or when {
+                secret -> InputType.TYPE_TEXT_VARIATION_PASSWORD
+                isUrl -> InputType.TYPE_TEXT_VARIATION_URI
+                else -> InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            }
+            setSingleLine(true)
+            setHorizontallyScrolling(true)
+            filters = arrayOf(InputFilter.LengthFilter(limit.coerceAtLeast(initial.length)))
+            imeOptions = EditorInfo.IME_ACTION_DONE or EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            setText(initial)
+            setSelection(text.length)
+            setSelectAllOnFocus(false)
+            contentDescription = args["title"] as? String ?: "Modifier le champ"
+        }
+        val padding = (24 * resources.displayMetrics.density).toInt()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(padding, padding / 2, padding, padding / 2)
+            addView(editor, LinearLayout.LayoutParams(-1, -2))
+        }
+        val dialog = AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle(args["title"] as? String ?: "Modifier le champ")
+            .setView(content)
+            .setPositiveButton("Valider") { _, _ -> finishSourceEditor(editor.text.toString()) }
+            .setNegativeButton("Annuler") { _, _ -> finishSourceEditor(null) }
+            .create()
+        sourceEditor = dialog
+        sourceEditorField = editor
+        sourceEditorResult = result
+        editor.setOnEditorActionListener { _, action, event ->
+            if (action == EditorInfo.IME_ACTION_DONE ||
+                (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP)) {
+                finishSourceEditor(editor.text.toString())
+                true
+            } else false
+        }
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.setOnDismissListener { finishSourceEditor(null) }
+        try {
+            dialog.show()
+            dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            editor.requestFocus()
+            editor.post {
+                if (sourceEditor === dialog && !destroyed) {
+                    (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                        .showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+                }
+            }
+        } catch (_: Exception) {
+            finishSourceEditor(null)
+        }
+    }
+
+    private fun finishSourceEditor(value: String?) {
+        val result = sourceEditorResult ?: return
+        val dialog = sourceEditor
+        val editor = sourceEditorField
+        sourceEditorResult = null
+        sourceEditor = null
+        sourceEditorField = null
+        if (editor != null) {
+            (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                .hideSoftInputFromWindow(editor.windowToken, 0)
+        }
+        dialog?.dismiss()
+        result.success(value)
     }
 
     private fun volume(): Double {
@@ -341,6 +431,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         destroyed = true
+        finishSourceEditor(null)
         channel?.setMethodCallHandler(null)
         channel = null
         setPlaybackActive(false)

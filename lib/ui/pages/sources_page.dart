@@ -8,13 +8,19 @@ import '../../state/source_controller.dart';
 import '../theme.dart';
 import '../widgets/page_widgets.dart';
 import '../adaptive.dart';
+import '../tv/tv_source_field.dart';
 
 /// Personal source management. Provider addresses and credentials are only
 /// displayed inside the edit form, never in source cards or error details.
 class SourcesPage extends StatelessWidget {
-  const SourcesPage({super.key, required this.controller});
+  const SourcesPage({
+    super.key,
+    required this.controller,
+    this.television = false,
+  });
 
   final SourceController controller;
+  final bool television;
 
   Future<void> _edit(BuildContext context, [SourceSummary? source]) async {
     final initial = source == null ? null : controller.draftFor(source.id);
@@ -26,6 +32,7 @@ class SourcesPage extends StatelessWidget {
         controller: controller,
         sourceId: source?.id,
         initial: initial,
+        television: television,
       ),
     );
     if (saved != true || !context.mounted) return;
@@ -392,10 +399,16 @@ class _FormatHint extends StatelessWidget {
 }
 
 class _SourceForm extends StatefulWidget {
-  const _SourceForm({required this.controller, this.sourceId, this.initial});
+  const _SourceForm({
+    required this.controller,
+    this.sourceId,
+    this.initial,
+    this.television = false,
+  });
   final SourceController controller;
   final String? sourceId;
   final SourceDraft? initial;
+  final bool television;
   @override
   State<_SourceForm> createState() => _SourceFormState();
 }
@@ -407,6 +420,7 @@ class _SourceFormState extends State<_SourceForm> {
   final _passwordModeFocus = FocusNode(debugLabel: 'Source password mode');
   final _nameFocus = FocusNode(debugLabel: 'Source name');
   final _addressFocus = FocusNode(debugLabel: 'Source address');
+  final _serverFocus = FocusNode(debugLabel: 'Xtream server choice');
   final _usernameFocus = FocusNode(debugLabel: 'Source username');
   final _passwordFocus = FocusNode(debugLabel: 'Source password');
   final _epgFocus = FocusNode(debugLabel: 'Source EPG');
@@ -420,7 +434,9 @@ class _SourceFormState extends State<_SourceForm> {
       _kindFocus,
       if (_kind == SourceKind.xtream) _providerFocus,
       _nameFocus,
-      _addressFocus,
+      if (_kind == SourceKind.xtream) _serverFocus,
+      if (_kind != SourceKind.xtream || _serverChoice == 'custom')
+        _addressFocus,
       if (_kind == SourceKind.xtream) ...[
         _usernameFocus,
         if (_provider == 'kyrlu') _passwordModeFocus,
@@ -461,6 +477,8 @@ class _SourceFormState extends State<_SourceForm> {
   late final TextEditingController _epg;
   late SourceKind _kind;
   String _provider = 'other';
+  String _serverChoice = 'custom';
+  String _customAddress = '';
   bool _usePreset = false;
   bool get _presetActive =>
       _kind == SourceKind.xtream &&
@@ -484,6 +502,7 @@ class _SourceFormState extends State<_SourceForm> {
         draft?.usePresetPassword == true && ProviderPresets.kyrluAvailable;
     _name = TextEditingController(text: draft?.name ?? '');
     _address = TextEditingController(text: draft?.address ?? '');
+    _syncServerChoice();
     _username = TextEditingController(text: draft?.username ?? '');
     _password = TextEditingController(
       text: _usePreset ? '' : draft?.password ?? '',
@@ -505,6 +524,7 @@ class _SourceFormState extends State<_SourceForm> {
       _passwordModeFocus,
       _nameFocus,
       _addressFocus,
+      _serverFocus,
       _usernameFocus,
       _passwordFocus,
       _epgFocus,
@@ -530,6 +550,35 @@ class _SourceFormState extends State<_SourceForm> {
     usePresetPassword: _presetActive,
     epgUrl: _epg.text.trim(),
   );
+
+  void _syncServerChoice() {
+    final address = _address.text.trim().replaceFirst(RegExp(r'/+$'), '');
+    _serverChoice = ProviderPresets.xtreamServers.contains(address)
+        ? address
+        : 'custom';
+    if (_serverChoice == 'custom') _customAddress = _address.text;
+  }
+
+  Widget _entry(
+    TextFormField field, {
+    required FocusNode focus,
+    required String label,
+    bool url = false,
+    bool secret = false,
+    int? maxLength,
+  }) => !widget.television
+      ? field
+      : TvSourceField(
+          key: field.key,
+          controller: field.controller!,
+          focusNode: focus,
+          decoration: InputDecoration(labelText: label),
+          validator: field.validator,
+          enabled: field.enabled,
+          obscureText: secret,
+          maxLength: maxLength,
+          url: url,
+        );
 
   String? _httpUrl(String? text, {bool optional = false}) {
     final value = text?.trim() ?? '';
@@ -698,6 +747,9 @@ class _SourceFormState extends State<_SourceForm> {
                                 : (value) {
                                     setState(() {
                                       _kind = value!;
+                                      if (_kind == SourceKind.xtream) {
+                                        _syncServerChoice();
+                                      }
                                       _error = null;
                                       _testResult = null;
                                     });
@@ -745,88 +797,158 @@ class _SourceFormState extends State<_SourceForm> {
                             ),
                           ],
                           const SizedBox(height: 18),
-                          TextFormField(
-                            key: const Key('source-name'),
-                            controller: _name,
-                            focusNode: _nameFocus,
-                            textInputAction: TextInputAction.next,
-                            onEditingComplete: () {},
-                            onFieldSubmitted: (_) => _focusField(_addressFocus),
-                            enabled: !_busy,
-                            maxLength: 80,
-                            decoration: const InputDecoration(
-                              labelText: 'Nom de la source',
-                              hintText: 'Ma bibliothèque',
-                              counterText: '',
-                            ),
-                            validator: (value) =>
-                                value == null || value.trim().isEmpty
-                                ? 'Donnez un nom à cette source.'
-                                : null,
-                          ),
-                          const SizedBox(height: 18),
-                          TextFormField(
-                            key: const Key('source-address'),
-                            controller: _address,
-                            focusNode: _addressFocus,
-                            textInputAction: TextInputAction.next,
-                            onEditingComplete: () {},
-                            onFieldSubmitted: (_) => _focusField(
-                              _kind == SourceKind.xtream
-                                  ? _usernameFocus
-                                  : _epgFocus,
-                            ),
-                            enabled: !_busy,
-                            autocorrect: false,
-                            enableSuggestions: false,
-                            decoration: InputDecoration(
-                              labelText: switch (_kind) {
-                                SourceKind.m3uUrl => 'URL de la playlist',
-                                SourceKind.m3uFile => 'Fichier de la playlist',
-                                SourceKind.xtream => 'URL du serveur',
-                              },
-                              hintText: _kind == SourceKind.m3uFile
-                                  ? 'Sélectionnez votre fichier M3U'
-                                  : 'https://serveur.example',
-                              suffixIcon: _kind == SourceKind.m3uFile
-                                  ? IconButton(
-                                      tooltip: 'Choisir un fichier M3U',
-                                      onPressed: _busy ? null : _browse,
-                                      icon: const Icon(
-                                        Icons.folder_open_rounded,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            validator: (value) => _kind == SourceKind.m3uFile
-                                ? value == null || value.trim().isEmpty
-                                      ? 'Choisissez un fichier M3U ou M3U8.'
-                                      : null
-                                : _httpUrl(value),
-                          ),
-                          if (_kind == SourceKind.xtream) ...[
-                            const SizedBox(height: 18),
+                          _entry(
                             TextFormField(
-                              key: const Key('source-username'),
-                              controller: _username,
-                              focusNode: _usernameFocus,
+                              key: const Key('source-name'),
+                              controller: _name,
+                              focusNode: _nameFocus,
                               textInputAction: TextInputAction.next,
                               onEditingComplete: () {},
                               onFieldSubmitted: (_) => _focusField(
-                                _provider == 'kyrlu'
-                                    ? _passwordModeFocus
-                                    : _passwordFocus,
+                                _kind == SourceKind.xtream
+                                    ? _serverFocus
+                                    : _addressFocus,
                               ),
                               enabled: !_busy,
-                              autocorrect: false,
-                              enableSuggestions: false,
+                              maxLength: 80,
                               decoration: const InputDecoration(
-                                labelText: 'Nom d’utilisateur',
+                                labelText: 'Nom de la source',
+                                hintText: 'Ma bibliothèque',
+                                counterText: '',
                               ),
                               validator: (value) =>
                                   value == null || value.trim().isEmpty
-                                  ? 'Saisissez votre nom d’utilisateur.'
+                                  ? 'Donnez un nom à cette source.'
                                   : null,
+                            ),
+                            focus: _nameFocus,
+                            label: 'Nom de la source',
+                            maxLength: 80,
+                          ),
+                          const SizedBox(height: 18),
+                          if (_kind == SourceKind.xtream) ...[
+                            DropdownButtonFormField<String>(
+                              key: ValueKey('source-server-$_serverChoice'),
+                              focusNode: _serverFocus,
+                              initialValue: _serverChoice,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Serveur Xtream',
+                              ),
+                              items: [
+                                for (final url in ProviderPresets.xtreamServers)
+                                  DropdownMenuItem(
+                                    value: url,
+                                    child: Text(url),
+                                  ),
+                                const DropdownMenuItem(
+                                  value: 'custom',
+                                  child: Text('Saisir une autre URL'),
+                                ),
+                              ],
+                              onChanged: _busy
+                                  ? null
+                                  : (value) {
+                                      if (value == null) return;
+                                      setState(() {
+                                        if (_serverChoice == 'custom') {
+                                          _customAddress = _address.text;
+                                        }
+                                        _serverChoice = value;
+                                        _address.text = value == 'custom'
+                                            ? _customAddress
+                                            : value;
+                                        _error = null;
+                                        _testResult = null;
+                                      });
+                                      _focusField(
+                                        value == 'custom'
+                                            ? _addressFocus
+                                            : _usernameFocus,
+                                      );
+                                    },
+                            ),
+                            const SizedBox(height: 18),
+                          ],
+                          if (_kind != SourceKind.xtream ||
+                              _serverChoice == 'custom')
+                            _entry(
+                              TextFormField(
+                                key: const Key('source-address'),
+                                controller: _address,
+                                focusNode: _addressFocus,
+                                textInputAction: TextInputAction.next,
+                                onEditingComplete: () {},
+                                onFieldSubmitted: (_) => _focusField(
+                                  _kind == SourceKind.xtream
+                                      ? _usernameFocus
+                                      : _epgFocus,
+                                ),
+                                enabled: !_busy,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: InputDecoration(
+                                  labelText: switch (_kind) {
+                                    SourceKind.m3uUrl => 'URL de la playlist',
+                                    SourceKind.m3uFile =>
+                                      'Fichier de la playlist',
+                                    SourceKind.xtream => 'URL du serveur',
+                                  },
+                                  hintText: _kind == SourceKind.m3uFile
+                                      ? 'Sélectionnez votre fichier M3U'
+                                      : 'https://serveur.example',
+                                  suffixIcon: _kind == SourceKind.m3uFile
+                                      ? IconButton(
+                                          tooltip: 'Choisir un fichier M3U',
+                                          onPressed: _busy ? null : _browse,
+                                          icon: const Icon(
+                                            Icons.folder_open_rounded,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                validator: (value) =>
+                                    _kind == SourceKind.m3uFile
+                                    ? value == null || value.trim().isEmpty
+                                          ? 'Choisissez un fichier M3U ou M3U8.'
+                                          : null
+                                    : _httpUrl(value),
+                              ),
+                              url: _kind != SourceKind.m3uFile,
+                              focus: _addressFocus,
+                              label: switch (_kind) {
+                                SourceKind.xtream => 'URL du serveur',
+                                SourceKind.m3uUrl => 'URL de la playlist',
+                                SourceKind.m3uFile => 'Fichier de la playlist',
+                              },
+                            ),
+                          if (_kind == SourceKind.xtream) ...[
+                            const SizedBox(height: 18),
+                            _entry(
+                              TextFormField(
+                                key: const Key('source-username'),
+                                controller: _username,
+                                focusNode: _usernameFocus,
+                                textInputAction: TextInputAction.next,
+                                onEditingComplete: () {},
+                                onFieldSubmitted: (_) => _focusField(
+                                  _provider == 'kyrlu'
+                                      ? _passwordModeFocus
+                                      : _passwordFocus,
+                                ),
+                                enabled: !_busy,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nom d’utilisateur',
+                                ),
+                                validator: (value) =>
+                                    value == null || value.trim().isEmpty
+                                    ? 'Saisissez votre nom d’utilisateur.'
+                                    : null,
+                              ),
+                              focus: _usernameFocus,
+                              label: 'Nom d’utilisateur',
                             ),
                             const SizedBox(height: 18),
                             if (_provider == 'kyrlu') ...[
@@ -876,40 +998,46 @@ class _SourceFormState extends State<_SourceForm> {
                                 ),
                             ],
                             if (!_presetActive)
-                              TextFormField(
-                                key: const Key('source-password'),
-                                controller: _password,
-                                focusNode: _passwordFocus,
-                                textInputAction: TextInputAction.next,
-                                onEditingComplete: () {},
-                                onFieldSubmitted: (_) => _focusField(_epgFocus),
-                                enabled: !_busy,
-                                obscureText: !_showPassword,
-                                autocorrect: false,
-                                enableSuggestions: false,
-                                decoration: InputDecoration(
-                                  labelText: 'Mot de passe',
-                                  suffixIcon: IconButton(
-                                    tooltip: _showPassword
-                                        ? 'Masquer le mot de passe'
-                                        : 'Afficher le mot de passe',
-                                    onPressed: _busy
-                                        ? null
-                                        : () => setState(
-                                            () =>
-                                                _showPassword = !_showPassword,
-                                          ),
-                                    icon: Icon(
-                                      _showPassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
+                              _entry(
+                                TextFormField(
+                                  key: const Key('source-password'),
+                                  controller: _password,
+                                  focusNode: _passwordFocus,
+                                  textInputAction: TextInputAction.next,
+                                  onEditingComplete: () {},
+                                  onFieldSubmitted: (_) =>
+                                      _focusField(_epgFocus),
+                                  enabled: !_busy,
+                                  obscureText: !_showPassword,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  decoration: InputDecoration(
+                                    labelText: 'Mot de passe',
+                                    suffixIcon: IconButton(
+                                      tooltip: _showPassword
+                                          ? 'Masquer le mot de passe'
+                                          : 'Afficher le mot de passe',
+                                      onPressed: _busy
+                                          ? null
+                                          : () => setState(
+                                              () => _showPassword =
+                                                  !_showPassword,
+                                            ),
+                                      icon: Icon(
+                                        _showPassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                      ),
                                     ),
                                   ),
+                                  validator: (value) =>
+                                      value == null || value.isEmpty
+                                      ? 'Saisissez votre mot de passe.'
+                                      : null,
                                 ),
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? 'Saisissez votre mot de passe.'
-                                    : null,
+                                focus: _passwordFocus,
+                                label: 'Mot de passe',
+                                secret: true,
                               ),
                           ],
                           const SizedBox(height: 24),
@@ -918,21 +1046,26 @@ class _SourceFormState extends State<_SourceForm> {
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 10),
-                          TextFormField(
-                            key: const Key('source-epg'),
-                            controller: _epg,
-                            focusNode: _epgFocus,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _focusField(_saveFocus),
-                            enabled: !_busy,
-                            autocorrect: false,
-                            enableSuggestions: false,
-                            decoration: const InputDecoration(
-                              labelText: 'URL XMLTV (facultatif)',
-                              hintText: 'https://…',
+                          _entry(
+                            TextFormField(
+                              key: const Key('source-epg'),
+                              controller: _epg,
+                              focusNode: _epgFocus,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _focusField(_saveFocus),
+                              enabled: !_busy,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              decoration: const InputDecoration(
+                                labelText: 'URL XMLTV (facultatif)',
+                                hintText: 'https://…',
+                              ),
+                              validator: (value) =>
+                                  _httpUrl(value, optional: true),
                             ),
-                            validator: (value) =>
-                                _httpUrl(value, optional: true),
+                            url: true,
+                            focus: _epgFocus,
+                            label: 'URL XMLTV (facultatif)',
                           ),
                           const SizedBox(height: 10),
                           Text(
