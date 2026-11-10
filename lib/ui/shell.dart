@@ -838,7 +838,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
               children: [
                 if (expanded)
                   const Text(
-                    'NOVA  0.6.5',
+                    'NOVA  0.6.6',
                     style: TextStyle(fontSize: 10, color: novaMuted),
                   ),
                 IconButton(

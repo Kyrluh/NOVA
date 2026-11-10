@@ -4,8 +4,8 @@ $ErrorActionPreference = 'Stop'
 # This script only inspects and packages existing APKs. It does not build,
 # sign, install, upload or read the private signing key/password.
 $expectedPackage = 'app.nova.iptv'
-$expectedVersion = '0.6.5'
-$expectedVersionCode = 13
+$expectedVersion = '0.6.6'
+$expectedVersionCode = 14
 $expectedMinSdk = 24
 $expectedTargetSdk = 36
 $projectDirectory = [IO.Path]::GetFullPath($novaRoot).TrimEnd('\')
@@ -100,8 +100,8 @@ function Get-NovaApkMetadata {
 }
 
 $versionText = Get-Content -LiteralPath (Join-Path $projectDirectory 'pubspec.yaml') -Raw
-if ($versionText -notmatch '(?m)^version:\s*0\.6\.5\+13\s*$') {
-    throw 'Le packager attend pubspec.yaml version 0.6.5+13. Mettre a jour les constantes de livraison pour une nouvelle version.'
+if ($versionText -notmatch '(?m)^version:\s*0\.6\.6\+14\s*$') {
+    throw 'Le packager attend pubspec.yaml version 0.6.6+14. Mettre a jour les constantes de livraison pour une nouvelle version.'
 }
 $buildToolsRoot = Join-Path $env:ANDROID_HOME 'build-tools'
 $buildTools = Get-ChildItem -LiteralPath $buildToolsRoot -Directory |

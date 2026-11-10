@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../domain/source_models.dart';
 import '../../state/source_controller.dart';
@@ -400,6 +401,51 @@ class _SourceForm extends StatefulWidget {
 
 class _SourceFormState extends State<_SourceForm> {
   final _form = GlobalKey<FormState>();
+  final _kindFocus = FocusNode(debugLabel: 'Source type');
+  final _nameFocus = FocusNode(debugLabel: 'Source name');
+  final _addressFocus = FocusNode(debugLabel: 'Source address');
+  final _usernameFocus = FocusNode(debugLabel: 'Source username');
+  final _passwordFocus = FocusNode(debugLabel: 'Source password');
+  final _epgFocus = FocusNode(debugLabel: 'Source EPG');
+  final _testFocus = FocusNode(debugLabel: 'Test source');
+  final _saveFocus = FocusNode(debugLabel: 'Save source');
+  final _cancelFocus = FocusNode(debugLabel: 'Cancel source');
+  final _closeFocus = FocusNode(debugLabel: 'Close source');
+
+  List<FocusNode> get _focusOrder => [
+    if (!_busy) ...[
+      _kindFocus,
+      _nameFocus,
+      _addressFocus,
+      if (_kind == SourceKind.xtream) ...[_usernameFocus, _passwordFocus],
+      _epgFocus,
+      _testFocus,
+      _saveFocus,
+    ],
+    _cancelFocus,
+    _closeFocus,
+  ];
+
+  void _focusField(FocusNode target) {
+    target.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final fieldContext = target.context;
+      if (mounted && fieldContext != null) {
+        Scrollable.ensureVisible(fieldContext, alignment: .4);
+      }
+    });
+  }
+
+  void _moveFocus(int direction) {
+    final order = _focusOrder;
+    final index = order.indexWhere((node) => node.hasFocus);
+    if (index < 0) {
+      _focusField(direction > 0 ? order.first : order.last);
+      return;
+    }
+    _focusField(order[(index + direction).clamp(0, order.length - 1)]);
+  }
+
   late final TextEditingController _name;
   late final TextEditingController _address;
   late final TextEditingController _username;
@@ -433,6 +479,20 @@ class _SourceFormState extends State<_SourceForm> {
     _username.dispose();
     _password.dispose();
     _epg.dispose();
+    for (final node in [
+      _kindFocus,
+      _nameFocus,
+      _addressFocus,
+      _usernameFocus,
+      _passwordFocus,
+      _epgFocus,
+      _testFocus,
+      _saveFocus,
+      _cancelFocus,
+      _closeFocus,
+    ]) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -531,260 +591,309 @@ class _SourceFormState extends State<_SourceForm> {
     onPopInvokedWithResult: (didPop, result) {
       if (didPop) _operation?.cancel();
     },
-    child: Dialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 40,
-        vertical: 24,
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 620,
-          maxHeight: MediaQuery.sizeOf(context).height - 64,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(26, 20, 14, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.sourceId == null
-                          ? 'Ajouter une source'
-                          : 'Modifier la source',
-                      style: const TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Fermer',
-                    onPressed: () {
-                      _operation?.cancel();
-                      Navigator.pop(context, false);
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
+    child: CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+            _moveFocus(1),
+        const SingleActivator(LogicalKeyboardKey.arrowUp): () => _moveFocus(-1),
+      },
+      child: FocusTraversalGroup(
+        policy: WidgetOrderTraversalPolicy(),
+        child: Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 40,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 620,
+              maxHeight: MediaQuery.sizeOf(context).height - 64,
             ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(26, 20, 26, 10),
-                child: Form(
-                  key: _form,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(26, 20, 14, 0),
+                  child: Row(
                     children: [
-                      DropdownButtonFormField<SourceKind>(
-                        key: ValueKey('source-kind-${_kind.name}'),
-                        initialValue: _kind,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Type de source',
-                        ),
-                        items: [
-                          for (final kind in SourceKind.values)
-                            DropdownMenuItem(
-                              value: kind,
-                              child: Text(_kindLabel(kind)),
-                            ),
-                        ],
-                        onChanged: _busy
-                            ? null
-                            : (value) => setState(() {
-                                _kind = value!;
-                                _error = null;
-                                _testResult = null;
-                              }),
-                      ),
-                      const SizedBox(height: 18),
-                      TextFormField(
-                        key: const Key('source-name'),
-                        controller: _name,
-                        enabled: !_busy,
-                        maxLength: 80,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom de la source',
-                          hintText: 'Ma bibliothèque',
-                          counterText: '',
-                        ),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                            ? 'Donnez un nom à cette source.'
-                            : null,
-                      ),
-                      const SizedBox(height: 18),
-                      TextFormField(
-                        key: const Key('source-address'),
-                        controller: _address,
-                        enabled: !_busy,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        decoration: InputDecoration(
-                          labelText: switch (_kind) {
-                            SourceKind.m3uUrl => 'URL de la playlist',
-                            SourceKind.m3uFile => 'Fichier de la playlist',
-                            SourceKind.xtream => 'URL du serveur',
-                          },
-                          hintText: _kind == SourceKind.m3uFile
-                              ? 'Sélectionnez votre fichier M3U'
-                              : 'https://serveur.example',
-                          suffixIcon: _kind == SourceKind.m3uFile
-                              ? IconButton(
-                                  tooltip: 'Choisir un fichier M3U',
-                                  onPressed: _busy ? null : _browse,
-                                  icon: const Icon(Icons.folder_open_rounded),
-                                )
-                              : null,
-                        ),
-                        validator: (value) => _kind == SourceKind.m3uFile
-                            ? value == null || value.trim().isEmpty
-                                  ? 'Choisissez un fichier M3U ou M3U8.'
-                                  : null
-                            : _httpUrl(value),
-                      ),
-                      if (_kind == SourceKind.xtream) ...[
-                        const SizedBox(height: 18),
-                        TextFormField(
-                          key: const Key('source-username'),
-                          controller: _username,
-                          enabled: !_busy,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          decoration: const InputDecoration(
-                            labelText: 'Nom d’utilisateur',
-                          ),
-                          validator: (value) =>
-                              value == null || value.trim().isEmpty
-                              ? 'Saisissez votre nom d’utilisateur.'
-                              : null,
-                        ),
-                        const SizedBox(height: 18),
-                        TextFormField(
-                          key: const Key('source-password'),
-                          controller: _password,
-                          enabled: !_busy,
-                          obscureText: !_showPassword,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          decoration: InputDecoration(
-                            labelText: 'Mot de passe',
-                            suffixIcon: IconButton(
-                              tooltip: _showPassword
-                                  ? 'Masquer le mot de passe'
-                                  : 'Afficher le mot de passe',
-                              onPressed: _busy
-                                  ? null
-                                  : () => setState(
-                                      () => _showPassword = !_showPassword,
-                                    ),
-                              icon: Icon(
-                                _showPassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                              ),
-                            ),
-                          ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Saisissez votre mot de passe.'
-                              : null,
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Guide TV',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        key: const Key('source-epg'),
-                        controller: _epg,
-                        enabled: !_busy,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        decoration: const InputDecoration(
-                          labelText: 'URL XMLTV (facultatif)',
-                          hintText: 'https://…',
-                        ),
-                        validator: (value) => _httpUrl(value, optional: true),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _kind == SourceKind.xtream
-                            ? 'Sans adresse personnalisée, NOVA utilise le guide proposé par votre serveur. Actualisez-le avec « Guide TV » après l’ajout.'
-                            : 'L’adresse du guide indiquée dans la playlist est utilisée si elle est disponible. Vous pouvez la remplacer ici.',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: novaMuted,
-                          height: 1.6,
-                        ),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 18),
-                        NovaNotice(
-                          icon: Icons.error_outline_rounded,
-                          text: _error!,
-                        ),
-                      ],
-                      if (_testResult != null) ...[
-                        const SizedBox(height: 18),
-                        NovaNotice(
-                          icon: Icons.check_circle_outline_rounded,
-                          text: _testResult!,
-                        ),
-                      ],
-                      if (_busy) ...[
-                        const SizedBox(height: 20),
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 10),
-                        Text(
-                          _saving
-                              ? 'Importation du catalogue…'
-                              : 'Test de la connexion…',
+                      Expanded(
+                        child: Text(
+                          widget.sourceId == null
+                              ? 'Ajouter une source'
+                              : 'Modifier la source',
                           style: const TextStyle(
-                            color: novaMuted,
-                            fontSize: 12,
+                            fontSize: 23,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 12),
+                      ),
+                      IconButton(
+                        tooltip: 'Fermer',
+                        focusNode: _closeFocus,
+                        onPressed: () {
+                          _operation?.cancel();
+                          Navigator.pop(context, false);
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      _operation?.cancel();
-                      Navigator.pop(context, false);
-                    },
-                    child: Text(_busy ? 'Annuler le chargement' : 'Annuler'),
-                  ),
-                  OutlinedButton(
-                    onPressed: _busy ? null : () => _submit(save: false),
-                    child: const Text('Tester la connexion'),
-                  ),
-                  FilledButton(
-                    key: const Key('save-source'),
-                    onPressed: _busy ? null : () => _submit(save: true),
-                    child: Text(
-                      widget.sourceId == null ? 'Ajouter' : 'Enregistrer',
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(26, 20, 26, 10),
+                    child: Form(
+                      key: _form,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownButtonFormField<SourceKind>(
+                            focusNode: _kindFocus,
+                            autofocus: true,
+                            key: ValueKey('source-kind-${_kind.name}'),
+                            initialValue: _kind,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Type de source',
+                            ),
+                            items: [
+                              for (final kind in SourceKind.values)
+                                DropdownMenuItem(
+                                  value: kind,
+                                  child: Text(_kindLabel(kind)),
+                                ),
+                            ],
+                            onChanged: _busy
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _kind = value!;
+                                      _error = null;
+                                      _testResult = null;
+                                    });
+                                    _focusField(_nameFocus);
+                                  },
+                          ),
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            key: const Key('source-name'),
+                            controller: _name,
+                            focusNode: _nameFocus,
+                            textInputAction: TextInputAction.next,
+                            onEditingComplete: () {},
+                            onFieldSubmitted: (_) => _focusField(_addressFocus),
+                            enabled: !_busy,
+                            maxLength: 80,
+                            decoration: const InputDecoration(
+                              labelText: 'Nom de la source',
+                              hintText: 'Ma bibliothèque',
+                              counterText: '',
+                            ),
+                            validator: (value) =>
+                                value == null || value.trim().isEmpty
+                                ? 'Donnez un nom à cette source.'
+                                : null,
+                          ),
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            key: const Key('source-address'),
+                            controller: _address,
+                            focusNode: _addressFocus,
+                            textInputAction: TextInputAction.next,
+                            onEditingComplete: () {},
+                            onFieldSubmitted: (_) => _focusField(
+                              _kind == SourceKind.xtream
+                                  ? _usernameFocus
+                                  : _epgFocus,
+                            ),
+                            enabled: !_busy,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            decoration: InputDecoration(
+                              labelText: switch (_kind) {
+                                SourceKind.m3uUrl => 'URL de la playlist',
+                                SourceKind.m3uFile => 'Fichier de la playlist',
+                                SourceKind.xtream => 'URL du serveur',
+                              },
+                              hintText: _kind == SourceKind.m3uFile
+                                  ? 'Sélectionnez votre fichier M3U'
+                                  : 'https://serveur.example',
+                              suffixIcon: _kind == SourceKind.m3uFile
+                                  ? IconButton(
+                                      tooltip: 'Choisir un fichier M3U',
+                                      onPressed: _busy ? null : _browse,
+                                      icon: const Icon(
+                                        Icons.folder_open_rounded,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            validator: (value) => _kind == SourceKind.m3uFile
+                                ? value == null || value.trim().isEmpty
+                                      ? 'Choisissez un fichier M3U ou M3U8.'
+                                      : null
+                                : _httpUrl(value),
+                          ),
+                          if (_kind == SourceKind.xtream) ...[
+                            const SizedBox(height: 18),
+                            TextFormField(
+                              key: const Key('source-username'),
+                              controller: _username,
+                              focusNode: _usernameFocus,
+                              textInputAction: TextInputAction.next,
+                              onEditingComplete: () {},
+                              onFieldSubmitted: (_) =>
+                                  _focusField(_passwordFocus),
+                              enabled: !_busy,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              decoration: const InputDecoration(
+                                labelText: 'Nom d’utilisateur',
+                              ),
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                  ? 'Saisissez votre nom d’utilisateur.'
+                                  : null,
+                            ),
+                            const SizedBox(height: 18),
+                            TextFormField(
+                              key: const Key('source-password'),
+                              controller: _password,
+                              focusNode: _passwordFocus,
+                              textInputAction: TextInputAction.next,
+                              onEditingComplete: () {},
+                              onFieldSubmitted: (_) => _focusField(_epgFocus),
+                              enabled: !_busy,
+                              obscureText: !_showPassword,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              decoration: InputDecoration(
+                                labelText: 'Mot de passe',
+                                suffixIcon: IconButton(
+                                  tooltip: _showPassword
+                                      ? 'Masquer le mot de passe'
+                                      : 'Afficher le mot de passe',
+                                  onPressed: _busy
+                                      ? null
+                                      : () => setState(
+                                          () => _showPassword = !_showPassword,
+                                        ),
+                                  icon: Icon(
+                                    _showPassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                  ),
+                                ),
+                              ),
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Saisissez votre mot de passe.'
+                                  : null,
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Guide TV',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            key: const Key('source-epg'),
+                            controller: _epg,
+                            focusNode: _epgFocus,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _focusField(_saveFocus),
+                            enabled: !_busy,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            decoration: const InputDecoration(
+                              labelText: 'URL XMLTV (facultatif)',
+                              hintText: 'https://…',
+                            ),
+                            validator: (value) =>
+                                _httpUrl(value, optional: true),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _kind == SourceKind.xtream
+                                ? 'Sans adresse personnalisée, NOVA utilise le guide proposé par votre serveur. Actualisez-le avec « Guide TV » après l’ajout.'
+                                : 'L’adresse du guide indiquée dans la playlist est utilisée si elle est disponible. Vous pouvez la remplacer ici.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: novaMuted,
+                              height: 1.6,
+                            ),
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 18),
+                            NovaNotice(
+                              icon: Icons.error_outline_rounded,
+                              text: _error!,
+                            ),
+                          ],
+                          if (_testResult != null) ...[
+                            const SizedBox(height: 18),
+                            NovaNotice(
+                              icon: Icons.check_circle_outline_rounded,
+                              text: _testResult!,
+                            ),
+                          ],
+                          if (_busy) ...[
+                            const SizedBox(height: 20),
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 10),
+                            Text(
+                              _saving
+                                  ? 'Importation du catalogue…'
+                                  : 'Test de la connexion…',
+                              style: const TextStyle(
+                                color: novaMuted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      TextButton(
+                        focusNode: _cancelFocus,
+                        onPressed: () {
+                          _operation?.cancel();
+                          Navigator.pop(context, false);
+                        },
+                        child: Text(
+                          _busy ? 'Annuler le chargement' : 'Annuler',
+                        ),
+                      ),
+                      OutlinedButton(
+                        focusNode: _testFocus,
+                        onPressed: _busy ? null : () => _submit(save: false),
+                        child: const Text('Tester la connexion'),
+                      ),
+                      FilledButton(
+                        focusNode: _saveFocus,
+                        key: const Key('save-source'),
+                        onPressed: _busy ? null : () => _submit(save: true),
+                        child: Text(
+                          widget.sourceId == null ? 'Ajouter' : 'Enregistrer',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     ),

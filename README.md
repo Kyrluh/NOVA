@@ -2,7 +2,9 @@
 
 Lecteur IPTV natif pour **Windows et Android**, développé avec Flutter et libmpv. NOVA réunit la TV en direct, les films, les séries et la reprise de lecture dans une interface sombre adaptée à la souris comme au tactile.
 
-**Version : 0.6.5+13** · **Windows x64** · **Android 7.0/API 24 minimum** · **GPL-3.0-or-later**
+**Android : 0.6.6+14** · **Windows x64 : 0.6.5+13** · **Android 7.0/API 24 minimum** · **GPL-3.0-or-later**
+
+Le correctif **Android 0.6.6** améliore la saisie des sources à la télécommande : actions Suivant/Valider du clavier, navigation haut/bas entre les champs et sélection du bouton Ajouter. [Rapport du correctif](docs/ANDROID-VALIDATION-0.6.6.md).
 
 NOVA lit les sources personnelles configurées par l'utilisateur. Aucun abonnement, compte IPTV, chaîne commerciale ou playlist n'est fourni. Il n'y a ni publicité, ni compte NOVA, ni télémétrie applicative.
 
@@ -26,15 +28,15 @@ NOVA lit les sources personnelles configurées par l'utilisateur. Aucun abonneme
 
 ## Installer et mettre à jour
 
-Les installables sont disponibles dans la [release **0.6.5**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.5). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
+Les installables sont disponibles dans les releases [**Android 0.6.6**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.6) et [**Windows 0.6.5**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.5). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
 
 | Plateforme | Téléchargement |
 | --- | --- |
 | Windows x64 portable | [ZIP Windows](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-windows-x64.zip) |
-| Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-arm64-v8a.apk) |
-| Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-universal.apk) |
+| Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/NOVA-IPTV-0.6.6-arm64-v8a.apk) |
+| Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/NOVA-IPTV-0.6.6-universal.apk) |
 
-Les [empreintes SHA-256](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/SHA256SUMS.txt) permettent de vérifier les fichiers téléchargés. Les commandes de [compilation](#compiler-le-projet) produisent les mêmes noms d'installables localement dans `dist/` et `dist/android/`.
+Les empreintes SHA-256 sont disponibles pour [Windows 0.6.5](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/SHA256SUMS.txt) et [Android 0.6.6](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/SHA256SUMS.txt). Les commandes de [compilation](#compiler-le-projet) produisent les installables de la version du code local dans `dist/` et `dist/android/`.
 
 ### Windows
 
@@ -230,6 +232,7 @@ Les tests peuvent être limités aux fichiers concernés. Les essais natifs et d
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Installation Android et signature](docs/ANDROID-INSTALLATION.md)
+- [0.6.6 — saisie des sources à la télécommande](docs/ANDROID-VALIDATION-0.6.6.md)
 - [Audit et adaptation Android](docs/ANDROID-AUDIT.md)
 - [0.6.5 — actualisation au démarrage](docs/VALIDATION-0.6.5.md)
 - [0.6.4 — lecteur et clavier Windows](docs/WINDOWS-VALIDATION-0.6.4.md)

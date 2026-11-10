@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nova_iptv/domain/source_models.dart';
 import 'package:nova_iptv/state/source_controller.dart';
@@ -8,6 +9,73 @@ import 'package:nova_iptv/ui/pages/sources_page.dart';
 import 'package:nova_iptv/ui/theme.dart';
 
 void main() {
+  testWidgets(
+    'TV remote M3U keyboard next skips hidden credentials and done focuses Add',
+    (tester) async {
+      final controller = _FakeSources();
+      await _start(tester, controller);
+      await tester.tap(find.byKey(const Key('add-source')));
+      await tester.pumpAndSettle();
+      await _enter(tester, 'source-name', 'TV');
+      await tester.testTextInput.receiveAction(TextInputAction.next);
+      await tester.pumpAndSettle();
+      expect(_fieldFocused(tester, 'source-address'), isTrue);
+      await tester.enterText(
+        find.byKey(const Key('source-address')),
+        'https://example.test/list.m3u',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(_fieldFocused(tester, 'source-epg'), isTrue);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('save-source')))
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(controller.saved.single.name, 'TV');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'TV remote arrows traverse Xtream fields with keyboard closed and keep text intact',
+    (tester) async {
+      final controller = _FakeSources();
+      await _start(tester, controller);
+      await tester.tap(find.byKey(const Key('add-source')));
+      await tester.pumpAndSettle();
+      await _selectKind(tester, 'Xtream Codes');
+      await _enter(tester, 'source-name', 'TV Xtream');
+      tester.testTextInput.hide();
+      for (final field in [
+        'source-address',
+        'source-username',
+        'source-password',
+        'source-epg',
+      ]) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+        expect(_fieldFocused(tester, field), isTrue);
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(_fieldFocused(tester, 'source-password'), isTrue);
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const Key('source-name')))
+            .controller!
+            .text,
+        'TV Xtream',
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'M3U form validates, tests without saving and imports its guide',
     (tester) async {
@@ -157,6 +225,16 @@ void main() {
     },
   );
 }
+
+bool _fieldFocused(WidgetTester tester, String key) => tester
+    .widget<EditableText>(
+      find.descendant(
+        of: find.byKey(Key(key)),
+        matching: find.byType(EditableText),
+      ),
+    )
+    .focusNode
+    .hasFocus;
 
 Future<void> _start(WidgetTester tester, _FakeSources controller) async {
   tester.view.physicalSize = const Size(1000, 680);
