@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../data/source_repository.dart';
 import '../domain/internet_catalog.dart';
 import '../domain/models.dart';
+import '../domain/recent_catalog.dart';
 import '../domain/source_models.dart';
 import '../sources/iptv_client.dart';
 import '../sources/m3u_series.dart';
@@ -199,7 +200,15 @@ class SourceController extends ChangeNotifier {
             // The grouped catalogue remains usable even if migration cannot save.
           }
         }
-        _records[record.config.id] = restored;
+        _records[record.config.id] = SourceRecord(
+          config: restored.config,
+          catalog: _datedCatalog(
+            restored.catalog,
+            observedAt: restored.updatedAt,
+          ),
+          programmes: restored.programmes,
+          updatedAt: restored.updatedAt,
+        );
       }
       _rebuild(catalog: true, epg: true);
     } catch (exception) {
@@ -273,7 +282,13 @@ class SourceController extends ChangeNotifier {
     try {
       final imported = await _client.loadCatalog(config, cancel: token);
       _ensureActive(id, token);
-      final catalog = _retainKnownDetails(imported, original, config);
+      final catalog = _datedCatalog(
+        _retainKnownDetails(imported, original, config),
+        previous: original != null && _sameProvider(original.config, config)
+            ? original.catalog.items
+            : const [],
+        observedAt: DateTime.now().toUtc(),
+      );
       final suggested = catalog.suggestedEpgUrl?.trim();
       final effective =
           config.epgUrl.isEmpty && suggested != null && suggested.isNotEmpty
@@ -576,6 +591,21 @@ class SourceController extends ChangeNotifier {
       a.address == b.address &&
       a.username == b.username &&
       a.password == b.password;
+
+  SourceCatalog _datedCatalog(
+    SourceCatalog catalog, {
+    List<MediaItem> previous = const [],
+    required DateTime observedAt,
+  }) => SourceCatalog(
+    items: rememberCatalogAdditions(
+      catalog.items,
+      previous: previous,
+      observedAt: observedAt,
+    ),
+    suggestedEpgUrl: catalog.suggestedEpgUrl,
+    warnings: catalog.warnings,
+    failedKinds: catalog.failedKinds,
+  );
 
   SourceCatalog _retainKnownDetails(
     SourceCatalog incoming,

@@ -297,6 +297,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
     controller: app,
     items: items,
     onDetails: _details,
+    recentCategory: _section == 'movies' || _section == 'series',
   );
 
   Widget _home() {
@@ -368,6 +369,8 @@ class _NovaTvShellState extends State<NovaTvShell> {
           ),
         ),
         if (resume.isNotEmpty) _rail('Reprendre', resume),
+        if (app.recentlyAddedItems.isNotEmpty)
+          _rail('Récemment ajoutés', app.recentlyAddedItems.take(24).toList()),
         if (trending.isNotEmpty) _rail('Tendances dans vos sources', trending),
         if (movies.isNotEmpty) _rail('Films', movies),
         if (series.isNotEmpty) _rail('Séries', series),

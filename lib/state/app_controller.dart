@@ -8,6 +8,7 @@ import '../data/demo_catalog.dart';
 import '../data/local_store.dart';
 import '../domain/catalog_preferences.dart';
 import '../domain/models.dart';
+import '../domain/recent_catalog.dart';
 import '../domain/artwork_identity.dart';
 import '../domain/platform_catalog.dart';
 import '../domain/source_models.dart';
@@ -60,6 +61,8 @@ class AppController extends ChangeNotifier {
   int _visibleCatalogRevision = -2;
   int _visiblePreferencesRevision = -1;
   List<MediaItem> _visibleItems = const [];
+  List<MediaItem>? _recentCatalogInput;
+  List<MediaItem> _recentCatalogItems = const [];
   final Set<String> _favorites = {};
   final Map<String, WatchProgress> _progress = {};
   final List<String> _recentIds = [];
@@ -111,6 +114,15 @@ class AppController extends ChangeNotifier {
       item.kind != MediaKind.live &&
       !_dismissedResumeIds.contains(item.id) &&
       latestProgressFor(item, unfinishedOnly: true) != null;
+
+  List<MediaItem> get recentlyAddedItems {
+    final visible = items;
+    if (!identical(visible, _recentCatalogInput)) {
+      _recentCatalogInput = visible;
+      _recentCatalogItems = List.unmodifiable(recentlyAdded(visible));
+    }
+    return _recentCatalogItems;
+  }
 
   List<MediaItem> get resumeItems {
     final ongoing = items.where(canResume).toList();

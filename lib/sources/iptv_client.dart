@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
+import '../domain/recent_catalog.dart';
 import '../domain/source_models.dart';
 import 'm3u_parser.dart';
 import 'xmltv_parser.dart';
@@ -581,6 +582,7 @@ Future<List<MediaItem>> _parseXtreamList(
       kind == MediaKind.live ? request.$5 : 'mp4',
     );
     list[id] = MediaItem(
+      addedAt: providerAddedAt(row['added']),
       id: id,
       title: title.isEmpty ? 'Média $provider' : title,
       kind: kind,

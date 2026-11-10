@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/catalog_preferences.dart';
 import '../../domain/models.dart';
+import '../../domain/recent_catalog.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
 import '../adaptive.dart';
@@ -25,14 +26,15 @@ class MediaCatalogPage extends StatefulWidget {
 
 class _MediaCatalogPageState extends State<MediaCatalogPage> {
   final _search = TextEditingController();
-  String? _category;
+  static const _recent = '\u0000recent';
+  String? _category = _recent;
   String _sort = 'catalogue';
 
   @override
   void didUpdateWidget(covariant MediaCatalogPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.kind != widget.kind) {
-      _category = null;
+      _category = _recent;
       _search.clear();
     }
   }
@@ -59,18 +61,25 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
             CatalogOrder.category) {
           categories.sort();
         }
+        categories.insert(0, _recent);
         final query = _normalize(_search.text.trim());
-        final items = catalog.where((item) {
-          return (_category == null || item.category == _category) &&
+        var items = catalog.where((item) {
+          return (_category == null ||
+                  _category == _recent ||
+                  item.category == _category) &&
               (query.isEmpty || _searchText(item).contains(query));
         }).toList();
-        switch (_sort) {
-          case 'title':
-            items.sort(
-              (a, b) => _normalize(a.title).compareTo(_normalize(b.title)),
-            );
-          case 'year':
-            items.sort((a, b) => b.year.compareTo(a.year));
+        if (_category == _recent) {
+          items = recentlyAdded(items);
+        } else {
+          switch (_sort) {
+            case 'title':
+              items.sort(
+                (a, b) => _normalize(a.title).compareTo(_normalize(b.title)),
+              );
+            case 'year':
+              items.sort((a, b) => b.year.compareTo(a.year));
+          }
         }
         final title = switch (widget.kind) {
           MediaKind.movie => 'Films',
@@ -141,9 +150,11 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                         ),
                       ),
                     ],
-                    onChanged: (value) {
-                      if (value != null) setState(() => _sort = value);
-                    },
+                    onChanged: _category == _recent
+                        ? null
+                        : (value) {
+                            if (value != null) setState(() => _sort = value);
+                          },
                   );
                   if (constraints.maxWidth <
                       (NovaAdaptiveScope.isAndroid(context) ? 450 : 560)) {
@@ -173,10 +184,16 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                     separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final category = index == 0
+                          ? _recent
+                          : index == 1
                           ? null
                           : categories[index - 1];
                       return ChoiceChip(
-                        label: Text(category ?? 'Tout explorer'),
+                        label: Text(
+                          category == _recent
+                              ? 'Récemment ajoutés'
+                              : category ?? 'Tout explorer',
+                        ),
                         selected: _category == category,
                         onSelected: (_) => setState(() => _category = category),
                       );
@@ -189,11 +206,18 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                   runSpacing: 8,
                   children: [
                     ChoiceChip(
+                      label: const Text('Récemment ajoutés'),
+                      selected: _category == _recent,
+                      onSelected: (_) => setState(() => _category = _recent),
+                    ),
+                    ChoiceChip(
                       label: const Text('Tout explorer'),
                       selected: _category == null,
                       onSelected: (_) => setState(() => _category = null),
                     ),
-                    for (final category in categories)
+                    for (final category in categories.where(
+                      (c) => c != _recent,
+                    ))
                       ChoiceChip(
                         label: Text(category),
                         selected: _category == category,

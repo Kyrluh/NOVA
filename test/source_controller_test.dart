@@ -8,6 +8,30 @@ import 'package:nova_iptv/sources/iptv_client.dart';
 import 'package:nova_iptv/state/source_controller.dart';
 
 void main() {
+  test(
+    'Recent additions keep legacy cache dates across refresh and restart',
+    () async {
+      final original = _record();
+      final repository = MemorySourceRepository([original]);
+      final client = _Client()..nextCatalog = original.catalog;
+      final controller = SourceController(
+        repository: repository,
+        client: client,
+      );
+      await controller.init();
+      expect(controller.items.single.addedAt, original.updatedAt);
+      await controller.refresh(original.config.id);
+      expect(controller.items.single.addedAt, original.updatedAt);
+      await controller.close();
+      final restored = SourceController(
+        repository: repository,
+        client: _Client(),
+      );
+      addTearDown(restored.close);
+      await restored.init();
+      expect(restored.items.single.addedAt, original.updatedAt);
+    },
+  );
   test('Recycled provider IDs cannot inherit artwork or seasons from another title', () async {
     final previous = _series(detailsLoaded: true)
         .copyWith(posterUrl: 'https://example.test/old.jpg');

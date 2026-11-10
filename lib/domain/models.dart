@@ -22,6 +22,7 @@ class MediaItem {
     this.posterUrl,
     this.tvgId,
     this.detailsLoaded = false,
+    this.addedAt,
   });
 
   final String id;
@@ -41,6 +42,7 @@ class MediaItem {
   final String? posterUrl;
   final String? tvgId;
   final bool detailsLoaded;
+  final DateTime? addedAt;
   bool get isDemo => sourceId == null;
 
   MediaItem copyWith({
@@ -57,6 +59,7 @@ class MediaItem {
     String? posterUrl,
     String? tvgId,
     bool? detailsLoaded,
+    DateTime? addedAt,
   }) => MediaItem(
     id: id,
     title: title ?? this.title,
@@ -75,6 +78,7 @@ class MediaItem {
     posterUrl: posterUrl ?? this.posterUrl,
     tvgId: tvgId ?? this.tvgId,
     detailsLoaded: detailsLoaded ?? this.detailsLoaded,
+    addedAt: addedAt ?? this.addedAt,
   );
 
   Map<String, dynamic> toJson() => {
@@ -95,6 +99,7 @@ class MediaItem {
     'posterUrl': posterUrl,
     'tvgId': tvgId,
     'detailsLoaded': detailsLoaded,
+    'addedAt': addedAt?.toUtc().toIso8601String(),
   };
 
   factory MediaItem.fromJson(Map<String, dynamic> data) {
@@ -123,6 +128,7 @@ class MediaItem {
       posterUrl: data['posterUrl'] as String?,
       tvgId: data['tvgId'] as String?,
       detailsLoaded: data['detailsLoaded'] == true,
+      addedAt: DateTime.tryParse(data['addedAt']?.toString() ?? ''),
       seasons: (data['seasons'] as List? ?? const [])
           .map((s) => DemoSeason.fromJson(Map<String, dynamic>.from(s as Map)))
           .toList(growable: false),

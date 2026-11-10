@@ -288,6 +288,20 @@ class HomePage extends StatelessWidget {
             onDetails: onDetails,
           ),
         ],
+        if (controller.recentlyAddedItems.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          Text(
+            'Récemment ajoutés',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 16),
+          MediaRail(
+            key: const ValueKey('home-recently-added'),
+            controller: controller,
+            items: controller.recentlyAddedItems.take(24).toList(),
+            onDetails: onDetails,
+          ),
+        ],
         if (controller.internetCatalog != null)
           InternetHomeTrends(controller: controller, onDetails: onDetails),
         if (movies.isNotEmpty) ...[

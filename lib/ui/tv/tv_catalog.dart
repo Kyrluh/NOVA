@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
+import '../../domain/recent_catalog.dart';
 import '../../state/app_controller.dart';
 import '../widgets/media_artwork.dart';
 import '../theme.dart';
@@ -14,20 +15,29 @@ class TvCatalog extends StatefulWidget {
     required this.onDetails,
     this.search = false,
     this.subtitle,
+    this.recentCategory = false,
   });
   final AppController controller;
   final List<MediaItem> items;
   final ValueChanged<MediaItem> onDetails;
   final bool search;
   final String? subtitle;
+  final bool recentCategory;
   @override
   State<TvCatalog> createState() => _TvCatalogState();
 }
 
 class _TvCatalogState extends State<TvCatalog> {
+  static const _recent = '\u0000recent';
   final _search = TextEditingController();
   final _gridFocus = FocusNode(debugLabel: 'TV catalog results');
   String? _category;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.recentCategory) _category = _recent;
+  }
+
   @override
   void dispose() {
     _search.dispose();
@@ -38,16 +48,23 @@ class _TvCatalogState extends State<TvCatalog> {
   @override
   Widget build(BuildContext context) {
     final groups = widget.items.map((i) => i.category).toSet();
-    if (_category != null && !groups.contains(_category)) _category = null;
+    if (_category != null &&
+        _category != _recent &&
+        !groups.contains(_category)) {
+      _category = null;
+    }
     final query = _search.text.trim().toLowerCase();
-    final items = widget.items
+    var items = widget.items
         .where(
           (i) =>
-              (_category == null || _category == i.category) &&
+              (_category == null ||
+                  _category == _recent ||
+                  _category == i.category) &&
               (query.isEmpty ||
                   '${i.title} ${i.category}'.toLowerCase().contains(query)),
         )
         .toList();
+    if (_category == _recent) items = recentlyAdded(items);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,10 +101,15 @@ class _TvCatalogState extends State<TvCatalog> {
                 key: ValueKey(
                   'tv-category-${_category ?? 'all'}-${groups.length}',
                 ),
-                initialValue: groups.contains(_category) ? _category : null,
+                initialValue: _category,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Catégorie'),
                 items: [
+                  if (widget.recentCategory)
+                    const DropdownMenuItem<String>(
+                      value: _recent,
+                      child: Text('Récemment ajoutés'),
+                    ),
                   const DropdownMenuItem<String>(
                     value: null,
                     child: Text('Toutes les catégories'),
