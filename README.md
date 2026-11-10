@@ -26,13 +26,15 @@ NOVA lit les sources personnelles configurées par l'utilisateur. Aucun abonneme
 
 ## Installer et mettre à jour
 
-Ce dépôt contient le **code source et la documentation**. Les installables, les clés privées et les outils locaux ne sont pas versionnés dans Git. Les commandes de [compilation](#compiler-le-projet) produisent ces fichiers :
+Les installables sont disponibles dans la [release **0.6.5**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.5). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
 
-| Plateforme | Fichier produit localement |
+| Plateforme | Téléchargement |
 | --- | --- |
-| Windows x64 portable | `dist/NOVA-IPTV-0.6.5-windows-x64.zip` |
-| Android ARM64, notamment Galaxy Z Fold | `dist/android/NOVA-IPTV-0.6.5-arm64-v8a.apk` |
-| Android universelle : ARM64, ARM32, x86_64 | `dist/android/NOVA-IPTV-0.6.5-universal.apk` |
+| Windows x64 portable | [ZIP Windows](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-windows-x64.zip) |
+| Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-arm64-v8a.apk) |
+| Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-universal.apk) |
+
+Les [empreintes SHA-256](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/SHA256SUMS.txt) permettent de vérifier les fichiers téléchargés. Les commandes de [compilation](#compiler-le-projet) produisent les mêmes noms d'installables localement dans `dist/` et `dist/android/`.
 
 ### Windows
 
