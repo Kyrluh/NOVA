@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'profiles_page.dart';
+import '../widgets/catalog_columns_setting.dart';
 
 import '../../domain/models.dart';
 import '../../state/app_controller.dart';
@@ -151,6 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
     for (final entry in [
       (key: 'reconnectAttempts', min: 0, max: 10),
       (key: 'reconnectDelaySeconds', min: 1, max: 30),
+      (key: 'catalogColumns', min: 0, max: 12),
     ]) {
       final value = data[entry.key];
       if (data.containsKey(entry.key) &&
@@ -439,7 +441,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 _SettingRow(
                   title: 'Taille des affiches',
-                  subtitle: 'Adaptez les cartes à votre écran.',
+                  subtitle:
+                      'Taille en mode automatique et dans les carrousels.',
                   control: Row(
                     children: [
                       const Icon(
@@ -469,6 +472,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                 ),
+                CatalogColumnsSetting(controller: widget.controller),
                 _SettingRow(
                   title: 'Animations',
                   subtitle: 'Transitions discrètes entre les écrans et sur les affiches.',

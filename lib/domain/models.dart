@@ -203,6 +203,7 @@ class AppSettings {
   const AppSettings({
     this.accent = 0xff8b5cf6,
     this.posterScale = 1,
+    this.catalogColumns = 0,
     this.animations = true,
     this.autoPreview = false,
     this.playbackRate = 1,
@@ -221,6 +222,9 @@ class AppSettings {
 
   final int accent;
   final double posterScale;
+
+  /// Zero keeps the adaptive layout; positive values request this many columns.
+  final int catalogColumns;
   final bool animations;
   final bool autoPreview;
   final double playbackRate;
@@ -239,6 +243,7 @@ class AppSettings {
   AppSettings copyWith({
     int? accent,
     double? posterScale,
+    int? catalogColumns,
     bool? animations,
     bool? autoPreview,
     double? playbackRate,
@@ -256,6 +261,7 @@ class AppSettings {
   }) => AppSettings.fromJson({
     'accent': accent ?? this.accent,
     'posterScale': posterScale ?? this.posterScale,
+    'catalogColumns': catalogColumns ?? this.catalogColumns,
     'animations': animations ?? this.animations,
     'autoPreview': autoPreview ?? this.autoPreview,
     'playbackRate': playbackRate ?? this.playbackRate,
@@ -280,6 +286,7 @@ class AppSettings {
           ? accent
           : const AppSettings().accent,
       posterScale: _bounded(json['posterScale'], .75, 1.5, 1),
+      catalogColumns: _boundedInt(json['catalogColumns'], 0, 12, 0),
       animations: _boolean(json['animations'], true),
       autoPreview: _boolean(json['autoPreview'], false),
       playbackRate: playbackRates.contains(json['playbackRate'])
@@ -307,6 +314,7 @@ class AppSettings {
   Map<String, dynamic> toJson() => {
     'accent': accent,
     'posterScale': posterScale,
+    'catalogColumns': catalogColumns,
     'animations': animations,
     'autoPreview': autoPreview,
     'playbackRate': playbackRate,

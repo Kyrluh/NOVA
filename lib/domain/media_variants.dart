@@ -54,7 +54,8 @@ String variantIdentity(MediaItem item) {
 /// Only presentation is grouped: source IDs and individual progress stay intact.
 class VariantCatalog {
   VariantCatalog(Iterable<MediaItem> items) {
-    for (final item in items) {
+    // Corrupt/legacy playlists may repeat IDs; a selector must never repeat one.
+    for (final item in {for (final item in items) item.id: item}.values) {
       (groups[variantIdentity(item)] ??= []).add(item);
     }
     for (final group in groups.values) {

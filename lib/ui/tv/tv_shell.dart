@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../widgets/platform_logo.dart';
+import '../widgets/catalog_columns_setting.dart';
 import '../pages/profiles_page.dart';
 import '../pages/home_hub.dart';
 
@@ -521,6 +522,8 @@ class _NovaTvShellState extends State<NovaTvShell> {
   Widget _settings() => ListView(
     children: [
       ProfileSettingsTile(controller: app),
+      CatalogColumnsSetting(controller: app),
+      const SizedBox(height: 16),
       ListTile(
         title: const Text('Mes sources'),
         subtitle: const Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
 import '../../domain/recent_catalog.dart';
+import '../../domain/catalog_layout.dart';
 import '../../state/app_controller.dart';
 import '../widgets/media_artwork.dart';
 import '../theme.dart';
@@ -143,54 +144,75 @@ class _TvCatalogState extends State<TvCatalog> {
                   ),
                 )
               : LayoutBuilder(
-                  builder: (context, bounds) => GridView.builder(
-                    key: const PageStorageKey('tv-poster-grid'),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: (bounds.maxWidth / 155).floor().clamp(
-                        2,
-                        7,
+                  builder: (context, bounds) {
+                    final columns = effectiveCatalogColumns(
+                      widget.controller.settings,
+                      bounds.maxWidth,
+                      14,
+                      (bounds.maxWidth / 155).floor().clamp(2, 7),
+                    );
+                    final tileWidth =
+                        (bounds.maxWidth - (columns - 1) * 14) / columns;
+                    return GridView.builder(
+                      key: const PageStorageKey('tv-poster-grid'),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        // Large manual cards must leave the next row built and
+                        // reachable with a remote instead of filling many screens.
+                        mainAxisExtent:
+                            widget.controller.settings.catalogColumns > 0
+                            ? (tileWidth / .62)
+                                  .clamp(
+                                    120,
+                                    bounds.maxHeight.clamp(
+                                      120,
+                                      double.infinity,
+                                    ),
+                                  )
+                                  .toDouble()
+                            : null,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: .62,
                       ),
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: .62,
-                    ),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return TvTile(
-                        key: ValueKey('tv-card-${item.id}'),
-                        focusNode: index == 0 ? _gridFocus : null,
-                        label: 'Ouvrir ${item.title}',
-                        onPressed: () => widget.onDetails(item),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: MediaArtwork(
-                                  item: item,
-                                  controller: widget.controller,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return TvTile(
+                          key: ValueKey('tv-card-${item.id}'),
+                          focusNode: index == 0 ? _gridFocus : null,
+                          label: 'Ouvrir ${item.title}',
+                          onPressed: () => widget.onDetails(item),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: MediaArtwork(
+                                    item: item,
+                                    controller: widget.controller,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Text(
-                                item.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                              Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Text(
+                                  item.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
         ),
       ],

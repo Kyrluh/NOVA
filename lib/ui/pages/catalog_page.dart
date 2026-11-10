@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/catalog_preferences.dart';
 import '../../domain/models.dart';
 import '../../domain/recent_catalog.dart';
+import '../../domain/catalog_layout.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
 import '../adaptive.dart';
@@ -528,7 +529,7 @@ class CatalogGrid extends StatelessWidget {
               builder: (context, bounds) {
                 final android = NovaAdaptiveScope.isAndroid(context);
                 final scale = controller.settings.posterScale;
-                final columns =
+                final automaticColumns =
                     ((bounds.crossAxisExtent + 12) / (132 * scale + 12))
                         .floor()
                         .clamp(
@@ -537,18 +538,26 @@ class CatalogGrid extends StatelessWidget {
                               : 2,
                           12,
                         );
+                final manual = controller.settings.catalogColumns > 0;
+                final gap = android ? 12.0 : 20.0;
+                final columns = effectiveCatalogColumns(
+                  controller.settings,
+                  bounds.crossAxisExtent,
+                  gap,
+                  automaticColumns,
+                );
                 return SliverGrid.builder(
-                  gridDelegate: android
+                  gridDelegate: android || manual
                       ? SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columns,
                           mainAxisExtent:
-                              ((bounds.crossAxisExtent - (columns - 1) * 12) /
+                              ((bounds.crossAxisExtent - (columns - 1) * gap) /
                                       columns) *
                                   1.5 +
                               58 *
                                   (MediaQuery.textScalerOf(context).scale(14) /
                                       14),
-                          crossAxisSpacing: 12,
+                          crossAxisSpacing: gap,
                           mainAxisSpacing: 16,
                         )
                       : SliverGridDelegateWithMaxCrossAxisExtent(
