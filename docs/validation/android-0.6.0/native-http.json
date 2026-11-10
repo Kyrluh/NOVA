@@ -1,0 +1,162 @@
+{
+    "passed":  [
+                   "HLS HTTP fresh player",
+                   "MPEG-TS HTTP",
+                   "HLS HTTP reused player"
+               ],
+    "requests":  [
+                     {
+                         "path":  "/original.m3u8",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.m3u8",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.ts",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.ts",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.ts",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.ts",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.m3u8",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.m3u8",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     },
+                     {
+                         "path":  "/original.ts",
+                         "method":  "GET",
+                         "range":  "bytes=0-"
+                     }
+                 ],
+    "diagnostics":  [
+
+                    ],
+    "demuxerLogs":  [
+                        "demux:v:Trying demuxers for level=request.",
+                        "demux:debug:Trying demuxer: playlist (force-level: request)",
+                        "demux:v:Detected file format: txt (Playlist file)",
+                        "ffmpeg:v:Opening \u003cfixture-http\u003e",
+                        "ffmpeg:v:Could not set AVOption tls_verify=\u00270\u0027",
+                        "ffmpeg:debug:resize stream to 131072 bytes, drop 0 bytes",
+                        "ffmpeg:v:Mime-type: \u0027application/vnd.apple.mpegurl\u0027",
+                        "ffmpeg:debug:Stream opened successfully.",
+                        "demux:v:Trying demuxers for level=normal.",
+                        "demux:debug:Trying demuxer: disc (force-level: normal)",
+                        "demux:debug:Trying demuxer: edl (force-level: normal)",
+                        "demux:debug:Trying demuxer: cue (force-level: normal)",
+                        "demux:debug:Trying demuxer: rawaudio (force-level: normal)",
+                        "demux:debug:Trying demuxer: rawvideo (force-level: normal)",
+                        "demux:debug:Trying demuxer: mkv (force-level: normal)",
+                        "demux:debug:Trying demuxer: lavf (force-level: normal)",
+                        "lavf:v:Found \u0027hls\u0027 at score=100 size=163.",
+                        "lavf:v:Could not set AVOption strict=\u0027experimental\u0027",
+                        "lavf:v:Could not set AVOption tls_verify=\u00270\u0027",
+                        "lavf:v:avformat_find_stream_info() finished after 0 bytes.",
+                        "demux:v:Detected file format: hls (libavformat)",
+                        "lavf:error:Failed to create file cache.",
+                        "lavf:v:select track 0",
+                        "lavf:v:select track 1",
+                        "lavf:debug:stream 1: resize index to 128",
+                        "lavf:debug:stream 0: resize index to 128",
+                        "lavf:v:EOF reached.",
+                        "lavf:v:refresh track 0",
+                        "lavf:v:refresh seek to 0.567000",
+                        "lavf:v:execute seek (to 0.567000 flags 32)",
+                        "lavf:v:Seek failed (Operation not permitted)",
+                        "lavf:v:seek done",
+                        "lavf:v:EOF reached.",
+                        "lavf:v:queuing seek to 1.544000",
+                        "lavf:v:execute seek (to 1.544000 flags 32)",
+                        "lavf:v:seek done",
+                        "lavf:debug:stream 1: resize index to 128",
+                        "lavf:debug:stream 0: resize index to 128",
+                        "lavf:v:EOF reached.",
+                        "demux:v:Trying demuxers for level=request.",
+                        "demux:debug:Trying demuxer: playlist (force-level: request)",
+                        "demux:v:Detected file format: txt (Playlist file)",
+                        "ffmpeg:v:Opening \u003cfixture-http\u003e",
+                        "ffmpeg:v:Could not set AVOption tls_verify=\u00270\u0027",
+                        "ffmpeg:debug:resize stream to 131072 bytes, drop 0 bytes",
+                        "ffmpeg:v:Mime-type: \u0027video/mp2t\u0027",
+                        "ffmpeg:debug:Stream opened successfully.",
+                        "demux:v:Trying demuxers for level=normal.",
+                        "demux:debug:Trying demuxer: disc (force-level: normal)",
+                        "demux:debug:Trying demuxer: edl (force-level: normal)",
+                        "demux:debug:Trying demuxer: cue (force-level: normal)",
+                        "demux:debug:Trying demuxer: rawaudio (force-level: normal)",
+                        "demux:debug:Trying demuxer: rawvideo (force-level: normal)",
+                        "demux:debug:Trying demuxer: mkv (force-level: normal)",
+                        "demux:debug:Trying demuxer: lavf (force-level: normal)",
+                        "lavf:v:Found \u0027mpegts\u0027 at score=50 size=2048.",
+                        "lavf:v:Could not set AVOption seg_max_retry=\u00275\u0027",
+                        "lavf:v:Could not set AVOption allowed_extensions=\u0027ALL\u0027",
+                        "ffmpeg:v:stream level seek from 217516 to 0",
+                        "lavf:v:avformat_find_stream_info() finished after 0 bytes.",
+                        "demux:v:Detected file format: mpegts (libavformat)",
+                        "lavf:error:Failed to create file cache.",
+                        "lavf:v:select track 0",
+                        "lavf:v:select track 1",
+                        "lavf:debug:stream 1: resize index to 128",
+                        "lavf:debug:stream 0: resize index to 128",
+                        "lavf:v:EOF reached.",
+                        "demux:v:Trying demuxers for level=request.",
+                        "demux:debug:Trying demuxer: playlist (force-level: request)",
+                        "demux:v:Detected file format: txt (Playlist file)",
+                        "ffmpeg:v:Opening \u003cfixture-http\u003e",
+                        "ffmpeg:v:Could not set AVOption tls_verify=\u00270\u0027",
+                        "ffmpeg:debug:resize stream to 131072 bytes, drop 0 bytes",
+                        "ffmpeg:v:Mime-type: \u0027application/vnd.apple.mpegurl\u0027",
+                        "ffmpeg:debug:Stream opened successfully.",
+                        "demux:v:Trying demuxers for level=normal.",
+                        "demux:debug:Trying demuxer: disc (force-level: normal)",
+                        "demux:debug:Trying demuxer: edl (force-level: normal)",
+                        "demux:debug:Trying demuxer: cue (force-level: normal)",
+                        "demux:debug:Trying demuxer: rawaudio (force-level: normal)",
+                        "demux:debug:Trying demuxer: rawvideo (force-level: normal)",
+                        "demux:debug:Trying demuxer: mkv (force-level: normal)",
+                        "demux:debug:Trying demuxer: lavf (force-level: normal)",
+                        "lavf:v:Found \u0027hls\u0027 at score=100 size=163.",
+                        "lavf:v:Could not set AVOption strict=\u0027experimental\u0027",
+                        "lavf:v:Could not set AVOption tls_verify=\u00270\u0027",
+                        "lavf:v:avformat_find_stream_info() finished after 0 bytes.",
+                        "demux:v:Detected file format: hls (libavformat)",
+                        "lavf:error:Failed to create file cache.",
+                        "lavf:v:select track 0",
+                        "lavf:v:select track 1",
+                        "lavf:debug:stream 1: resize index to 128",
+                        "lavf:debug:stream 0: resize index to 128",
+                        "lavf:v:EOF reached."
+                    ],
+    "lastState":  {
+                      "positionMs":  0,
+                      "width":  null,
+                      "playing":  false,
+                      "buffering":  false,
+                      "completed":  false
+                  },
+    "limits":  "Original local HTTP fixture; not a live provider, DRM, reconnect stress or prolonged-use test.",
+    "completedUtc":  "2026-11-09T22:27:38.005236Z"
+}

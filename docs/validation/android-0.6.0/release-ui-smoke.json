@@ -1,0 +1,174 @@
+﻿{
+    "passed":  true,
+    "completedAtUtc":  "2026-11-09T22:27:33.2115754Z",
+    "applicationId":  "app.nova.iptv",
+    "version":  "0.6.0+8",
+    "device":  "emulator-5556",
+    "deviceProfile":  "Pixel Fold, Android API35",
+    "artifact":  "dist/android/NOVA-IPTV-0.6.0-universal.apk",
+    "artifactSha256":  "46ca36d16a076cca76588ad6e5395187f5ac51b904343b23f66786a6ee2ee1b3",
+    "method":  "ADB input and UIAutomator against the installed signed release APK; no Flutter instrumentation or debug hooks.",
+    "fixture":  {
+                    "authorizedOriginalMedia":  true,
+                    "expectedLive":  1,
+                    "expectedMovies":  1,
+                    "sourceName":  "NOVA_QA_Local",
+                    "source":  "http://127.0.0.1:18760/catalog.m3u",
+                    "durationSeconds":  600,
+                    "importedContents":  2,
+                    "note":  "Initial fixture reused an identical media URL and was correctly deduplicated. Fixture changed to distinct ?kind=live and ?kind=movie query URLs, then source refreshed successfully."
+                },
+    "checks":  [
+                   {
+                       "evidence":  "release-ui/source-import.xml",
+                       "name":  "M3U source added through UI",
+                       "passed":  true
+                   },
+                   {
+                       "evidence":  "release-ui/tv-internal.png",
+                       "name":  "Live TV picture in expanded layout",
+                       "passed":  true
+                   },
+                   {
+                       "evidence":  [
+                                        "release-ui/tv-folded.png",
+                                        "release-ui/tv-folded.xml"
+                                    ],
+                       "command":  "adb emu fold",
+                       "name":  "Native fold preserves channel and video",
+                       "physicalSize":  "1080x2092",
+                       "passed":  true
+                   },
+                   {
+                       "evidence":  [
+                                        "release-ui/tv-unfolded.png",
+                                        "release-ui/tv-unfolded.xml"
+                                    ],
+                       "command":  "adb emu unfold",
+                       "name":  "Native unfold preserves channel and video",
+                       "physicalSize":  "2208x1840",
+                       "passed":  true
+                   },
+                   {
+                       "passed":  true,
+                       "name":  "Picture-in-Picture on Home",
+                       "evidence":  [
+                                        "release-ui/tv-pip.png",
+                                        "release-ui/tv-pip.xml"
+                                    ],
+                       "windowingMode":  "pinned",
+                       "bounds":  "[1207,843][2166,1382]",
+                       "nativeTask":  19
+                   },
+                   {
+                       "passed":  true,
+                       "name":  "Manual update preserves source and category",
+                       "installResult":  "Success",
+                       "categoryPreserved":  true,
+                       "command":  "adb install -r dist/android/NOVA-IPTV-0.6.0-universal.apk",
+                       "sourcePreserved":  true,
+                       "evidence":  [
+                                        "release-ui/update-persist-source.xml",
+                                        "release-ui/update-persist-tv.xml"
+                                    ]
+                   }
+               ],
+    "playbackContinuity":  {
+                               "observed":  true,
+                               "method":  "Original video includes an advancing burned-in time counter; screenshots and moving pattern were inspected before/after each native transition.",
+                               "approximateCounterSeconds":  {
+                                                                 "unfolded":  102,
+                                                                 "folded":  66,
+                                                                 "pip":  158,
+                                                                 "internal":  8
+                                                             },
+                               "limitation":  "Uninstrumented release exposes no media-open counter; advancing image proves observed continuity, not a precise zero-frame interruption guarantee."
+                           },
+    "pixelChecks":  [
+                        {
+                            "name":  "tv-internal",
+                            "file":  "release-ui/tv-internal.png",
+                            "imageWidth":  2208,
+                            "imageHeight":  1840,
+                            "pictureBounds":  {
+                                                  "left":  888,
+                                                  "right":  2166,
+                                                  "bottom":  1355,
+                                                  "name":  "tv-internal",
+                                                  "top":  636
+                                              },
+                            "samples":  225,
+                            "coloredSamples":  219,
+                            "coloredRatio":  0.97333333333333338,
+                            "distinctColorBins":  47,
+                            "passed":  true
+                        },
+                        {
+                            "name":  "tv-folded",
+                            "file":  "release-ui/tv-folded.png",
+                            "imageWidth":  1080,
+                            "imageHeight":  2092,
+                            "pictureBounds":  {
+                                                  "left":  42,
+                                                  "right":  1038,
+                                                  "bottom":  1234,
+                                                  "name":  "tv-folded",
+                                                  "top":  674
+                                              },
+                            "samples":  225,
+                            "coloredSamples":  213,
+                            "coloredRatio":  0.94666666666666666,
+                            "distinctColorBins":  49,
+                            "passed":  true
+                        },
+                        {
+                            "name":  "tv-unfolded",
+                            "file":  "release-ui/tv-unfolded.png",
+                            "imageWidth":  2208,
+                            "imageHeight":  1840,
+                            "pictureBounds":  {
+                                                  "left":  888,
+                                                  "right":  2166,
+                                                  "bottom":  1355,
+                                                  "name":  "tv-unfolded",
+                                                  "top":  636
+                                              },
+                            "samples":  225,
+                            "coloredSamples":  212,
+                            "coloredRatio":  0.94222222222222218,
+                            "distinctColorBins":  55,
+                            "passed":  true
+                        },
+                        {
+                            "name":  "tv-pip",
+                            "file":  "release-ui/tv-pip.png",
+                            "imageWidth":  2208,
+                            "imageHeight":  1840,
+                            "pictureBounds":  {
+                                                  "left":  1207,
+                                                  "right":  2166,
+                                                  "bottom":  1382,
+                                                  "name":  "tv-pip",
+                                                  "top":  843
+                                              },
+                            "samples":  225,
+                            "coloredSamples":  220,
+                            "coloredRatio":  0.97777777777777775,
+                            "distinctColorBins":  51,
+                            "passed":  true
+                        }
+                    ],
+    "remainingPhysicalDeviceTests":  [
+                                         "Samsung Galaxy Z Fold / One UI hardware fold transitions",
+                                         "Device-specific H265/HEVC decoding and battery use",
+                                         "User-provided Xtream, M3U and XMLTV source compatibility"
+                                     ],
+    "cleanup":  {
+                    "sourceDataRetainedForPersistenceEvidence":  true,
+                    "emulatorReturnedToRoot":  true,
+                    "screen":  "Expanded TV page, playback not started after reinstall",
+                    "temporaryHttpServerAndAdbReverseDelegatedToStorageAgent":  true,
+                    "temporaryHttpServerClosed":  true,
+                    "adbReverse18760Removed":  true
+                }
+}

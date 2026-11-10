@@ -1,0 +1,37 @@
+name: nova_iptv
+description: "NOVA IPTV — lecteur multimédia natif pour Windows et Android."
+publish_to: 'none'
+version: 0.6.5+13
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  file_selector: ^1.0.4
+  window_manager: ^0.5.1
+  path_provider: ^2.1.5
+  http: ^1.6.0
+  xml: ^7.1.0
+  crypto: ^3.0.8
+  ffi: ^2.2.0
+  sqflite_common_ffi: ^2.4.6
+  sqflite: ^2.4.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/platforms/

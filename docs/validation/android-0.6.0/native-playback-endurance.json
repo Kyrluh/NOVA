@@ -1,0 +1,745 @@
+{
+    "startedUtc":  "2026-11-09T22:27:43.875226Z",
+    "fixture":  "Original generated long H264320x180 + AAC French/English + UTF8 French/English + external SRT",
+    "nativeHandshakeEnabled":  true,
+    "hardwareCodecsValidated":  false,
+    "activityBefore":  {
+                           "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                           "configurationChanges":  0,
+                           "widthDp":  841,
+                           "heightDp":  701,
+                           "multiWindow":  false,
+                           "inPip":  false,
+                           "keepScreenOn":  false,
+                           "windowXPx":  0,
+                           "windowYPx":  0,
+                           "windowWidthPx":  2208,
+                           "windowHeightPx":  1840,
+                           "isEmulator":  true
+                       },
+    "fixtureSeconds":  600,
+    "subtitleAndAudioSelection":  {
+                                      "audioId":  "1",
+                                      "subtitleId":  "2",
+                                      "rate":  1.25
+                                  },
+    "renderedVideo":  "320x180",
+    "initialPixelCapture":  {
+                                "pixelCheck":  {
+                                                   "passed":  true,
+                                                   "name":  "android-video-initial",
+                                                   "distinctColorBins":  49,
+                                                   "crop":  {
+                                                                "left":  693,
+                                                                "right":  1515,
+                                                                "bottom":  1151,
+                                                                "top":  689
+                                                            },
+                                                   "coloredSamples":  218,
+                                                   "totalSamples":  225,
+                                                   "coloredRatio":  0.9688888888888889
+                                               },
+                                "passed":  true
+                            },
+    "flutterConstraintResizeOnly":  [
+                                        {
+                                            "width":  412.0,
+                                            "height":  480.0,
+                                            "beforeMs":  5125,
+                                            "afterMs":  5625,
+                                            "playing":  true
+                                        },
+                                        {
+                                            "width":  840.0,
+                                            "height":  680.0,
+                                            "beforeMs":  5625,
+                                            "afterMs":  6250,
+                                            "playing":  true
+                                        },
+                                        {
+                                            "width":  412.0,
+                                            "height":  480.0,
+                                            "beforeMs":  6250,
+                                            "afterMs":  6750,
+                                            "playing":  true
+                                        },
+                                        {
+                                            "width":  760.0,
+                                            "height":  340.0,
+                                            "beforeMs":  6750,
+                                            "afterMs":  7250,
+                                            "playing":  true
+                                        },
+                                        {
+                                            "width":  360.0,
+                                            "height":  540.0,
+                                            "beforeMs":  7250,
+                                            "afterMs":  7750,
+                                            "playing":  true
+                                        }
+                                    ],
+    "hostNativeTransitions":  {
+                                  "captures":  [
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-video-initial",
+                                                       "distinctColorBins":  49,
+                                                       "crop":  {
+                                                                    "left":  693,
+                                                                    "right":  1515,
+                                                                    "bottom":  1151,
+                                                                    "top":  689
+                                                                },
+                                                       "coloredSamples":  218,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  0.9688888888888889
+                                                   },
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-video-after-flutter-resize",
+                                                       "distinctColorBins":  37,
+                                                       "crop":  {
+                                                                    "left":  745,
+                                                                    "right":  1463,
+                                                                    "bottom":  1122,
+                                                                    "top":  718
+                                                                },
+                                                       "coloredSamples":  219,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  0.9733333333333334
+                                                   },
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-video-after-native-fold",
+                                                       "distinctColorBins":  46,
+                                                       "crop":  {
+                                                                    "left":  745,
+                                                                    "right":  1463,
+                                                                    "bottom":  1122,
+                                                                    "top":  718
+                                                                },
+                                                       "coloredSamples":  223,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  0.9911111111111112
+                                                   },
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-native-split-screen",
+                                                       "distinctColorBins":  29,
+                                                       "crop":  {
+                                                                    "left":  634,
+                                                                    "right":  1352,
+                                                                    "bottom":  911,
+                                                                    "top":  507
+                                                                },
+                                                       "coloredSamples":  114,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  0.5066666666666667
+                                                   },
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-native-pip",
+                                                       "distinctColorBins":  47,
+                                                       "crop":  {
+                                                                    "left":  837,
+                                                                    "right":  1605,
+                                                                    "bottom":  1639,
+                                                                    "top":  1207
+                                                                },
+                                                       "coloredSamples":  220,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  0.9777777777777777
+                                                   },
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-video-after-pip",
+                                                       "distinctColorBins":  42,
+                                                       "crop":  {
+                                                                    "left":  525,
+                                                                    "right":  1243,
+                                                                    "bottom":  1306,
+                                                                    "top":  902
+                                                                },
+                                                       "coloredSamples":  219,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  0.9733333333333334
+                                                   },
+                                                   {
+                                                       "passed":  true,
+                                                       "name":  "android-native-playback",
+                                                       "distinctColorBins":  51,
+                                                       "crop":  {
+                                                                    "left":  525,
+                                                                    "right":  1243,
+                                                                    "bottom":  1306,
+                                                                    "top":  902
+                                                                },
+                                                       "coloredSamples":  225,
+                                                       "totalSamples":  225,
+                                                       "coloredRatio":  1
+                                                   }
+                                               ],
+                                  "emulator":  "emulator-5556",
+                                  "transitions":  [
+                                                      {
+                                                          "name":  "initial",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  9250,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  0,
+                                                                                       "widthDp":  841,
+                                                                                       "heightDp":  701,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  2208,
+                                                                                       "windowHeightPx":  1840,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  631.5,
+                                                                                                   "top":  654.21875,
+                                                                                                   "right":  1576.5,
+                                                                                                   "bottom":  1185.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "emulator-fold",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  11500,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  1,
+                                                                                       "widthDp":  411,
+                                                                                       "heightDp":  797,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1080,
+                                                                                       "windowHeightPx":  2092,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  67.50000000000003,
+                                                                                                   "top":  780.21875,
+                                                                                                   "right":  1012.5,
+                                                                                                   "bottom":  1311.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "emulator-unfold",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  12875,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  2,
+                                                                                       "widthDp":  841,
+                                                                                       "heightDp":  701,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  2208,
+                                                                                       "windowHeightPx":  1840,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  631.5,
+                                                                                                   "top":  654.21875,
+                                                                                                   "right":  1576.5,
+                                                                                                   "bottom":  1185.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-window-compact",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  14875,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  3,
+                                                                                       "widthDp":  411,
+                                                                                       "heightDp":  891,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1080,
+                                                                                       "windowHeightPx":  2340,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  67.50000000000003,
+                                                                                                   "top":  904.21875,
+                                                                                                   "right":  1012.5,
+                                                                                                   "bottom":  1435.7812500000002,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-window-expanded",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  16250,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  4,
+                                                                                       "widthDp":  674,
+                                                                                       "heightDp":  841,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1768,
+                                                                                       "windowHeightPx":  2208,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  411.5,
+                                                                                                   "top":  838.21875,
+                                                                                                   "right":  1356.5000000000002,
+                                                                                                   "bottom":  1369.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-landscape",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  17750,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  5,
+                                                                                       "widthDp":  841,
+                                                                                       "heightDp":  674,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  2208,
+                                                                                       "windowHeightPx":  1768,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  631.5,
+                                                                                                   "top":  618.21875,
+                                                                                                   "right":  1576.5,
+                                                                                                   "bottom":  1149.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-portrait",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  19125,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  6,
+                                                                                       "widthDp":  674,
+                                                                                       "heightDp":  841,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1768,
+                                                                                       "windowHeightPx":  2208,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  411.5,
+                                                                                                   "top":  838.21875,
+                                                                                                   "right":  1356.5000000000002,
+                                                                                                   "bottom":  1369.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-split-screen",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  22000,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  7,
+                                                                                       "widthDp":  674,
+                                                                                       "heightDp":  416,
+                                                                                       "multiWindow":  true,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1768,
+                                                                                       "windowHeightPx":  1091,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  520.3333333333334,
+                                                                                                   "top":  442.96875,
+                                                                                                   "right":  1465.3333333333333,
+                                                                                                   "bottom":  974.53125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-split-screen-return",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  27625,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  8,
+                                                                                       "widthDp":  674,
+                                                                                       "heightDp":  841,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1768,
+                                                                                       "windowHeightPx":  2208,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  411.5,
+                                                                                                   "top":  838.21875,
+                                                                                                   "right":  1356.5000000000002,
+                                                                                                   "bottom":  1369.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-pip-entered",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  29375,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  9,
+                                                                                       "widthDp":  385,
+                                                                                       "heightDp":  216,
+                                                                                       "multiWindow":  true,
+                                                                                       "inPip":  true,
+                                                                                       "keepScreenOn":  false,
+                                                                                       "windowXPx":  716,
+                                                                                       "windowYPx":  1139,
+                                                                                       "windowWidthPx":  1010,
+                                                                                       "windowHeightPx":  568,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  716.1111111111111,
+                                                                                                   "top":  1139.0,
+                                                                                                   "right":  1725.888888888889,
+                                                                                                   "bottom":  1707.0,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-pip-return",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  37375,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  10,
+                                                                                       "widthDp":  674,
+                                                                                       "heightDp":  841,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1768,
+                                                                                       "windowHeightPx":  2208,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  411.5,
+                                                                                                   "top":  838.21875,
+                                                                                                   "right":  1356.5000000000002,
+                                                                                                   "bottom":  1369.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "native-lock-unlock-resumed",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  40875,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  10,
+                                                                                       "widthDp":  674,
+                                                                                       "heightDp":  841,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  1768,
+                                                                                       "windowHeightPx":  2208,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  411.5,
+                                                                                                   "top":  838.21875,
+                                                                                                   "right":  1356.5000000000002,
+                                                                                                   "bottom":  1369.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      },
+                                                      {
+                                                          "name":  "restored-emulator-window",
+                                                          "state":  {
+                                                                        "phase":  "waiting-native-transitions",
+                                                                        "pipRequested":  null,
+                                                                        "openCount":  1,
+                                                                        "positionMs":  43000,
+                                                                        "playing":  true,
+                                                                        "native":  {
+                                                                                       "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                                                                       "configurationChanges":  11,
+                                                                                       "widthDp":  841,
+                                                                                       "heightDp":  701,
+                                                                                       "multiWindow":  false,
+                                                                                       "inPip":  false,
+                                                                                       "keepScreenOn":  true,
+                                                                                       "windowXPx":  0,
+                                                                                       "windowYPx":  0,
+                                                                                       "windowWidthPx":  2208,
+                                                                                       "windowHeightPx":  1840,
+                                                                                       "isEmulator":  true
+                                                                                   },
+                                                                        "videoContentPixels":  {
+                                                                                                   "left":  631.5,
+                                                                                                   "top":  654.21875,
+                                                                                                   "right":  1576.5,
+                                                                                                   "bottom":  1185.78125,
+                                                                                                   "ratio":  2.625
+                                                                                               }
+                                                                    }
+                                                      }
+                                                  ],
+                                  "failure":  null,
+                                  "passed":  true
+                              },
+    "activityAfterNativeTransitions":  {
+                                           "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                           "configurationChanges":  11,
+                                           "widthDp":  841,
+                                           "heightDp":  701,
+                                           "multiWindow":  false,
+                                           "inPip":  false,
+                                           "keepScreenOn":  true,
+                                           "windowXPx":  0,
+                                           "windowYPx":  0,
+                                           "windowWidthPx":  2208,
+                                           "windowHeightPx":  1840,
+                                           "isEmulator":  true
+                                       },
+    "nativeTransitionPlayingEvents":  [
+                                          false,
+                                          true,
+                                          false,
+                                          true
+                                      ],
+    "sustainedPlayback":  {
+                              "requestedSeconds":  180,
+                              "elapsedSeconds":  180,
+                              "samples":  [
+                                              {
+                                                  "elapsedSeconds":  10,
+                                                  "positionMs":  56000,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  20,
+                                                  "positionMs":  68750,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  30,
+                                                  "positionMs":  81500,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  40,
+                                                  "positionMs":  94375,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  50,
+                                                  "positionMs":  105875,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  60,
+                                                  "positionMs":  118750,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  70,
+                                                  "positionMs":  131750,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  80,
+                                                  "positionMs":  144500,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  90,
+                                                  "positionMs":  156125,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  100,
+                                                  "positionMs":  168750,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  110,
+                                                  "positionMs":  181625,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  120,
+                                                  "positionMs":  194375,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  130,
+                                                  "positionMs":  205875,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  140,
+                                                  "positionMs":  218625,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  150,
+                                                  "positionMs":  231500,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  160,
+                                                  "positionMs":  244250,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  170,
+                                                  "positionMs":  255750,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              },
+                                              {
+                                                  "elapsedSeconds":  180,
+                                                  "positionMs":  268625,
+                                                  "playing":  true,
+                                                  "openCount":  1
+                                              }
+                                          ]
+                          },
+    "selectedSubtitleDecodedAfterTransitions":  true,
+    "activityAfterPause":  {
+                               "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                               "configurationChanges":  11,
+                               "widthDp":  841,
+                               "heightDp":  701,
+                               "multiWindow":  false,
+                               "inPip":  false,
+                               "keepScreenOn":  false,
+                               "windowXPx":  0,
+                               "windowYPx":  0,
+                               "windowWidthPx":  2208,
+                               "windowHeightPx":  1840,
+                               "isEmulator":  true
+                           },
+    "openCount":  1,
+    "diagnosticEvents":  0,
+    "passed":  true,
+    "limits":  "Original H264 fixture and same real player/texture controller; no physical Samsung hardware-decoder, prolonged-use or physical-fold proof. Native emulator transitions only when handshake enabled.",
+    "finishedUtc":  "2026-11-09T22:31:21.541768Z"
+}

@@ -1,0 +1,70 @@
+﻿{
+    "captures":  [
+                     {
+                         "openCount":  1,
+                         "coloredRatio":  0.97777777777777775,
+                         "mediaPositionMs":  181250,
+                         "native":  {
+                                        "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                        "configurationChanges":  11,
+                                        "widthDp":  841,
+                                        "heightDp":  701,
+                                        "multiWindow":  false,
+                                        "inPip":  false,
+                                        "keepScreenOn":  true,
+                                        "windowXPx":  0,
+                                        "windowYPx":  0,
+                                        "windowWidthPx":  2208,
+                                        "windowHeightPx":  1840,
+                                        "isEmulator":  true
+                                    },
+                         "totalSamples":  225,
+                         "passed":  true,
+                         "distinctColorBins":  39,
+                         "crop":  {
+                                      "left":  745,
+                                      "right":  1463,
+                                      "bottom":  1122,
+                                      "top":  718
+                                  },
+                         "phase":  "native-transitions-complete",
+                         "name":  "android-soak-180s",
+                         "playing":  true,
+                         "coloredSamples":  220
+                     },
+                     {
+                         "openCount":  1,
+                         "coloredRatio":  0.98666666666666669,
+                         "mediaPositionMs":  240750,
+                         "native":  {
+                                        "activityInstance":  "42655c4b-e277-49f5-a07d-fe92486a3d70",
+                                        "configurationChanges":  11,
+                                        "widthDp":  841,
+                                        "heightDp":  701,
+                                        "multiWindow":  false,
+                                        "inPip":  false,
+                                        "keepScreenOn":  true,
+                                        "windowXPx":  0,
+                                        "windowYPx":  0,
+                                        "windowWidthPx":  2208,
+                                        "windowHeightPx":  1840,
+                                        "isEmulator":  true
+                                    },
+                         "totalSamples":  225,
+                         "passed":  true,
+                         "distinctColorBins":  49,
+                         "crop":  {
+                                      "left":  745,
+                                      "right":  1463,
+                                      "bottom":  1122,
+                                      "top":  718
+                                  },
+                         "phase":  "native-transitions-complete",
+                         "name":  "android-soak-240s",
+                         "playing":  true,
+                         "coloredSamples":  222
+                     }
+                 ],
+    "failure":  null,
+    "passed":  true
+}

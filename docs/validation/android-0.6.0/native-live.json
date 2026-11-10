@@ -1,0 +1,54 @@
+{
+    "passed":  true,
+    "fixture":  "Original generated 12-second H264/AAC MPEG-TS over isolated loopback HTTP, opened through the live branch",
+    "limitation":  "Finite local media exercises the live player policy; continuous provider TV, timeshift and physical Samsung decoding still require device testing. Decoded dimensions and a native frame event complement the separate host video pixel checks.",
+    "openCount":  1,
+    "backendFactoryCalls":  1,
+    "suppressedSurfaceSeekRequests":  1,
+    "layouts":  [
+                    {
+                        "width":  412.0,
+                        "height":  480.0,
+                        "beforeMs":  440,
+                        "afterMs":  1106,
+                        "openCount":  1,
+                        "audioId":  "1",
+                        "subtitleId":  "no"
+                    },
+                    {
+                        "width":  840.0,
+                        "height":  680.0,
+                        "beforeMs":  1106,
+                        "afterMs":  2773,
+                        "openCount":  1,
+                        "audioId":  "1",
+                        "subtitleId":  "no"
+                    },
+                    {
+                        "width":  412.0,
+                        "height":  480.0,
+                        "beforeMs":  2773,
+                        "afterMs":  4356,
+                        "openCount":  1,
+                        "audioId":  "1",
+                        "subtitleId":  "no"
+                    }
+                ],
+    "httpRequests":  [
+                         {
+                             "path":  "/original.ts",
+                             "method":  "GET",
+                             "range":  "bytes=0-"
+                         },
+                         {
+                             "path":  "/original.ts",
+                             "method":  "GET",
+                             "range":  "bytes=0-"
+                         },
+                         {
+                             "path":  "/original.ts",
+                             "method":  "GET",
+                             "range":  "bytes=0-"
+                         }
+                     ]
+}

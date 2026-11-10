@@ -1,0 +1,100 @@
+﻿[
+    {
+        "passed":  true,
+        "name":  "android-video-initial",
+        "distinctColorBins":  53,
+        "crop":  {
+                     "left":  693,
+                     "right":  1515,
+                     "bottom":  1151,
+                     "top":  689
+                 },
+        "coloredSamples":  217,
+        "totalSamples":  225,
+        "coloredRatio":  0.96444444444444444
+    },
+    {
+        "passed":  true,
+        "name":  "android-video-after-flutter-resize",
+        "distinctColorBins":  39,
+        "crop":  {
+                     "left":  745,
+                     "right":  1463,
+                     "bottom":  1122,
+                     "top":  718
+                 },
+        "coloredSamples":  220,
+        "totalSamples":  225,
+        "coloredRatio":  0.97777777777777775
+    },
+    {
+        "passed":  true,
+        "name":  "android-video-after-native-fold",
+        "distinctColorBins":  39,
+        "crop":  {
+                     "left":  745,
+                     "right":  1463,
+                     "bottom":  1122,
+                     "top":  718
+                 },
+        "coloredSamples":  219,
+        "totalSamples":  225,
+        "coloredRatio":  0.97333333333333338
+    },
+    {
+        "passed":  true,
+        "name":  "android-native-split-screen",
+        "distinctColorBins":  52,
+        "crop":  {
+                     "left":  608,
+                     "right":  1160,
+                     "bottom":  701,
+                     "top":  390
+                 },
+        "coloredSamples":  225,
+        "totalSamples":  225,
+        "coloredRatio":  1
+    },
+    {
+        "passed":  true,
+        "name":  "android-native-pip",
+        "distinctColorBins":  50,
+        "crop":  {
+                     "left":  837,
+                     "right":  1605,
+                     "bottom":  1639,
+                     "top":  1207
+                 },
+        "coloredSamples":  222,
+        "totalSamples":  225,
+        "coloredRatio":  0.98666666666666669
+    },
+    {
+        "passed":  true,
+        "name":  "android-video-after-pip",
+        "distinctColorBins":  46,
+        "crop":  {
+                     "left":  525,
+                     "right":  1243,
+                     "bottom":  1306,
+                     "top":  902
+                 },
+        "coloredSamples":  222,
+        "totalSamples":  225,
+        "coloredRatio":  0.98666666666666669
+    },
+    {
+        "passed":  true,
+        "name":  "android-native-playback",
+        "distinctColorBins":  35,
+        "crop":  {
+                     "left":  525,
+                     "right":  1243,
+                     "bottom":  1306,
+                     "top":  902
+                 },
+        "coloredSamples":  220,
+        "totalSamples":  225,
+        "coloredRatio":  0.97777777777777775
+    }
+]

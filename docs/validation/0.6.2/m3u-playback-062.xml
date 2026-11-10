@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+    <node index="0" text="" resource-id="" class="android.widget.LinearLayout" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+      <node index="0" text="" resource-id="android:id/content" class="android.widget.FrameLayout" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+        <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+          <node index="0" text="" resource-id="" class="android.view.View" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+            <node index="0" text="" resource-id="" class="android.view.View" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+              <node index="0" text="" resource-id="" class="android.view.View" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+                <node index="0" text="" resource-id="" class="android.view.View" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][2208,1840]">
+                  <node NAF="true" index="0" text="" resource-id="" class="android.view.View" package="app.nova.iptv" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="true" scrollable="true" long-clickable="false" password="false" selected="false" bounds="[0,74][2208,1756]" />
+                </node>
+              </node>
+            </node>
+          </node>
+        </node>
+      </node>
+    </node>
+  </node>
+</hierarchy>

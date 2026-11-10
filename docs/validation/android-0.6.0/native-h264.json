@@ -1,0 +1,12 @@
+{
+    "codecFixture":  "h264",
+    "passed":  true,
+    "videoCodec":  "h264",
+    "hwdecCurrent":  "mediacodec",
+    "width":  320,
+    "height":  180,
+    "audioTrackCount":  2,
+    "subtitleTrackCount":  2,
+    "limits":  "Decoder success on this emulator is not hardware decoder validation on a physical Samsung.",
+    "completedUtc":  "2026-11-09T22:27:33.317799Z"
+}

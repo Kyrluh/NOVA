@@ -1,0 +1,30 @@
+﻿{
+    "Package":  "app.nova.iptv",
+    "Version":  "0.6.1",
+    "VersionCode":  9,
+    "CertificateSha256":  "62fafe6de54629f3d7485d2dcebc81664709ac9ec7c67456822c7614e36b4dd0",
+    "Apks":  [
+                 {
+                     "File":  "NOVA-IPTV-0.6.1-arm64-v8a.apk",
+                     "Sha256":  "35a1b083378433731bbadff24c761c58fdbeb2fabd4408e031272bf9f3ce2abb",
+                     "Abis":  [
+                                  "arm64-v8a"
+                              ],
+                     "MinimumSdk":  24,
+                     "TargetSdk":  36,
+                     "ZipAlignment16KiB":  true
+                 },
+                 {
+                     "File":  "NOVA-IPTV-0.6.1-universal.apk",
+                     "Sha256":  "e7bd4167fbb23a6fffc588bbb70ae7f3b4f1bb11efe222af9672864ec029115a",
+                     "Abis":  [
+                                  "arm64-v8a",
+                                  "armeabi-v7a",
+                                  "x86_64"
+                              ],
+                     "MinimumSdk":  24,
+                     "TargetSdk":  36,
+                     "ZipAlignment16KiB":  true
+                 }
+             ]
+}

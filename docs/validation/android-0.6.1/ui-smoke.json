@@ -1,0 +1,53 @@
+﻿{
+    "limitation":  "Emulator UI verification; no measured FPS or physical Samsung performance claim.",
+    "innerDensity":  560,
+    "sameProductionCertificate":  true,
+    "externalFullscreenButtonObserved":  true,
+    "version":  "0.6.1+9",
+    "passed":  true,
+    "compactSheetObserved":  true,
+    "liveScrollingBothDisplaysObserved":  true,
+    "installedOverPreviousVersion":  true,
+    "device":  "Pixel Fold emulator API35",
+    "catalog":  {
+                    "live":  80,
+                    "movies":  30
+                },
+    "visibleFirstRow":  [
+                            {
+                                "left":  266,
+                                "title":  "Consulter Film 000",
+                                "bottom":  1535,
+                                "top":  812,
+                                "right":  612
+                            },
+                            {
+                                "left":  654,
+                                "title":  "Consulter Film 001",
+                                "bottom":  1535,
+                                "top":  812,
+                                "right":  1001
+                            },
+                            {
+                                "left":  1043,
+                                "title":  "Consulter Film 002",
+                                "bottom":  1535,
+                                "top":  812,
+                                "right":  1389
+                            },
+                            {
+                                "left":  1431,
+                                "title":  "Consulter Film 003",
+                                "bottom":  1535,
+                                "top":  812,
+                                "right":  1778
+                            },
+                            {
+                                "left":  1820,
+                                "title":  "Consulter Film 004",
+                                "bottom":  1535,
+                                "top":  812,
+                                "right":  2166
+                            }
+                        ]
+}

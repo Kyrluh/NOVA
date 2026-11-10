@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "validation": "Android Release ARM64 ELF PT_LOAD 16 KiB alignment",
+  "generatedAtUtc": "2026-11-09T22:14:01.449188Z",
+  "sourceApk": {
+    "path": "build/app/outputs/flutter-apk/app-arm64-v8a-release.apk",
+    "sizeBytes": 37201564,
+    "lastModifiedUtc": "2026-11-09T22:13:27.245200Z",
+    "sha256": "e0413474df6363e64f006a0882fa0d6fa4c6016fe348909cc35ae164c8e6679c",
+    "crc32": "86fb509a",
+    "unchangedDuringValidation": true
+  },
+  "tool": {
+    "path": ".tools/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-readelf.exe",
+    "version": "LLVM (http://llvm.org/):\n  LLVM version 19.0.1 (/mnt/disks/build-disk/src/android/llvm-r530567/out/llvm-project/llvm 97a699bf4812a18fb657c2779f5296a4ab2694d2)\n  Optimized build."
+  },
+  "minimumLoadSegmentAlignmentBytes": 16384,
+  "libraryCount": 6,
+  "missingExpectedLibraries": [],
+  "libraries": [
+    {
+      "name": "libapp.so",
+      "zipEntry": "lib/arm64-v8a/libapp.so",
+      "uncompressedBytes": 7996296,
+      "zipCrc32": "88478e30",
+      "actualCrc32": "88478e30",
+      "crcMatches": true,
+      "sha256": "12da6b316d2890c8d807d194851c1d7d3992c62858285ea8d04602a155a89fb9",
+      "elfClass": "ELF64",
+      "machine": "AArch64",
+      "loadSegments": [
+        {
+          "offset": "0x0",
+          "virtualAddress": "0x0",
+          "fileSize": "0x2ea16d",
+          "memorySize": "0x2ea16d",
+          "flags": "R",
+          "alignmentBytes": 65536,
+          "alignmentHex": "0x10000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x2f0000",
+          "virtualAddress": "0x2f0000",
+          "fileSize": "0x4a0b00",
+          "memorySize": "0x4a0b00",
+          "flags": "R E",
+          "alignmentBytes": 65536,
+          "alignmentHex": "0x10000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x7a0000",
+          "virtualAddress": "0x7a0000",
+          "fileSize": "0x68",
+          "memorySize": "0x68",
+          "flags": "RW",
+          "alignmentBytes": 65536,
+          "alignmentHex": "0x10000",
+          "passes16KiBAlignment": true
+        }
+      ],
+      "passes": true
+    },
+    {
+      "name": "libdartjni.so",
+      "zipEntry": "lib/arm64-v8a/libdartjni.so",
+      "uncompressedBytes": 131400,
+      "zipCrc32": "901c3329",
+      "actualCrc32": "901c3329",
+      "crcMatches": true,
+      "sha256": "fa824e2330ff592c2f2ce39feb132be4dfd1adaacb9adbb45d639fee90cc6475",
+      "elfClass": "ELF64",
+      "machine": "AArch64",
+      "loadSegments": [
+        {
+          "offset": "0x0",
+          "virtualAddress": "0x0",
+          "fileSize": "0x1ec10",
+          "memorySize": "0x1ec10",
+          "flags": "R E",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x1ec10",
+          "virtualAddress": "0x22c10",
+          "fileSize": "0x560",
+          "memorySize": "0x13f0",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x1f170",
+          "virtualAddress": "0x27170",
+          "fileSize": "0x6f8",
+          "memorySize": "0x978",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        }
+      ],
+      "passes": true
+    },
+    {
+      "name": "libflutter.so",
+      "zipEntry": "lib/arm64-v8a/libflutter.so",
+      "uncompressedBytes": 11763360,
+      "zipCrc32": "f0ad0377",
+      "actualCrc32": "f0ad0377",
+      "crcMatches": true,
+      "sha256": "86b660128f3a3b6220c32d4d637f8198b2083f60c36c55ff025d3dba1a64d0f8",
+      "elfClass": "ELF64",
+      "machine": "AArch64",
+      "loadSegments": [
+        {
+          "offset": "0x0",
+          "virtualAddress": "0x0",
+          "fileSize": "0xadbad0",
+          "memorySize": "0xadbad0",
+          "flags": "R E",
+          "alignmentBytes": 65536,
+          "alignmentHex": "0x10000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0xadbad0",
+          "virtualAddress": "0xaebad0",
+          "fileSize": "0x5a3a0",
+          "memorySize": "0x5a530",
+          "flags": "RW",
+          "alignmentBytes": 65536,
+          "alignmentHex": "0x10000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0xb35e70",
+          "virtualAddress": "0xb55e70",
+          "fileSize": "0x16e8",
+          "memorySize": "0x10800",
+          "flags": "RW",
+          "alignmentBytes": 65536,
+          "alignmentHex": "0x10000",
+          "passes16KiBAlignment": true
+        }
+      ],
+      "passes": true
+    },
+    {
+      "name": "libmediakitandroidhelper.so",
+      "zipEntry": "lib/arm64-v8a/libmediakitandroidhelper.so",
+      "uncompressedBytes": 386696,
+      "zipCrc32": "95e1d618",
+      "actualCrc32": "95e1d618",
+      "crcMatches": true,
+      "sha256": "ab55b1d34665dba8fa7a451e82c466ee71b9698e7da6c9a3cb68a7c0ee7610d4",
+      "elfClass": "ELF64",
+      "machine": "AArch64",
+      "loadSegments": [
+        {
+          "offset": "0x0",
+          "virtualAddress": "0x0",
+          "fileSize": "0x59850",
+          "memorySize": "0x59850",
+          "flags": "R E",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x59850",
+          "virtualAddress": "0x5d850",
+          "fileSize": "0x4440",
+          "memorySize": "0x4440",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x5dc90",
+          "virtualAddress": "0x65c90",
+          "fileSize": "0x168",
+          "memorySize": "0x1250",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        }
+      ],
+      "passes": true
+    },
+    {
+      "name": "libmpv.so",
+      "zipEntry": "lib/arm64-v8a/libmpv.so",
+      "uncompressedBytes": 12369680,
+      "zipCrc32": "5e2aeefb",
+      "actualCrc32": "5e2aeefb",
+      "crcMatches": true,
+      "sha256": "adf83fde58a9f6751ce6e83b9b187f651425d53ec0e20da04deb8dfb4aa775e1",
+      "elfClass": "ELF64",
+      "machine": "AArch64",
+      "loadSegments": [
+        {
+          "offset": "0x0",
+          "virtualAddress": "0x0",
+          "fileSize": "0x39407c",
+          "memorySize": "0x39407c",
+          "flags": "R",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x394080",
+          "virtualAddress": "0x398080",
+          "fileSize": "0x7ae3c0",
+          "memorySize": "0x7ae3c0",
+          "flags": "R E",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0xb42440",
+          "virtualAddress": "0xb4a440",
+          "fileSize": "0x86148",
+          "memorySize": "0x86148",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0xbc8588",
+          "virtualAddress": "0xbd4588",
+          "fileSize": "0x32ac",
+          "memorySize": "0x489848",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        }
+      ],
+      "passes": true
+    },
+    {
+      "name": "libsqlite3.so",
+      "zipEntry": "lib/arm64-v8a/libsqlite3.so",
+      "uncompressedBytes": 1732360,
+      "zipCrc32": "24fe1003",
+      "actualCrc32": "24fe1003",
+      "crcMatches": true,
+      "sha256": "081df67ee9ab852daea6a0679427e90fc89a0245d06f93dafe2309875c609c5c",
+      "elfClass": "ELF64",
+      "machine": "AArch64",
+      "loadSegments": [
+        {
+          "offset": "0x0",
+          "virtualAddress": "0x0",
+          "fileSize": "0x1a0630",
+          "memorySize": "0x1a0630",
+          "flags": "R E",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x1a0630",
+          "virtualAddress": "0x1a4630",
+          "fileSize": "0x2670",
+          "memorySize": "0x29d0",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        },
+        {
+          "offset": "0x1a2ca0",
+          "virtualAddress": "0x1aaca0",
+          "fileSize": "0x3a30",
+          "memorySize": "0x3f40",
+          "flags": "RW",
+          "alignmentBytes": 16384,
+          "alignmentHex": "0x4000",
+          "passes16KiBAlignment": true
+        }
+      ],
+      "passes": true
+    }
+  ],
+  "allLibrariesPass": true,
+  "scope": [
+    "Every lib/arm64-v8a/*.so from this exact APK is included.",
+    "All PT_LOAD segments require power-of-two alignment >= 0x4000 and congruent file/virtual offsets modulo 16384.",
+    "ZIP page alignment, signature validation, and device playback are validated separately."
+  ]
+}
