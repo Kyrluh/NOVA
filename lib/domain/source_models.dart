@@ -10,6 +10,8 @@ class SourceDraft {
     this.username = '',
     this.password = '',
     this.epgUrl = '',
+    this.provider = 'other',
+    this.usePresetPassword = false,
   });
 
   final String name;
@@ -18,6 +20,8 @@ class SourceDraft {
   final String username;
   final String password;
   final String epgUrl;
+  final String provider;
+  final bool usePresetPassword;
 
   @override
   String toString() => 'SourceDraft($kind)';
@@ -32,6 +36,8 @@ class SourceConfig extends SourceDraft {
     super.username,
     super.password,
     super.epgUrl,
+    super.provider,
+    super.usePresetPassword,
   });
 
   factory SourceConfig.fromDraft(String id, SourceDraft draft) => SourceConfig(
@@ -42,6 +48,8 @@ class SourceConfig extends SourceDraft {
     username: draft.username.trim(),
     password: draft.password,
     epgUrl: draft.epgUrl.trim(),
+    provider: draft.provider,
+    usePresetPassword: draft.usePresetPassword,
   );
 
   factory SourceConfig.fromJson(Map<String, dynamic> json) => SourceConfig(
@@ -52,6 +60,8 @@ class SourceConfig extends SourceDraft {
     username: json['username'] as String? ?? '',
     password: json['password'] as String? ?? '',
     epgUrl: json['epgUrl'] as String? ?? '',
+    provider: json['provider'] == 'kyrlu' ? 'kyrlu' : 'other',
+    usePresetPassword: json['usePresetPassword'] == true,
   );
 
   final String id;
@@ -62,6 +72,8 @@ class SourceConfig extends SourceDraft {
     username: username,
     password: password,
     epgUrl: epgUrl,
+    provider: provider,
+    usePresetPassword: usePresetPassword,
   );
 
   /// Sensitive fields: serialize only into protected storage.
@@ -73,6 +85,8 @@ class SourceConfig extends SourceDraft {
     'username': username,
     'password': password,
     'epgUrl': epgUrl,
+    'provider': provider,
+    'usePresetPassword': usePresetPassword,
   };
 
   SourceConfig copyWith({String? epgUrl}) => SourceConfig(
@@ -83,6 +97,8 @@ class SourceConfig extends SourceDraft {
     username: username,
     password: password,
     epgUrl: epgUrl ?? this.epgUrl,
+    provider: provider,
+    usePresetPassword: usePresetPassword,
   );
 
   @override

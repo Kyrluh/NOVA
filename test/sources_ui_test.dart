@@ -10,12 +10,86 @@ import 'package:nova_iptv/ui/theme.dart';
 
 void main() {
   testWidgets(
+    'Kyrlu preset and custom password apply only to default-first Xtream',
+    (tester) async {
+      final controller = _FakeSources();
+      await _start(tester, controller);
+      await tester.tap(find.byKey(const Key('add-source')));
+      await tester.pumpAndSettle();
+      final kind = tester.widget<DropdownButtonFormField<SourceKind>>(
+        find.byType(DropdownButtonFormField<SourceKind>),
+      );
+      expect(kind.initialValue, SourceKind.xtream);
+      expect(
+        tester
+            .widget<DropdownButton<SourceKind>>(
+              find.byType(DropdownButton<SourceKind>),
+            )
+            .items!
+            .first
+            .value,
+        SourceKind.xtream,
+      );
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byKey(const Key('source-provider')),
+          )
+          .onChanged!('kyrlu');
+      await tester.pumpAndSettle();
+      expect(find.text('MDP prédéfini'), findsOneWidget);
+      expect(find.byKey(const Key('source-password')), findsNothing);
+      await _enter(tester, 'source-name', 'Kyrlu');
+      await _enter(tester, 'source-address', 'https://example.test');
+      await _enter(tester, 'source-username', 'fixture-user');
+      final testButton = find.widgetWithText(
+        OutlinedButton,
+        'Tester la connexion',
+      );
+      await tester.tap(testButton);
+      await tester.pumpAndSettle();
+      expect(controller.tested.last.password, 'fixture-preset');
+      expect(controller.tested.last.provider, 'kyrlu');
+      expect(controller.tested.last.usePresetPassword, isTrue);
+      final config = SourceConfig.fromDraft('fixture', controller.tested.last);
+      expect(
+        SourceConfig.fromJson(config.toJson())
+            .copyWith(epgUrl: '')
+            .draft
+            .usePresetPassword,
+        isTrue,
+      );
+
+      tester
+          .widget<DropdownButtonFormField<bool>>(
+            find.byType(DropdownButtonFormField<bool>),
+          )
+          .onChanged!(false);
+      await tester.pumpAndSettle();
+      await _enter(tester, 'source-password', 'fixture-custom');
+      await tester.tap(testButton);
+      await tester.pumpAndSettle();
+      expect(controller.tested.last.password, 'fixture-custom');
+      expect(controller.tested.last.usePresetPassword, isFalse);
+
+      await _selectKind(tester, 'Playlist M3U • URL');
+      expect(find.byKey(const Key('source-provider')), findsNothing);
+      expect(find.byKey(const Key('source-password')), findsNothing);
+      await tester.tap(testButton);
+      await tester.pumpAndSettle();
+      expect(controller.tested.last.password, isEmpty);
+      expect(controller.tested.last.username, isEmpty);
+      expect(controller.tested.last.usePresetPassword, isFalse);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
     'TV remote M3U keyboard next skips hidden credentials and done focuses Add',
     (tester) async {
       final controller = _FakeSources();
       await _start(tester, controller);
       await tester.tap(find.byKey(const Key('add-source')));
       await tester.pumpAndSettle();
+      await _selectKind(tester, 'Playlist M3U • URL');
       await _enter(tester, 'source-name', 'TV');
       await tester.testTextInput.receiveAction(TextInputAction.next);
       await tester.pumpAndSettle();
@@ -84,6 +158,7 @@ void main() {
       expect(find.text('Aucune source ajoutée'), findsOneWidget);
       await tester.tap(find.byKey(const Key('add-source')));
       await tester.pumpAndSettle();
+      await _selectKind(tester, 'Playlist M3U • URL');
       await tester.tap(find.byKey(const Key('save-source')));
       await tester.pumpAndSettle();
       expect(find.text('Donnez un nom à cette source.'), findsOneWidget);
@@ -180,6 +255,7 @@ void main() {
       await _start(tester, controller);
       await tester.tap(find.byKey(const Key('add-source')));
       await tester.pumpAndSettle();
+      await _selectKind(tester, 'Playlist M3U • URL');
       await _enter(tester, 'source-name', 'En attente');
       await _enter(tester, 'source-address', 'https://example.test/list.m3u');
       await tester.tap(

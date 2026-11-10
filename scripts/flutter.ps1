@@ -12,5 +12,10 @@ $env:CI = 'true'
 Set-Location -LiteralPath $projectRoot
 $flutter = Join-Path $projectRoot '.tools\flutter\bin\flutter.bat'
 if (-not (Test-Path -LiteralPath $flutter)) { throw 'Exécutez d''abord scripts/bootstrap.ps1.' }
+# Release-only provider presets stay outside Git and command-line secret values.
+$novaPresets = Join-Path $projectRoot '.signing\provider-presets.json'
+if ($FlutterArgs.Count -gt 0 -and $FlutterArgs[0] -eq 'build' -and (Test-Path -LiteralPath $novaPresets)) {
+    $FlutterArgs += "--dart-define-from-file=$novaPresets"
+}
 & $flutter @FlutterArgs
 exit $LASTEXITCODE

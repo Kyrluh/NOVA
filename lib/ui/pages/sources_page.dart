@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/source_models.dart';
+import '../../domain/provider_presets.dart';
 import '../../state/source_controller.dart';
 import '../theme.dart';
 import '../widgets/page_widgets.dart';
@@ -402,6 +403,8 @@ class _SourceForm extends StatefulWidget {
 class _SourceFormState extends State<_SourceForm> {
   final _form = GlobalKey<FormState>();
   final _kindFocus = FocusNode(debugLabel: 'Source type');
+  final _providerFocus = FocusNode(debugLabel: 'Source provider');
+  final _passwordModeFocus = FocusNode(debugLabel: 'Source password mode');
   final _nameFocus = FocusNode(debugLabel: 'Source name');
   final _addressFocus = FocusNode(debugLabel: 'Source address');
   final _usernameFocus = FocusNode(debugLabel: 'Source username');
@@ -415,9 +418,14 @@ class _SourceFormState extends State<_SourceForm> {
   List<FocusNode> get _focusOrder => [
     if (!_busy) ...[
       _kindFocus,
+      if (_kind == SourceKind.xtream) _providerFocus,
       _nameFocus,
       _addressFocus,
-      if (_kind == SourceKind.xtream) ...[_usernameFocus, _passwordFocus],
+      if (_kind == SourceKind.xtream) ...[
+        _usernameFocus,
+        if (_provider == 'kyrlu') _passwordModeFocus,
+        if (!_presetActive) _passwordFocus,
+      ],
       _epgFocus,
       _testFocus,
       _saveFocus,
@@ -452,6 +460,13 @@ class _SourceFormState extends State<_SourceForm> {
   late final TextEditingController _password;
   late final TextEditingController _epg;
   late SourceKind _kind;
+  String _provider = 'other';
+  bool _usePreset = false;
+  bool get _presetActive =>
+      _kind == SourceKind.xtream &&
+      _provider == 'kyrlu' &&
+      _usePreset &&
+      ProviderPresets.kyrluAvailable;
   bool _showPassword = false;
   bool _busy = false;
   bool _saving = false;
@@ -463,11 +478,16 @@ class _SourceFormState extends State<_SourceForm> {
   void initState() {
     super.initState();
     final draft = widget.initial;
-    _kind = draft?.kind ?? SourceKind.m3uUrl;
+    _kind = draft?.kind ?? SourceKind.xtream;
+    _provider = draft?.provider ?? 'other';
+    _usePreset =
+        draft?.usePresetPassword == true && ProviderPresets.kyrluAvailable;
     _name = TextEditingController(text: draft?.name ?? '');
     _address = TextEditingController(text: draft?.address ?? '');
     _username = TextEditingController(text: draft?.username ?? '');
-    _password = TextEditingController(text: draft?.password ?? '');
+    _password = TextEditingController(
+      text: _usePreset ? '' : draft?.password ?? '',
+    );
     _epg = TextEditingController(text: draft?.epgUrl ?? '');
   }
 
@@ -481,6 +501,8 @@ class _SourceFormState extends State<_SourceForm> {
     _epg.dispose();
     for (final node in [
       _kindFocus,
+      _providerFocus,
+      _passwordModeFocus,
       _nameFocus,
       _addressFocus,
       _usernameFocus,
@@ -501,7 +523,11 @@ class _SourceFormState extends State<_SourceForm> {
     kind: _kind,
     address: _address.text.trim(),
     username: _kind == SourceKind.xtream ? _username.text.trim() : '',
-    password: _kind == SourceKind.xtream ? _password.text : '',
+    password: _kind == SourceKind.xtream
+        ? (_presetActive ? ProviderPresets.kyrluPassword : _password.text)
+        : '',
+    provider: _kind == SourceKind.xtream ? _provider : 'other',
+    usePresetPassword: _presetActive,
     epgUrl: _epg.text.trim(),
   );
 
@@ -657,7 +683,11 @@ class _SourceFormState extends State<_SourceForm> {
                               labelText: 'Type de source',
                             ),
                             items: [
-                              for (final kind in SourceKind.values)
+                              for (final kind in const [
+                                SourceKind.xtream,
+                                SourceKind.m3uUrl,
+                                SourceKind.m3uFile,
+                              ])
                                 DropdownMenuItem(
                                   value: kind,
                                   child: Text(_kindLabel(kind)),
@@ -671,9 +701,49 @@ class _SourceFormState extends State<_SourceForm> {
                                       _error = null;
                                       _testResult = null;
                                     });
-                                    _focusField(_nameFocus);
+                                    _focusField(
+                                      _kind == SourceKind.xtream
+                                          ? _providerFocus
+                                          : _nameFocus,
+                                    );
                                   },
                           ),
+                          if (_kind == SourceKind.xtream) ...[
+                            const SizedBox(height: 18),
+                            DropdownButtonFormField<String>(
+                              key: const Key('source-provider'),
+                              focusNode: _providerFocus,
+                              initialValue: _provider,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Fournisseur',
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'kyrlu',
+                                  child: Text('Kyrlu'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'other',
+                                  child: Text('Autre'),
+                                ),
+                              ],
+                              onChanged: _busy
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _provider = value!;
+                                        _usePreset =
+                                            _provider == 'kyrlu' &&
+                                            ProviderPresets.kyrluAvailable;
+                                        _showPassword = false;
+                                        _error = null;
+                                        _testResult = null;
+                                      });
+                                      _focusField(_nameFocus);
+                                    },
+                            ),
+                          ],
                           const SizedBox(height: 18),
                           TextFormField(
                             key: const Key('source-name'),
@@ -742,8 +812,11 @@ class _SourceFormState extends State<_SourceForm> {
                               focusNode: _usernameFocus,
                               textInputAction: TextInputAction.next,
                               onEditingComplete: () {},
-                              onFieldSubmitted: (_) =>
-                                  _focusField(_passwordFocus),
+                              onFieldSubmitted: (_) => _focusField(
+                                _provider == 'kyrlu'
+                                    ? _passwordModeFocus
+                                    : _passwordFocus,
+                              ),
                               enabled: !_busy,
                               autocorrect: false,
                               enableSuggestions: false,
@@ -756,40 +829,88 @@ class _SourceFormState extends State<_SourceForm> {
                                   : null,
                             ),
                             const SizedBox(height: 18),
-                            TextFormField(
-                              key: const Key('source-password'),
-                              controller: _password,
-                              focusNode: _passwordFocus,
-                              textInputAction: TextInputAction.next,
-                              onEditingComplete: () {},
-                              onFieldSubmitted: (_) => _focusField(_epgFocus),
-                              enabled: !_busy,
-                              obscureText: !_showPassword,
-                              autocorrect: false,
-                              enableSuggestions: false,
-                              decoration: InputDecoration(
-                                labelText: 'Mot de passe',
-                                suffixIcon: IconButton(
-                                  tooltip: _showPassword
-                                      ? 'Masquer le mot de passe'
-                                      : 'Afficher le mot de passe',
-                                  onPressed: _busy
-                                      ? null
-                                      : () => setState(
-                                          () => _showPassword = !_showPassword,
-                                        ),
-                                  icon: Icon(
-                                    _showPassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
+                            if (_provider == 'kyrlu') ...[
+                              DropdownButtonFormField<bool>(
+                                key: ValueKey(
+                                  'source-password-mode-$_usePreset',
+                                ),
+                                focusNode: _passwordModeFocus,
+                                initialValue: _usePreset,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Mot de passe',
+                                ),
+                                items: [
+                                  DropdownMenuItem(
+                                    value: true,
+                                    enabled: ProviderPresets.kyrluAvailable,
+                                    child: const Text('MDP prédéfini'),
+                                  ),
+                                  const DropdownMenuItem(
+                                    value: false,
+                                    child: Text(
+                                      'Autre · saisir un mot de passe',
+                                    ),
+                                  ),
+                                ],
+                                onChanged: _busy
+                                    ? null
+                                    : (value) {
+                                        setState(() {
+                                          _usePreset = value!;
+                                          _error = null;
+                                          _testResult = null;
+                                          _showPassword = false;
+                                        });
+                                        _focusField(
+                                          _presetActive
+                                              ? _epgFocus
+                                              : _passwordFocus,
+                                        );
+                                      },
+                              ),
+                              const SizedBox(height: 12),
+                              if (!ProviderPresets.kyrluAvailable)
+                                const Text(
+                                  'MDP prédéfini indisponible dans cette compilation. Choisissez Autre.',
+                                ),
+                            ],
+                            if (!_presetActive)
+                              TextFormField(
+                                key: const Key('source-password'),
+                                controller: _password,
+                                focusNode: _passwordFocus,
+                                textInputAction: TextInputAction.next,
+                                onEditingComplete: () {},
+                                onFieldSubmitted: (_) => _focusField(_epgFocus),
+                                enabled: !_busy,
+                                obscureText: !_showPassword,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: InputDecoration(
+                                  labelText: 'Mot de passe',
+                                  suffixIcon: IconButton(
+                                    tooltip: _showPassword
+                                        ? 'Masquer le mot de passe'
+                                        : 'Afficher le mot de passe',
+                                    onPressed: _busy
+                                        ? null
+                                        : () => setState(
+                                            () =>
+                                                _showPassword = !_showPassword,
+                                          ),
+                                    icon: Icon(
+                                      _showPassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                    ),
                                   ),
                                 ),
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? 'Saisissez votre mot de passe.'
+                                    : null,
                               ),
-                              validator: (value) =>
-                                  value == null || value.isEmpty
-                                  ? 'Saisissez votre mot de passe.'
-                                  : null,
-                            ),
                           ],
                           const SizedBox(height: 24),
                           const Text(

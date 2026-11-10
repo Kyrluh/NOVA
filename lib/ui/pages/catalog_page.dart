@@ -597,8 +597,13 @@ class _MediaPosterState extends State<MediaPoster> {
     final app = widget.controller;
     final id = widget.item.id;
     app.dismissResume(id);
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
+        persist: false,
+        duration: const Duration(seconds: 4),
+        showCloseIcon: true,
         content: const Text('Retiré de Continuer à regarder'),
         action: SnackBarAction(
           label: 'Annuler',
