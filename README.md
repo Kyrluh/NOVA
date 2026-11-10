@@ -2,7 +2,9 @@
 
 Lecteur IPTV natif pour **Windows et Android**, développé avec Flutter et libmpv. NOVA réunit la TV en direct, les films, les séries et la reprise de lecture dans une interface sombre adaptée à la souris comme au tactile.
 
-**Android : 0.6.6+14** · **Windows x64 : 0.6.5+13** · **Android 7.0/API 24 minimum** · **GPL-3.0-or-later**
+**TV : 0.7.0+15** · **Android téléphone : 0.6.6+14** · **Windows x64 : 0.6.5+13** · **GPL-3.0-or-later**
+
+**NOVA IPTV TV** est une APK dédiée à la télécommande, distincte de l'application téléphone : menu latéral, focus visible, liste des chaînes et lecteur côte à côte, saisons/épisodes, commandes OK et flèches, touches multimédias et ajout de sources adapté au clavier TV. Elle cible **Android TV/Google TV** et **Fire OS à partir d'API24** ; les appareils Vega ne peuvent pas installer cette APK Android. [Installation et compatibilité TV](docs/ANDROID-TV.md).
 
 Le correctif **Android 0.6.6** améliore la saisie des sources à la télécommande : actions Suivant/Valider du clavier, navigation haut/bas entre les champs et sélection du bouton Ajouter. [Rapport du correctif](docs/ANDROID-VALIDATION-0.6.6.md).
 
@@ -28,15 +30,16 @@ NOVA lit les sources personnelles configurées par l'utilisateur. Aucun abonneme
 
 ## Installer et mettre à jour
 
-Les installables sont disponibles dans les releases [**Android 0.6.6**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.6) et [**Windows 0.6.5**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.5). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
+Les installables sont disponibles dans les releases [**TV 0.7.0**](https://github.com/Kyrluh/NOVA/releases/tag/v0.7.0), [**Android téléphone 0.6.6**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.6) et [**Windows 0.6.5**](https://github.com/Kyrluh/NOVA/releases/tag/v0.6.5). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
 
 | Plateforme | Téléchargement |
 | --- | --- |
 | Windows x64 portable | [ZIP Windows](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/NOVA-IPTV-0.6.5-windows-x64.zip) |
+| Android TV / Google TV / Fire OS compatible | [APK TV universelle dédiée](https://github.com/Kyrluh/NOVA/releases/download/v0.7.0/NOVA-IPTV-TV-0.7.0-universal.apk) |
 | Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/NOVA-IPTV-0.6.6-arm64-v8a.apk) |
 | Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/NOVA-IPTV-0.6.6-universal.apk) |
 
-Les empreintes SHA-256 sont disponibles pour [Windows 0.6.5](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/SHA256SUMS.txt) et [Android 0.6.6](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/SHA256SUMS.txt). Les commandes de [compilation](#compiler-le-projet) produisent les installables de la version du code local dans `dist/` et `dist/android/`.
+Les empreintes SHA-256 sont disponibles pour [TV 0.7.0](https://github.com/Kyrluh/NOVA/releases/download/v0.7.0/SHA256SUMS.txt), [Windows 0.6.5](https://github.com/Kyrluh/NOVA/releases/download/v0.6.5/SHA256SUMS.txt) et [Android téléphone 0.6.6](https://github.com/Kyrluh/NOVA/releases/download/v0.6.6/SHA256SUMS.txt). Les compilations locales produisent leurs installables dans `dist/`, `dist/android/` ou `dist/android-tv/`.
 
 ### Windows
 
@@ -55,6 +58,12 @@ Flutter, Visual Studio et le mode développeur ne sont pas nécessaires pour uti
 Pour mettre à jour, **installer par-dessus la version précédente, sans désinstaller**. La nouvelle APK doit conserver le package `app.nova.iptv` et la même signature. Les variantes ARM64 et universelle partagent la même signature et le même code de version.
 
 Les comptes chiffrés Windows ne sont pas transférés automatiquement sur Android : renseigner les sources sur chaque appareil. Voir [l'installation Android et la sauvegarde de la signature](docs/ANDROID-INSTALLATION.md).
+
+### TV et Fire TV Stick
+
+Installer l'APK **NOVA-IPTV-TV**, dont le package est `app.nova.iptv.tv`. Elle apparaît comme **NOVA IPTV TV** dans le lanceur et peut cohabiter avec l'application téléphone `app.nova.iptv`. **Les données sont séparées : renseigner les sources dans l'application TV.** Les mises à jour ultérieures de l'APK TV s'installent par-dessus celle-ci, avec la signature conservée.
+
+Voir [le guide TV](docs/ANDROID-TV.md) pour les commandes de télécommande et la distinction Fire OS/Vega.
 
 ## Ajouter une source
 
@@ -204,7 +213,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-androi
 
 **Une nouvelle clé ne peut pas mettre à jour une APK signée avec une autre clé.** Pour poursuivre une distribution existante, conserver sa signature d'origine hors Git. Les scripts protègent le mot de passe avec le compte Windows et ne remplacent pas silencieusement une clé existante. Voir la [sauvegarde/restauration](docs/ANDROID-INSTALLATION.md#signature-conservée).
 
-`pubspec.yaml` porte la version et le code Android ; une nouvelle livraison doit les augmenter. Les constantes attendues de `package-android.ps1` doivent correspondre à la version à livrer.
+`pubspec.yaml` porte la version du code et le code Android ; une nouvelle livraison doit les augmenter. Le packager lit cette version et vérifie le package attendu avant de copier les APK. Une compilation d'une plateforme ne signifie pas que toutes les autres ont reçu de nouveaux installables.
+
+### Compiler l'APK TV dédiée
+
+Après préparation des outils Android et de la signature :
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-android-tv.ps1
+```
+
+Ce script compile une APK universelle ARM32/ARM64/x86_64 puis vérifie son package TV, son lanceur Leanback, sa signature et ses architectures. Il produit `dist/android-tv/NOVA-IPTV-TV-0.7.0-universal.apk`. Le paramètre `--dart-define=NOVA_TV=true` sélectionne à la fois le manifeste/package natif et l'interface Flutter ; sans ce paramètre, les commandes Android habituelles continuent de produire l'application téléphone.
 
 ### Vérifier une modification
 
@@ -225,6 +244,7 @@ Les tests peuvent être limités aux fichiers concernés. Les essais natifs et d
 | `lib/data/` | Stockage local, chiffrement et démonstration |
 | `lib/player/` | Session libmpv, commandes, reconnexion et intégration système |
 | `lib/ui/` | Pages, composants et dispositions adaptatives |
+| `lib/ui/tv/` | Interface TV dédiée et navigation à la télécommande |
 | `windows/`, `android/` | Hôtes et intégrations natives |
 | `test/`, `integration_test/`, `tool/` | Tests ciblés, intégration et outils de validation |
 | `scripts/` | Installation des outils, compilation et packaging |
@@ -232,6 +252,8 @@ Les tests peuvent être limités aux fichiers concernés. Les essais natifs et d
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Installation Android et signature](docs/ANDROID-INSTALLATION.md)
+- [Installation, commandes et compatibilité TV](docs/ANDROID-TV.md)
+- [0.7.0 — application TV dédiée](docs/TV-VALIDATION-0.7.0.md)
 - [0.6.6 — saisie des sources à la télécommande](docs/ANDROID-VALIDATION-0.6.6.md)
 - [Audit et adaptation Android](docs/ANDROID-AUDIT.md)
 - [0.6.5 — actualisation au démarrage](docs/VALIDATION-0.6.5.md)
@@ -241,6 +263,8 @@ Les tests peuvent être limités aux fichiers concernés. Les essais natifs et d
 - [Sous-titres : vérifications et limites](docs/SUBTITLE-VALIDATION.md)
 
 ## Tests et limites
+
+La première version TV **0.7.0** a reçu **huit tests ciblés** de navigation, lecture, reprise et saisie, ainsi que les contrôles natifs de son APK. Aucune validation sur téléviseur ou Fire TV Stick physique n'est annoncée ; voir le [rapport TV](docs/TV-VALIDATION-0.7.0.md).
 
 La version 0.6.5 a reçu **cinq tests ciblés** sur l'actualisation et la progression, ainsi que les compilations Release Windows et Android. Les rapports historiques distinguent tests unitaires, essais natifs et émulateur pliable. Les sources personnelles ne sont pas incluses dans les fixtures.
 

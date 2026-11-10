@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -18,6 +19,14 @@ import 'player/android_video_environment.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  const television = bool.fromEnvironment('NOVA_TV');
+  if (television && Platform.isAndroid) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
   if (Platform.isAndroid) await AndroidVideoEnvironment.initialize();
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
@@ -71,6 +80,7 @@ Future<void> main() async {
   );
   runApp(
     NovaApp(
+      television: television,
       controller: controller,
       nativeReady: nativeReady,
       manageWindow: Platform.isWindows,

@@ -1,15 +1,18 @@
+param([switch]$Television)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'android-env.ps1')
 
 # This script only inspects and packages existing APKs. It does not build,
 # sign, install, upload or read the private signing key/password.
-$expectedPackage = 'app.nova.iptv'
-$expectedVersion = '0.6.6'
-$expectedVersionCode = 14
+$expectedPackage = if ($Television) { 'app.nova.iptv.tv' } else { 'app.nova.iptv' }
+$versionText = Get-Content -LiteralPath (Join-Path $novaRoot 'pubspec.yaml') -Raw
+if ($versionText -notmatch '(?m)^version:\s*([0-9.]+)\+(\d+)\s*$') { throw 'Version pubspec introuvable.' }
+$expectedVersion = $Matches[1]
+$expectedVersionCode = [int]$Matches[2]
 $expectedMinSdk = 24
 $expectedTargetSdk = 36
 $projectDirectory = [IO.Path]::GetFullPath($novaRoot).TrimEnd('\')
-$outputDirectory = Join-Path $projectDirectory 'dist\android'
+$outputDirectory = Join-Path $projectDirectory $(if ($Television) { 'dist\android-tv' } else { 'dist\android' })
 
 function Invoke-NovaCheckedTool {
     param([string]$Tool, [string[]]$ToolArguments, [string]$Label)
@@ -74,6 +77,9 @@ function Get-NovaApkMetadata {
     if ($badging -match '(?m)^application-debuggable(?:\s|$)') {
         throw 'Une APK debuggable ne peut pas etre livree comme version Release.'
     }
+    if ($script:Television -and ($badging -notmatch 'leanback-launchable-activity:' -or $badging -notmatch "uses-feature-not-required: name='android.hardware.touchscreen'")) {
+        throw 'Le manifeste TV doit declarer le lanceur Leanback et ne pas exiger un ecran tactile.'
+    }
     $nativeLine = [regex]::Match($badging, '(?m)^native-code:.*$').Value
     $abis = @([regex]::Matches($nativeLine, "'([^']+)'") | ForEach-Object { $_.Groups[1].Value })
     if ($Architecture -eq 'arm64-v8a') {
@@ -99,10 +105,6 @@ function Get-NovaApkMetadata {
     }
 }
 
-$versionText = Get-Content -LiteralPath (Join-Path $projectDirectory 'pubspec.yaml') -Raw
-if ($versionText -notmatch '(?m)^version:\s*0\.6\.6\+14\s*$') {
-    throw 'Le packager attend pubspec.yaml version 0.6.6+14. Mettre a jour les constantes de livraison pour une nouvelle version.'
-}
 $buildToolsRoot = Join-Path $env:ANDROID_HOME 'build-tools'
 $buildTools = Get-ChildItem -LiteralPath $buildToolsRoot -Directory |
     Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' } |
@@ -120,6 +122,7 @@ $apkSpecs = @(
     @{ Architecture = 'arm64-v8a'; Source = 'app-arm64-v8a-release.apk' },
     @{ Architecture = 'universal'; Source = 'app-release.apk' }
 )
+if ($Television) { $apkSpecs = @(@{ Architecture = 'universal'; Source = 'app-release.apk' }) }
 $apkDirectory = Join-Path $projectDirectory 'build\app\outputs\flutter-apk'
 $verified = @()
 foreach ($spec in $apkSpecs) {
@@ -134,12 +137,12 @@ foreach ($spec in $apkSpecs) {
     $metadata = Get-NovaApkMetadata -ApkPath $resolvedSource -Architecture $spec.Architecture
     $verified += [pscustomobject]@{
         Source = $resolvedSource
-        Name = "NOVA-IPTV-$expectedVersion-$($spec.Architecture).apk"
+        Name = $(if ($Television) { "NOVA-IPTV-TV-$expectedVersion-universal.apk" } else { "NOVA-IPTV-$expectedVersion-$($spec.Architecture).apk" })
         Hash = (Get-FileHash -LiteralPath $resolvedSource -Algorithm SHA256).Hash.ToLowerInvariant()
         Metadata = $metadata
     }
 }
-if ($verified[0].Metadata.CertificateSha256 -ne $verified[1].Metadata.CertificateSha256) {
+if ($verified.Count -gt 1 -and $verified[0].Metadata.CertificateSha256 -ne $verified[1].Metadata.CertificateSha256) {
     throw 'Les APK ARM64 et universelle ne portent pas le meme certificat de production.'
 }
 
@@ -180,6 +183,6 @@ $releaseMetadata = [ordered]@{
 }
 $releaseMetadata | ConvertTo-Json -Depth 6 |
     Set-Content -LiteralPath (Join-Path $resolvedOutput 'release-metadata.json') -Encoding UTF8
-Write-Output "PASS : APK ARM64 et universelle verifiees, signature de production identique, version $expectedVersion+$expectedVersionCode."
+Write-Output "PASS : APK verifiees pour $expectedPackage, version $expectedVersion+$expectedVersionCode."
 Write-Output 'PASS : minSdk 24, targetSdk 36, alignement ZIP 16 KiB et empreintes SHA-256 verifies.'
 Write-Output "Livraison Android : $resolvedOutput"

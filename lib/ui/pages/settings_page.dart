@@ -644,7 +644,7 @@ class _SettingsPageState extends State<SettingsPage> {
             NovaNotice(
               icon: Icons.info_outline_rounded,
               text:
-                  'NOVA IPTV 0.6.6 · Sources personnelles M3U, Xtream Codes et XMLTV. '
+                  'NOVA IPTV 0.7.0 · Sources personnelles M3U, Xtream Codes et XMLTV. '
                   '${NovaAdaptiveScope.isAndroid(context) ? 'Le stockage des sources est protégé par Android Keystore. ' : 'Les identifiants et catalogues sont protégés pour votre compte Windows. '}'
                   'Aucun compte, abonnement ou serveur IPTV fourni.',
             ),
@@ -655,7 +655,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onPressed: () => showLicensePage(
                   context: context,
                   applicationName: 'NOVA IPTV',
-                  applicationVersion: '0.6.6',
+                  applicationVersion: '0.7.0',
                   applicationLegalese:
                       'Licences des composants de cette application.',
                 ),

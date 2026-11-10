@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -8,6 +9,60 @@ import 'package:nova_iptv/player/android_player_host.dart';
 import 'package:nova_iptv/player/nova_player.dart';
 
 void main() {
+  testWidgets(
+    'TV remote controls playback and navigating the toolbar does not seek',
+    (tester) async {
+      final f = await _mount(tester, television: true);
+      Focus.of(
+        tester.element(find.byKey(const ValueKey('player-touch-surface'))),
+      ).requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(f.platform.state.playing, isFalse);
+      tester.binding.focusManager.rootScope.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+      await tester.pumpAndSettle();
+      expect(f.platform.state.playing, isTrue);
+      Focus.of(
+        tester.element(find.byKey(const ValueKey('player-touch-surface'))),
+      ).requestFocus();
+      await tester.pump();
+      await f.platform.seek(const Duration(seconds: 40));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(f.platform.state.position, const Duration(seconds: 50));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      final seeks = f.platform.seeks.length;
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(f.platform.seeks.length, seeks);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.byType(CheckedPopupMenuItem<double>), findsWidgets);
+      expect(f.platform.opened, hasLength(1));
+    },
+  );
+
+  testWidgets('TV live remote changes channels without seeking', (
+    tester,
+  ) async {
+    final f = await _mount(tester, television: true);
+    await f.remount(television: true, live: true);
+    Focus.of(tester.element(find.byKey(const ValueKey('player-touch-surface'))))
+        .requestFocus();
+    await tester.pump();
+    f.platform.seeks.clear();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.channelDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaFastForward);
+    await tester.pumpAndSettle();
+    expect(f.channelNext, 1);
+    expect(f.channelPrevious, 1);
+    expect(f.platform.seeks, isEmpty);
+  });
   testWidgets(
     'Android central control pauses and resumes and hides with the HUD',
     (tester) async {
@@ -325,13 +380,14 @@ Future<_Fixture> _mount(
   int reconnectDelay = 3,
   int reconnectAttempts = 3,
   VoidCallback? onNext,
+  bool television = false,
 }) async {
   tester.view.physicalSize = const Size(430, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final f = _Fixture(tester, reconnectDelay, reconnectAttempts, onNext);
-  await f.remount(gestures: gestures);
+  await f.remount(gestures: gestures, television: television);
   addTearDown(() async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpWidget(const SizedBox());
@@ -343,6 +399,8 @@ Future<_Fixture> _mount(
 }
 
 class _Fixture {
+  int channelNext = 0;
+  int channelPrevious = 0;
   _Fixture(this.tester, this.delay, this.attempts, this.onNext);
   final WidgetTester tester;
   final int delay;
@@ -355,6 +413,7 @@ class _Fixture {
   final key = GlobalKey();
   final fullscreenRequests = ValueNotifier<int>(0);
   Future<void> remount({
+    bool television = false,
     bool gestures = true,
     bool live = false,
     double? width,
@@ -369,6 +428,9 @@ class _Fixture {
               height: height,
               width: width,
               child: NovaPlayer(
+                television: television,
+                onNextChannel: () => channelNext++,
+                onPreviousChannel: () => channelPrevious++,
                 key: key,
                 fullscreenRequests: fullscreenRequests,
                 android: true,

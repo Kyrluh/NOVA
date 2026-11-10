@@ -5,6 +5,8 @@ import 'state/app_controller.dart';
 import 'player/desktop_fullscreen.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
+import 'ui/tv/tv_shell.dart';
+import 'ui/tv/tv_widgets.dart';
 
 class NovaApp extends StatelessWidget {
   const NovaApp({
@@ -14,28 +16,34 @@ class NovaApp extends StatelessWidget {
     this.manageWindow = true,
     this.fullscreenController,
     this.mobileUI,
+    this.television = false,
   });
   final AppController controller;
   final bool nativeReady;
   final bool manageWindow;
   final DesktopFullscreen? fullscreenController;
   final bool? mobileUI;
+  final bool television;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
     builder: (context, _) => MaterialApp(
-      title: 'NOVA IPTV',
+      title: television ? 'NOVA IPTV TV' : 'NOVA IPTV',
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr'),
       supportedLocales: const [Locale('fr')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      theme: novaTheme(controller.settings.accent),
+      theme: television
+          ? novaTvTheme(controller.settings.accent)
+          : novaTheme(controller.settings.accent),
       themeAnimationDuration: controller.settings.animations
           ? const Duration(milliseconds: 180)
           : Duration.zero,
       home: !controller.isReady
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          : television
+          ? NovaTvShell(controller: controller, nativeReady: nativeReady)
           : NovaShell(
               controller: controller,
               nativeReady: nativeReady,

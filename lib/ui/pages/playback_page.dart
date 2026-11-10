@@ -47,11 +47,13 @@ class NovaPlaybackPage extends StatefulWidget {
     this.fullscreenController,
     this.onReleased,
     this.playerBuilder,
+    this.television = false,
   });
   final AppController controller;
   final String uri;
   final String title;
   final bool live;
+  final bool television;
   final String? mediaId;
   final String? seriesId;
   final DesktopFullscreen? fullscreenController;
@@ -129,6 +131,7 @@ class _NovaPlaybackPageState extends State<NovaPlaybackPage> {
         child:
             widget.playerBuilder?.call(spec) ??
             NovaPlayer(
+              television: widget.television,
               key: const ValueKey('route-player'),
               fullscreenController: widget.fullscreenController,
               uri: _uri,
@@ -136,14 +139,14 @@ class _NovaPlaybackPageState extends State<NovaPlaybackPage> {
               isLive: widget.live,
               initialRate: settings.playbackRate,
               initialVolume: settings.volume,
-              touchGestures: settings.touchGestures,
+              touchGestures: !widget.television && settings.touchGestures,
               brightnessGestures: settings.brightnessGestures,
               volumeGestures: settings.volumeGestures,
               seekGestures: settings.seekGestures,
               reconnectEnabled: settings.reconnectEnabled,
               reconnectAttempts: settings.reconnectAttempts,
               reconnectDelaySeconds: settings.reconnectDelaySeconds,
-              pictureInPicture: settings.pictureInPicture,
+              pictureInPicture: !widget.television && settings.pictureInPicture,
               landscapeFullscreen: settings.landscapeFullscreen,
               autoNext: settings.autoNext,
               episodeNavigation: spec.episodeNavigation,

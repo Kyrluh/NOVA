@@ -1,9 +1,21 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// One Flutter define selects both native packaging and the Dart interface.
+// Keeping this in Gradle properties avoids daemon/environment inheritance.
+val novaTv = providers.gradleProperty("dart-defines").orNull.orEmpty()
+    .split(",").any { encoded ->
+        runCatching {
+            String(Base64.getDecoder().decode(encoded), Charsets.UTF_8) == "NOVA_TV=true"
+        }.getOrDefault(false)
+    }
+logger.lifecycle("NOVA Android target: ${if (novaTv) "TV" else "mobile"}")
 
 android {
     namespace = "app.nova.iptv"
@@ -16,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.nova.iptv"
+        applicationId = if (novaTv) "app.nova.iptv.tv" else "app.nova.iptv"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -25,6 +37,13 @@ android {
         // share pubspec's versionCode and can update each other.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    sourceSets.getByName("main") {
+        if (novaTv) {
+            manifest.srcFile("src/tv/AndroidManifest.xml")
+            res.srcDir("src/tv/res")
+        }
     }
 
     signingConfigs {
