@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
+import '../../domain/episode_resume.dart';
 import '../../domain/source_models.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
@@ -45,6 +46,35 @@ class _DetailsDialogState extends State<_DetailsDialog> {
   bool _loading = false;
   String? _error;
   int _request = 0;
+  final _resumeKey = GlobalKey(debugLabel: 'current-resume-episode');
+  String? _lastResumeId;
+  bool _revealRequested = false;
+
+  EpisodeResumeTarget? _syncResume() {
+    final target = episodeResumeTarget(_item, widget.controller.progress);
+    if (_lastResumeId != target?.episode.id) {
+      _lastResumeId = target?.episode.id;
+      _revealRequested = target != null;
+      if (target != null) _season = target.seasonIndex;
+    }
+    if (_revealRequested && target?.seasonIndex == _season) {
+      _revealRequested = false;
+      final expected = target!.episode.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _lastResumeId != expected) return;
+        final targetContext = _resumeKey.currentContext;
+        if (targetContext != null) {
+          Scrollable.ensureVisible(
+            targetContext,
+            alignment: .35,
+            duration: const Duration(milliseconds: 160),
+          );
+        }
+      });
+    }
+    return target;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +95,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
         setState(() {
           _item = detailed;
           _season = 0;
+          _lastResumeId = null;
         });
       }
     } catch (error) {
@@ -89,6 +120,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
     builder: (context, _) {
       final app = widget.controller;
       final item = _item;
+      final resume = _syncResume();
       final tablet = novaTablet(context);
       final metadata = [
         if (item.year > 0) '${item.year}',
@@ -221,6 +253,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                             setState(() {
                               _item = version;
                               _season = 0;
+                              _lastResumeId = null;
                               _error = null;
                               _loading = false;
                             });
@@ -319,12 +352,23 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                             ],
                             onChanged: (value) {
                               if (value != null) {
-                                setState(() => _season = value);
+                                setState(() {
+                                  _season = value;
+                                  _revealRequested =
+                                      resume?.seasonIndex == value;
+                                });
                               }
                             },
                           ),
-                          for (final episode in item.seasons[_season].episodes)
-                            _episode(app, episode, item.isDemo),
+                          for (final entry
+                              in item.seasons[_season].episodes.indexed)
+                            _episode(
+                              app,
+                              entry.$2,
+                              item.isDemo,
+                              resume?.seasonIndex == _season &&
+                                  resume?.episodeIndex == entry.$1,
+                            ),
                         ],
                       ],
                     ),
@@ -338,13 +382,30 @@ class _DetailsDialogState extends State<_DetailsDialog> {
     },
   );
 
-  Widget _episode(AppController app, DemoEpisode episode, bool demo) {
+  Widget _episode(
+    AppController app,
+    DemoEpisode episode,
+    bool demo,
+    bool resume,
+  ) {
     final progress = app.progress[episode.id];
     return Padding(
+      key: resume ? _resumeKey : ValueKey('episode-${episode.id}'),
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Column(
         children: [
           ListTile(
+            selected: resume,
+            selectedTileColor: Theme.of(context).colorScheme.primary
+                .withValues(alpha: .16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                color: resume
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
+              ),
+            ),
             contentPadding: EdgeInsets.zero,
             leading: Container(
               width: 42,
@@ -362,6 +423,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                 if (episode.durationMinutes > 0)
                   '${episode.durationMinutes} min',
                 if (demo) 'Épisode fictif',
+                if (resume) 'À reprendre',
                 if (progress?.completed == true) 'Vu',
               ].join(' • '),
             ),

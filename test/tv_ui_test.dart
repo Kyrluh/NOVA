@@ -14,8 +14,123 @@ import 'package:nova_iptv/ui/tv/tv_catalog.dart';
 import 'package:nova_iptv/ui/tv/tv_details.dart';
 import 'package:nova_iptv/ui/tv/tv_live.dart';
 import 'package:nova_iptv/ui/tv/tv_widgets.dart';
+import 'package:nova_iptv/ui/pages/details_dialog.dart';
 
 void main() {
+  for (final television in [false, true]) {
+    testWidgets(
+      'Resume reveals a distant episode and follows progress (${television ? "TV" : "shared"})',
+      (tester) async {
+        final series = demoCatalog
+            .firstWhere((i) => i.kind == MediaKind.series)
+            .copyWith(
+              seasons: [
+                DemoSeason(
+                  number: 1,
+                  episodes: List.generate(
+                    80,
+                    (i) => DemoEpisode(
+                      id: 'resume-$i',
+                      title: 'Episode test $i',
+                      number: i + 1,
+                      durationMinutes: 24,
+                      mediaUrl: 'https://example.test/$i.mp4',
+                    ),
+                  ),
+                ),
+              ],
+            );
+        final app = await _start(tester, series: series);
+        void progress(int index, int day, {bool completed = false}) =>
+            app.recordProgress(
+              'resume-$index',
+              WatchProgress(
+                positionSeconds: completed ? 200 : 60,
+                durationSeconds: 200,
+                lastWatched: DateTime.utc(2026, 1, day),
+                completed: completed,
+              ),
+            );
+        progress(4, 1);
+        progress(60, 2);
+        final item = app.items.firstWhere((i) => i.kind == MediaKind.series);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: novaTvTheme(app.settings.accent),
+            home: television
+                ? TvDetails(controller: app, item: item)
+                : Builder(
+                    builder: (context) => Scaffold(
+                      body: TextButton(
+                        onPressed: () => showMediaDetails(
+                          context,
+                          controller: app,
+                          item: item,
+                          onPlay: (_, _, _) {},
+                        ),
+                        child: const Text('Open details'),
+                      ),
+                    ),
+                  ),
+          ),
+        );
+        if (!television) await tester.tap(find.text('Open details'));
+        await tester.pumpAndSettle();
+        void checkTarget(int index) {
+          expect(find.textContaining('À reprendre'), findsOneWidget);
+          final title = find.text('Episode test $index');
+          expect(title, findsOneWidget);
+          final rect = tester.getRect(title);
+          expect(rect.top, greaterThanOrEqualTo(0));
+          expect(rect.bottom, lessThanOrEqualTo(540));
+          if (television) {
+            expect(
+              tester
+                  .widget<TvTile>(
+                    find.byKey(ValueKey('tv-episode-resume-$index')),
+                  )
+                  .selected,
+              isTrue,
+            );
+          } else {
+            expect(
+              tester
+                  .widget<ListTile>(
+                    find.ancestor(of: title, matching: find.byType(ListTile)),
+                  )
+                  .selected,
+              isTrue,
+            );
+          }
+        }
+
+        checkTarget(60);
+        progress(2, 3);
+        await tester.pumpAndSettle();
+        checkTarget(2);
+        progress(2, 4, completed: true);
+        await tester.pumpAndSettle();
+        expect(find.textContaining('À reprendre'), findsNothing);
+        if (television) {
+          expect(
+            tester
+                .widgetList<TvTile>(find.byType(TvTile))
+                .where((tile) => tile.selected),
+            isEmpty,
+          );
+        } else {
+          expect(
+            tester
+                .widgetList<ListTile>(find.byType(ListTile))
+                .where((tile) => tile.selected),
+            isEmpty,
+          );
+        }
+        await app.flush();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets(
     'TV series details select the season and resume the episode already in progress',
     (tester) async {

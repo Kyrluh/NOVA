@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
+import '../../domain/episode_resume.dart';
 import '../../state/app_controller.dart';
 import '../pages/playback_page.dart';
 import '../widgets/media_artwork.dart';
@@ -19,31 +20,62 @@ class TvDetails extends StatefulWidget {
 class _TvDetailsState extends State<TvDetails> {
   late MediaItem _item = widget.controller.preferredVariant(widget.item);
   int _season = 0;
-  DemoEpisode? get _resumeEpisode {
-    DemoEpisode? result;
-    DateTime? latest;
-    for (final season in _item.seasons) {
-      for (final episode in season.episodes) {
-        final progress = widget.controller.progress[episode.id];
-        if (progress != null &&
-            !progress.completed &&
-            progress.positionSeconds > 0 &&
-            (latest == null || progress.lastWatched.isAfter(latest))) {
-          result = episode;
-          latest = progress.lastWatched;
-        }
-      }
+  final _episodesScroll = ScrollController(keepScrollOffset: false);
+  final _resumeFocus = FocusNode(debugLabel: 'TV current resume episode');
+  String? _lastResumeId;
+  bool _revealRequested = false;
+  bool _playing = false;
+  bool _focusAfterReturn = false;
+
+  EpisodeResumeTarget? _syncResume(double extent) {
+    final target = episodeResumeTarget(_item, widget.controller.progress);
+    final token = target == null
+        ? null
+        : '${target.episode.id}|${target.seasonIndex}|${target.episodeIndex}';
+    if (target == null) _focusAfterReturn = false;
+    if (_lastResumeId != token) {
+      _lastResumeId = token;
+      _revealRequested = target != null;
+      if (target != null) _season = target.seasonIndex;
     }
-    return result;
+    if (_revealRequested &&
+        target?.seasonIndex == _season &&
+        !_playing &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      _revealRequested = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            _lastResumeId != token ||
+            !_episodesScroll.hasClients ||
+            _playing) {
+          return;
+        }
+        _episodesScroll.jumpTo(
+          (target!.episodeIndex * extent).clamp(
+            0.0,
+            _episodesScroll.position.maxScrollExtent,
+          ),
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              _lastResumeId == token &&
+              _focusAfterReturn &&
+              !_playing) {
+            _focusAfterReturn = false;
+            _resumeFocus.requestFocus();
+          }
+        });
+        if (_focusAfterReturn) WidgetsBinding.instance.scheduleFrame();
+      });
+    }
+    return target;
   }
 
-  void _resumeSeason() {
-    final episode = _resumeEpisode;
-    if (episode == null) return;
-    final index = _item.seasons.indexWhere(
-      (season) => season.episodes.any((e) => e.id == episode.id),
-    );
-    if (index >= 0) _season = index;
+  @override
+  void dispose() {
+    _episodesScroll.dispose();
+    _resumeFocus.dispose();
+    super.dispose();
   }
 
   bool _loading = false;
@@ -52,7 +84,6 @@ class _TvDetailsState extends State<TvDetails> {
   @override
   void initState() {
     super.initState();
-    _resumeSeason();
     _load();
   }
 
@@ -68,7 +99,7 @@ class _TvDetailsState extends State<TvDetails> {
       if (mounted && request == _request) {
         setState(() {
           _item = detailed;
-          _resumeSeason();
+          _lastResumeId = null;
         });
       }
     } catch (_) {
@@ -82,8 +113,9 @@ class _TvDetailsState extends State<TvDetails> {
     }
   }
 
-  void _play(String uri, String title, String id) {
-    Navigator.of(context).push(
+  Future<void> _play(String uri, String title, String id) async {
+    setState(() => _playing = true);
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => NovaPlaybackPage(
           controller: widget.controller,
@@ -96,6 +128,13 @@ class _TvDetailsState extends State<TvDetails> {
         ),
       ),
     );
+    if (mounted) {
+      setState(() {
+        _playing = false;
+        _lastResumeId = null;
+        _focusAfterReturn = true;
+      });
+    }
   }
 
   @override
@@ -103,6 +142,10 @@ class _TvDetailsState extends State<TvDetails> {
     listenable: widget.controller,
     builder: (context, _) {
       final app = widget.controller;
+      final extent =
+          120.0 *
+          (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1.0, 3.0);
+      final resume = _syncResume(extent);
       final episodes = _item.seasons.isEmpty
           ? const <DemoEpisode>[]
           : _item.seasons[_season].episodes;
@@ -124,13 +167,13 @@ class _TvDetailsState extends State<TvDetails> {
                   ),
                   const SizedBox(height: 12),
                   if (_item.kind == MediaKind.series &&
-                      _resumeEpisode?.mediaUrl?.isNotEmpty == true)
+                      resume?.episode.mediaUrl?.isNotEmpty == true)
                     FilledButton.icon(
                       autofocus: true,
                       onPressed: () => _play(
-                        _resumeEpisode!.mediaUrl!,
-                        _resumeEpisode!.title,
-                        _resumeEpisode!.id,
+                        resume!.episode.mediaUrl!,
+                        resume.episode.title,
+                        resume.episode.id,
                       ),
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Reprendre l’épisode'),
@@ -169,7 +212,7 @@ class _TvDetailsState extends State<TvDetails> {
                         _season = 0;
                         _error = null;
                         _loading = false;
-                        _resumeSeason();
+                        _lastResumeId = null;
                       });
                       _load();
                     },
@@ -221,6 +264,7 @@ class _TvDetailsState extends State<TvDetails> {
                     SizedBox(
                       width: 220,
                       child: DropdownButtonFormField<int>(
+                        key: ValueKey('tv-season-${_item.id}-$_season'),
                         initialValue: _season,
                         isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Saison'),
@@ -232,67 +276,92 @@ class _TvDetailsState extends State<TvDetails> {
                             ),
                         ],
                         onChanged: (value) {
-                          if (value != null) setState(() => _season = value);
+                          if (value != null) {
+                            setState(() {
+                              _season = value;
+                              _revealRequested = resume?.seasonIndex == value;
+                            });
+                          }
                         },
                       ),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView.separated(
-                        key: ValueKey('tv-episodes-$_season'),
+                      child: ListView.builder(
+                        key: ValueKey('tv-episodes-${_item.id}-$_season'),
+                        controller: _episodesScroll,
+                        itemExtent: extent,
                         itemCount: episodes.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final episode = episodes[index];
                           final progress = app.progress[episode.id];
-                          return TvTile(
-                            autofocus: index == 0 && _resumeEpisode == null,
-                            label:
-                                'Épisode ${episode.number} : ${episode.title}',
-                            onPressed: () {
-                              if (episode.mediaUrl?.isNotEmpty == true) {
-                                _play(
-                                  episode.mediaUrl!,
-                                  episode.title,
-                                  episode.id,
-                                );
-                              }
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '${episode.number}'.padLeft(2, '0'),
-                                        style: const TextStyle(fontSize: 20),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Text(
-                                          episode.title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
+                          final highlighted =
+                              !_playing &&
+                              resume?.seasonIndex == _season &&
+                              resume?.episodeIndex == index;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TvTile(
+                              key: ValueKey('tv-episode-${episode.id}'),
+                              selected: highlighted,
+                              focusNode: highlighted ? _resumeFocus : null,
+                              autofocus: index == 0 && resume == null,
+                              label:
+                                  'Épisode ${episode.number} : ${episode.title}',
+                              onPressed: () {
+                                if (episode.mediaUrl?.isNotEmpty == true) {
+                                  _play(
+                                    episode.mediaUrl!,
+                                    episode.title,
+                                    episode.id,
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${episode.number}'.padLeft(2, '0'),
+                                          style: const TextStyle(fontSize: 20),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Text(
+                                            episode.title,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Icon(
+                                          episode.mediaUrl?.isNotEmpty == true
+                                              ? Icons.play_arrow
+                                              : Icons.block,
+                                        ),
+                                      ],
+                                    ),
+                                    if (highlighted)
+                                      const Text(
+                                        'À reprendre',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      Icon(
-                                        episode.mediaUrl?.isNotEmpty == true
-                                            ? Icons.play_arrow
-                                            : Icons.block,
+                                    if (progress != null &&
+                                        progress.fraction > 0)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: LinearProgressIndicator(
+                                          value: progress.fraction,
+                                          minHeight: 3,
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                  if (progress != null && progress.fraction > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: LinearProgressIndicator(
-                                        value: progress.fraction,
-                                        minHeight: 3,
-                                      ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           );
