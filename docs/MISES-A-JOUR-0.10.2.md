@@ -37,7 +37,7 @@ Le bouton **Télécharger le ZIP Windows** ouvre le lien GitHub exact dans le na
 
 Les anciennes versions ne contiennent pas ce bouton. Installer **0.10.2+34** une première fois manuellement pour disposer du gestionnaire des mises à jour suivantes. Les signatures Android de production sont conservées. Aucun service ou téléchargement automatique au démarrage n'est ajouté.
 
-Les sources de 0.10.2 sont poussées sur GitHub. Les installables sont préparés localement dans `dist/`, `dist/android/` et `dist/android-tv/` ; la dernière release publique reste 0.10.1 tant que la publication suivante n'est pas demandée.
+Les sources de 0.10.2 sont poussées sur GitHub. Les installables Windows, téléphone et TV sont distribués dans la [release 0.10.2](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.2), avec les sources et les empreintes SHA-256.
 
 ## Vérification
 
