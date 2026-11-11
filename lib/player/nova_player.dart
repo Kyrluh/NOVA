@@ -78,6 +78,9 @@ class NovaPlayer extends StatefulWidget {
     this.selectedChannelId,
     this.onSelectChannel,
     this.liveGuideBuilder,
+    this.channelProgrammeFor,
+    this.channelGuideChanges,
+    this.onChannelGuideRequested,
   });
 
   final String uri;
@@ -123,6 +126,9 @@ class NovaPlayer extends StatefulWidget {
   final String? selectedChannelId;
   final ValueChanged<String>? onSelectChannel;
   final Widget Function(bool compact)? liveGuideBuilder;
+  final String? Function(String channelId)? channelProgrammeFor;
+  final Listenable? channelGuideChanges;
+  final ValueChanged<String>? onChannelGuideRequested;
 
   @override
   State<NovaPlayer> createState() => _NovaPlayerState();
@@ -1585,6 +1591,9 @@ class _NovaPlayerState extends State<NovaPlayer>
                             height: double.infinity,
                             child: TvChannelPanel(
                               channels: widget.channelChoices,
+                              programmeFor: widget.channelProgrammeFor,
+                              guideChanges: widget.channelGuideChanges,
+                              onGuideRequested: widget.onChannelGuideRequested,
                               selectedId: widget.selectedChannelId,
                               onClose: _closeChannels,
                               onSelected: (id) {

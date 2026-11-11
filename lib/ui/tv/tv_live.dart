@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
@@ -48,6 +50,25 @@ class TvLiveState extends State<TvLive> {
   String? _filterCategory;
   String? _filterQuery;
   List<MediaItem> _filteredChannels = const [];
+
+  String? _currentProgramme(String id) {
+    final channel = _channelsById[id];
+    if (channel == null) return null;
+    final now = DateTime.now();
+    return widget.controller
+        .guideFor(channel)
+        .where(
+          (programme) =>
+              !programme.start.isAfter(now) && programme.end.isAfter(now),
+        )
+        .firstOrNull
+        ?.title;
+  }
+
+  void _requestChannelGuide(String id) {
+    final source = _channelsById[id]?.sourceId;
+    if (source != null) unawaited(widget.controller.sources?.ensureEpg(source));
+  }
 
   void _ensureCatalog() {
     final visible = widget.controller.items;
@@ -310,6 +331,9 @@ class TvLiveState extends State<TvLive> {
                                 onNextChannel: () =>
                                     _change(channels, selected, 1),
                                 channelChoices: _channelChoices,
+                                channelProgrammeFor: _currentProgramme,
+                                channelGuideChanges: app,
+                                onChannelGuideRequested: _requestChannelGuide,
                                 selectedChannelId: selected.id,
                                 onSelectChannel: (id) {
                                   final channel = _channelsById[id];

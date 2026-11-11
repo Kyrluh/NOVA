@@ -198,7 +198,11 @@ void main() {
     'TV hidden HUD opens channel categories without leaving fullscreen',
     (tester) async {
       final f = await _mount(tester, television: true);
-      await f.remount(television: true, live: true);
+      await f.remount(
+        television: true,
+        live: true,
+        programmeFor: (id) => 'Programme $id',
+      );
       f.fullscreenRequests.value++;
       await tester.pumpAndSettle();
       final fullscreenCount = f.host.fullscreenCalls.where((v) => v).length;
@@ -209,8 +213,13 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.select);
       await tester.pumpAndSettle();
       expect(find.byType(TvChannelPanel), findsOneWidget);
+      expect(find.text('Programme a1'), findsOneWidget);
+      expect(find.text('Programme a2'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(find.text('Programme b2'), findsOneWidget);
+      expect(f.selectedChannel, isNull);
       await tester.sendKeyEvent(LogicalKeyboardKey.select);
       await tester.pumpAndSettle();
       expect(f.selectedChannel, 'b2');
@@ -581,6 +590,7 @@ class _Fixture {
   final key = GlobalKey();
   final fullscreenRequests = ValueNotifier<int>(0);
   Future<void> remount({
+    String? Function(String)? programmeFor,
     bool television = false,
     bool gestures = true,
     bool live = false,
@@ -608,6 +618,7 @@ class _Fixture {
                   TvChannelOption(id: 'b2', title: 'B2', category: 'B'),
                 ],
                 selectedChannelId: 'a1',
+                channelProgrammeFor: programmeFor,
                 onSelectChannel: (id) => selectedChannel = id,
                 key: key,
                 fullscreenRequests: fullscreenRequests,

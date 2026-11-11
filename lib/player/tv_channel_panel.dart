@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,11 +23,17 @@ class TvChannelPanel extends StatefulWidget {
     required this.selectedId,
     required this.onSelected,
     required this.onClose,
+    this.programmeFor,
+    this.guideChanges,
+    this.onGuideRequested,
   });
   final List<TvChannelOption> channels;
   final String? selectedId;
   final ValueChanged<String> onSelected;
   final VoidCallback onClose;
+  final String? Function(String channelId)? programmeFor;
+  final Listenable? guideChanges;
+  final ValueChanged<String>? onGuideRequested;
   @override
   State<TvChannelPanel> createState() => _TvChannelPanelState();
 }
@@ -36,6 +44,28 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
   final _tabs = ScrollController();
   String? _category;
   int _index = 0;
+  Timer? _guideTick;
+  final _requestedGuides = <String>{};
+  double get _rowHeight =>
+      64 +
+      (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(
+            0,
+            double.infinity,
+          ) *
+          2.3;
+
+  void _guideChanged() {
+    if (!mounted) return;
+    setState(_requestedGuides.clear);
+  }
+
+  void _requestGuide(String id) {
+    if (widget.onGuideRequested == null || !_requestedGuides.add(id)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onGuideRequested?.call(id);
+    });
+  }
+
   List<String?> get _categories => [
     null,
     ...widget.channels.map((c) => c.category).toSet(),
@@ -46,6 +76,13 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
   @override
   void initState() {
     super.initState();
+    widget.guideChanges?.addListener(_guideChanged);
+    if (widget.programmeFor != null) {
+      _guideTick = Timer.periodic(
+        const Duration(minutes: 1),
+        (_) => _guideChanged(),
+      );
+    }
     final selected = widget.channels
         .where((c) => c.id == widget.selectedId)
         .firstOrNull;
@@ -54,6 +91,19 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focus.requestFocus();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant TvChannelPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.guideChanges != widget.guideChanges) {
+      oldWidget.guideChanges?.removeListener(_guideChanged);
+      widget.guideChanges?.addListener(_guideChanged);
+      _requestedGuides.clear();
+    }
+    if (!identical(oldWidget.channels, widget.channels)) {
+      _requestedGuides.clear();
+    }
   }
 
   void _selectCurrent() {
@@ -65,7 +115,9 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
   void _reveal() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (!mounted) return;
     if (_rows.hasClients) {
-      _rows.jumpTo((_index * 64.0).clamp(0.0, _rows.position.maxScrollExtent));
+      _rows.jumpTo(
+        (_index * _rowHeight).clamp(0.0, _rows.position.maxScrollExtent),
+      );
     }
     if (_tabs.hasClients) {
       _tabs.jumpTo(
@@ -121,6 +173,8 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
 
   @override
   void dispose() {
+    widget.guideChanges?.removeListener(_guideChanged);
+    _guideTick?.cancel();
     _focus.dispose();
     _rows.dispose();
     _tabs.dispose();
@@ -214,10 +268,14 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                     ? const Center(child: Text('Aucune chaîne'))
                     : ListView.builder(
                         controller: _rows,
-                        itemExtent: 64,
+                        itemExtent: _rowHeight,
                         itemCount: channels.length,
                         itemBuilder: (context, index) {
                           final channel = channels[index];
+                          _requestGuide(channel.id);
+                          final programme = widget.programmeFor
+                              ?.call(channel.id)
+                              ?.trim();
                           return Semantics(
                             button: true,
                             selected: index == _index,
@@ -245,15 +303,46 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                                     if (channel.id == widget.selectedId)
                                       const Icon(Icons.play_arrow, size: 20),
                                     Expanded(
-                                      child: Text(
-                                        channel.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontWeight: index == _index
-                                              ? FontWeight.w800
-                                              : FontWeight.normal,
-                                        ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            channel.title,
+                                            maxLines:
+                                                widget.programmeFor == null
+                                                ? 2
+                                                : 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              height: 1.1,
+                                              fontWeight: index == _index
+                                                  ? FontWeight.w800
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                          if (widget.programmeFor != null) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              programme == null ||
+                                                      programme.isEmpty
+                                                  ? 'Programme indisponible'
+                                                  : programme,
+                                              key: ValueKey(
+                                                'panel-programme-${channel.id}',
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                height: 1.1,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ],
