@@ -13,6 +13,9 @@ class TvSourceField extends StatefulWidget {
     this.obscureText = false,
     this.url = false,
     this.maxLength,
+    this.onChanged,
+    this.autofocus = false,
+    this.search = false,
   });
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -22,6 +25,9 @@ class TvSourceField extends StatefulWidget {
   final bool obscureText;
   final bool url;
   final int? maxLength;
+  final ValueChanged<String>? onChanged;
+  final bool autofocus;
+  final bool search;
   @override
   State<TvSourceField> createState() => _TvSourceFieldState();
 }
@@ -40,6 +46,7 @@ class _TvSourceFieldState extends State<TvSourceField> {
         'value': widget.controller.text,
         'url': widget.url,
         'secret': widget.obscureText,
+        'search': widget.search,
         'maxLength': widget.maxLength ?? (widget.url ? 16384 : 4096),
       });
       if (!mounted) return;
@@ -49,6 +56,7 @@ class _TvSourceFieldState extends State<TvSourceField> {
           selection: TextSelection.collapsed(offset: value.length),
         );
         field.didChange(value);
+        widget.onChanged?.call(value);
       }
     } on PlatformException {
       if (mounted) _unavailable();
@@ -75,6 +83,7 @@ class _TvSourceFieldState extends State<TvSourceField> {
     validator: (_) => widget.validator?.call(widget.controller.text),
     builder: (field) => FocusableActionDetector(
       focusNode: widget.focusNode,
+      autofocus: widget.autofocus,
       enabled: widget.enabled,
       onShowFocusHighlight: (value) => setState(() => _focused = value),
       shortcuts: const {

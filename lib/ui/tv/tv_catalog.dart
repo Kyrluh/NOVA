@@ -7,6 +7,7 @@ import '../../state/app_controller.dart';
 import '../widgets/media_artwork.dart';
 import '../theme.dart';
 import 'tv_widgets.dart';
+import '../widgets/search_field.dart';
 
 class TvCatalog extends StatefulWidget {
   const TvCatalog({
@@ -84,11 +85,11 @@ class _TvCatalogState extends State<TvCatalog> {
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: NovaSearchField(
+                television: true,
                 key: const ValueKey('tv-catalog-search'),
                 controller: _search,
                 autofocus: widget.search,
-                textInputAction: TextInputAction.search,
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) {
                   if (items.isNotEmpty) _gridFocus.requestFocus();

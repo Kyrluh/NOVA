@@ -4,7 +4,7 @@ Application dédiée aux téléviseurs et boîtiers Android, conçue pour les fl
 
 ## APK et compatibilité
 
-- Fichier : **NOVA-IPTV-TV-0.8.6-universal.apk**.
+- Fichier : **NOVA-IPTV-TV-0.8.7-universal.apk**.
 - Package de production : **`app.nova.iptv.tv`** ; application téléphone : `app.nova.iptv`.
 - Android **API24/7.0 minimum**, cible API36 ; architectures ARM32, ARM64 et x86_64.
 - Android TV / Google TV et Fire TV sous **Fire OS basé sur Android**, sous réserve de respecter l'API minimum et les capacités vidéo de l'appareil.
@@ -37,7 +37,9 @@ Les listes et carrousels suivent automatiquement le focus. Les grilles sont cons
 
 La liste des chaînes est à gauche et le lecteur à droite. **Le simple focus ne change pas de chaîne** : OK choisit la chaîne ; un second OK sur la même chaîne, ou **Regarder**, développe le lecteur existant. La recherche et le choix de catégorie restent accessibles.
 
-Dans le lecteur, les touches chaîne suivante/précédente ou gauche/droite changent de chaîne. Le direct ne reçoit pas de commande de déplacement temporel. Le guide actuellement chargé apparaît sous le lecteur ; le chargement XMLTV reste dans **Sources → Guide TV**.
+Dans le lecteur, **haut/bas** et les touches chaîne suivante/précédente changent de chaîne ; **gauche/droite** accède aux commandes puis navigue entre elles. Le direct ne reçoit pas de commande de déplacement temporel. Le guide actuellement chargé apparaît sous le lecteur ; le chargement XMLTV reste dans **Sources → Guide TV**.
+
+En plein écran, **OK quand les commandes sont masquées** ouvre un panneau à gauche sans fermer le plein écran ni recréer le lecteur. **Gauche/droite** change l'onglet de catégorie en haut, **haut/bas** parcourt les chaînes de cette catégorie, **OK** regarde la chaîne et ferme le panneau. **Retour** ferme le panneau en conservant le plein écran. Les catégories et chaînes masquées dans les préférences restent exclues.
 
 ### Films et séries
 
@@ -45,14 +47,16 @@ Ouvrir une fiche puis lancer le film ou choisir une saison et un épisode. Une s
 
 ## Lecteur à la télécommande
 
-- **OK sur l'image** : lecture/pause.
+- **OK sur l'image VOD** : lecture/pause. En direct plein écran sans commandes : panneau de chaînes ; avec commandes : focus sur pause/lecture.
 - **Play/Pause** : contrôle du lecteur visible, même si le focus est dans la liste des chaînes.
-- **Bas/Haut ou Menu depuis l'image** : accéder aux contrôles.
+- **Menu depuis l'image** : accéder aux contrôles ; haut/bas en VOD fait de même. Haut/bas en direct change de chaîne.
 - **Gauche/droite sur l'image VOD** : ±10 secondes ; sur les contrôles : naviguer entre eux sans chercher dans la vidéo.
-- **Avance/retour rapide** : ±10 secondes en VOD.
+- **Avance/retour rapide** : ±10 secondes en VOD ; maintenir la touche accélère par pas de 30 puis 60 secondes. Même accélération avec gauche/droite sur l'image VOD. Les déplacements sont regroupés et la position cible est affichée ; relâcher applique la cible finale.
 - **Retour** : fermer les contrôles/le plein écran avant de revenir au catalogue.
 
-La barre TV propose lecture/pause, épisode précédent/suivant, vitesse, pistes audio, sous-titres texte et format. Elle ne propose pas les gestes de luminosité/volume ni le verrouillage tactile du téléphone. Le PiP est désactivé dans cette interface TV ; l'activité n'ajoute pas de service permanent en arrière-plan. Les touches système Home et volume gardent leur rôle système.
+La barre du **direct** propose dans cet ordre : **réactualiser la chaîne, pause/lecture, format et plein écran**. La barre **VOD** conserve lecture/pause, épisode précédent/suivant, vitesse, pistes audio, sous-titres texte et format. Elle ne propose pas les gestes de luminosité/volume ni le verrouillage tactile du téléphone. Le PiP est désactivé dans cette interface TV ; l'activité n'ajoute pas de service permanent en arrière-plan. Les touches système Home et volume gardent leur rôle système.
+
+Les champs de **recherche** des catalogues, du direct et du tri de catégories n'ouvrent le clavier qu'avec **OK**. Les flèches passent au contrôle voisin sans entrer en édition. **Valider** ou Retour dans l'éditeur de recherche conserve le texte et rend le focus à la recherche ; les flèches permettent alors de la quitter. **Annuler** conserve la recherche précédente.
 
 Les réglages audio/vidéo et les reconnections restent ceux du moteur partagé. Les codecs et le décodage matériel dépendent du téléviseur ou du Stick. Les [conventions Amazon pour les contrôleurs](https://developer.amazon.com/docs/fire-tv/controller-behavior-guidelines.html) servent de référence pour OK, Retour et Play/Pause.
 

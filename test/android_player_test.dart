@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:nova_iptv/player/android_player_host.dart';
 import 'package:nova_iptv/player/nova_player.dart';
+import 'package:nova_iptv/player/tv_channel_panel.dart';
 
 void main() {
   testWidgets(
@@ -55,14 +56,88 @@ void main() {
         .requestFocus();
     await tester.pump();
     f.platform.seeks.clear();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.sendKeyEvent(LogicalKeyboardKey.channelDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.mediaFastForward);
     await tester.pumpAndSettle();
     expect(f.channelNext, 1);
     expect(f.channelPrevious, 1);
     expect(f.platform.seeks, isEmpty);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(f.channelNext, 1);
+    expect(find.byTooltip('Langue audio'), findsNothing);
+    expect(find.byTooltip('Sous-titres'), findsNothing);
+    expect(find.byTooltip('Réactualiser la chaîne'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(find.byType(CheckedPopupMenuItem<BoxFit>), findsWidgets);
+    expect(f.channelNext, 1);
+    expect(f.platform.seeks, isEmpty);
   });
+  testWidgets(
+    'TV held seek accelerates and coalesces requests in both directions',
+    (tester) async {
+      final f = await _mount(tester, television: true);
+      Focus.of(
+        tester.element(find.byKey(const ValueKey('player-touch-surface'))),
+      ).requestFocus();
+      await f.platform.seek(const Duration(seconds: 40));
+      f.platform.seeks.clear();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      for (var n = 0; n < 6; n++) {
+        await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowRight);
+      }
+      expect(f.platform.seeks, isEmpty);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(f.platform.seeks, [const Duration(seconds: 130)]);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
+      for (var n = 0; n < 6; n++) {
+        await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowLeft);
+      }
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+      expect(f.platform.state.position, const Duration(seconds: 40));
+      expect(f.platform.opened, hasLength(1));
+    },
+  );
+  testWidgets(
+    'TV hidden HUD opens channel categories without leaving fullscreen',
+    (tester) async {
+      final f = await _mount(tester, television: true);
+      await f.remount(television: true, live: true);
+      f.fullscreenRequests.value++;
+      await tester.pumpAndSettle();
+      final fullscreenCount = f.host.fullscreenCalls.where((v) => v).length;
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.byType(TvChannelPanel), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(f.selectedChannel, 'b2');
+      expect(find.byType(TvChannelPanel), findsNothing);
+      expect(f.host.fullscreenCalls.where((v) => v).length, fullscreenCount);
+      expect(f.platform.opened, hasLength(2));
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.byType(TvChannelPanel), findsOneWidget);
+      f.fullscreenRequests.value++;
+      await tester.pumpAndSettle();
+      expect(find.byType(TvChannelPanel), findsNothing);
+      expect(f.host.fullscreenCalls.last, isTrue);
+      f.fullscreenRequests.value++;
+      await tester.pumpAndSettle();
+    },
+  );
   testWidgets(
     'Android central control pauses and resumes and hides with the HUD',
     (tester) async {
@@ -399,6 +474,7 @@ Future<_Fixture> _mount(
 }
 
 class _Fixture {
+  String? selectedChannel;
   int channelNext = 0;
   int channelPrevious = 0;
   _Fixture(this.tester, this.delay, this.attempts, this.onNext);
@@ -431,6 +507,14 @@ class _Fixture {
                 television: television,
                 onNextChannel: () => channelNext++,
                 onPreviousChannel: () => channelPrevious++,
+                channelChoices: const [
+                  TvChannelOption(id: 'a1', title: 'A1', category: 'A'),
+                  TvChannelOption(id: 'a2', title: 'A2', category: 'A'),
+                  TvChannelOption(id: 'b1', title: 'B1', category: 'B'),
+                  TvChannelOption(id: 'b2', title: 'B2', category: 'B'),
+                ],
+                selectedChannelId: 'a1',
+                onSelectChannel: (id) => selectedChannel = id,
                 key: key,
                 fullscreenRequests: fullscreenRequests,
                 android: true,

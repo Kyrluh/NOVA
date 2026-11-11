@@ -6,6 +6,8 @@ import '../../player/nova_player.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
 import 'tv_widgets.dart';
+import '../widgets/search_field.dart';
+import '../../player/tv_channel_panel.dart';
 
 class TvLive extends StatefulWidget {
   const TvLive({
@@ -90,10 +92,10 @@ class TvLiveState extends State<TvLive> {
             flex: 4,
             child: Column(
               children: [
-                TextField(
+                NovaSearchField(
+                  television: true,
                   controller: _search,
                   onChanged: (_) => setState(() {}),
-                  textInputAction: TextInputAction.search,
                   onSubmitted: (_) {
                     if (channels.isNotEmpty) _firstChannelFocus.requestFocus();
                   },
@@ -243,6 +245,25 @@ class TvLiveState extends State<TvLive> {
                                     _change(channels, selected, -1),
                                 onNextChannel: () =>
                                     _change(channels, selected, 1),
+                                channelChoices: [
+                                  for (final channel in all)
+                                    TvChannelOption(
+                                      id: channel.id,
+                                      title: channel.title,
+                                      category: channel.category,
+                                    ),
+                                ],
+                                selectedChannelId: selected.id,
+                                onSelectChannel: (id) {
+                                  final channel = all
+                                      .where((c) => c.id == id)
+                                      .firstOrNull;
+                                  if (channel != null) {
+                                    _category = channel.category;
+                                    _search.clear();
+                                    _selectChannel(channel);
+                                  }
+                                },
                               )
                             : const Center(
                                 child: Icon(

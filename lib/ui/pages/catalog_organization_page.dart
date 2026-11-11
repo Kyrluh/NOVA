@@ -7,12 +7,18 @@ import '../../state/app_controller.dart';
 import '../theme.dart';
 import '../widgets/page_widgets.dart';
 import '../adaptive.dart';
+import '../widgets/search_field.dart';
 
 /// Personal visibility and ordering rules, independent for each media catalogue.
 class CatalogOrganizationPage extends StatefulWidget {
-  const CatalogOrganizationPage({super.key, required this.controller});
+  const CatalogOrganizationPage({
+    super.key,
+    required this.controller,
+    this.television = false,
+  });
 
   final AppController controller;
+  final bool television;
 
   @override
   State<CatalogOrganizationPage> createState() =>
@@ -300,7 +306,8 @@ class _CatalogOrganizationPageState extends State<CatalogOrganizationPage> {
                       style: TextStyle(color: novaMuted, fontSize: 12),
                     ),
                     const SizedBox(height: 14),
-                    TextField(
+                    NovaSearchField(
+                      television: widget.television,
                       key: const Key('catalog-category-search'),
                       controller: _search,
                       onChanged: (value) =>

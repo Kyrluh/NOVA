@@ -18,6 +18,8 @@ import 'player_chrome.dart';
 import 'android_player_host.dart';
 import 'android_video_environment.dart';
 import 'android_session_player.dart';
+import 'seek_coordinator.dart';
+import 'tv_channel_panel.dart';
 
 /// Injectable media surface for deterministic interaction tests.
 class NovaPlayerBackend {
@@ -70,6 +72,9 @@ class NovaPlayer extends StatefulWidget {
     this.onNextChannel,
     this.onFullscreenChanged,
     this.handleBackInternally = true,
+    this.channelChoices = const [],
+    this.selectedChannelId,
+    this.onSelectChannel,
   });
 
   final String uri;
@@ -110,6 +115,9 @@ class NovaPlayer extends StatefulWidget {
   final VoidCallback? onNextChannel;
   final ValueChanged<bool>? onFullscreenChanged;
   final bool handleBackInternally;
+  final List<TvChannelOption> channelChoices;
+  final String? selectedChannelId;
+  final ValueChanged<String>? onSelectChannel;
 
   @override
   State<NovaPlayer> createState() => _NovaPlayerState();
@@ -127,6 +135,13 @@ class _NovaPlayerState extends State<NovaPlayer>
   final _subscriptions = <StreamSubscription<dynamic>>[];
   final _health = PlaybackHealth();
   final _chrome = PlayerChrome();
+  late final _seeking = SeekCoordinator(
+    seek: (target) => _perform(() => _player!.seek(target)),
+    changed: _refresh,
+  );
+  LogicalKeyboardKey? _seekKey;
+  int _seekRepeats = 0;
+  bool _tvChannelsOpen = false;
   final _videoKey = GlobalKey(debugLabel: 'NOVA owned video texture');
   final _fullscreenNavigatorKey = GlobalKey<NavigatorState>();
   StateSetter? _fullscreenRebuild;
@@ -197,7 +212,7 @@ class _NovaPlayerState extends State<NovaPlayer>
   void initState() {
     super.initState();
     widget.fullscreenRequests?.addListener(_externalFullscreen);
-    _chrome.addListener(_refresh);
+    _chrome.addListener(_chromeChanged);
     _chrome.activity();
     if (_isAndroid) {
       WidgetsBinding.instance.addObserver(this);
@@ -298,6 +313,7 @@ class _NovaPlayerState extends State<NovaPlayer>
       _subscriptions.add(player.stream.completed.listen(_completed));
       _subscriptions.add(
         player.stream.position.listen((position) {
+          _seeking.position(position);
           if (_disposed) return;
           if (_activeGeneration == _generation) {
             _health.advance(position, playing: player.state.playing);
@@ -553,6 +569,23 @@ class _NovaPlayerState extends State<NovaPlayer>
     }
   }
 
+  void _chromeChanged() {
+    final root = _fullscreen ? _fullscreenFocus : _focus;
+    final restore =
+        widget.television &&
+        !_chrome.visible &&
+        !_tvChannelsOpen &&
+        root.hasFocus;
+    _refresh();
+    if (restore) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_disposed && !_tvChannelsOpen && !_chrome.visible) {
+          root.requestFocus();
+        }
+      });
+    }
+  }
+
   @override
   void didUpdateWidget(covariant NovaPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -609,6 +642,8 @@ class _NovaPlayerState extends State<NovaPlayer>
     _error = null;
     _controlError = null;
     _scrubPosition = null;
+    _seeking.reset();
+    _seekKey = null;
     _activeGeneration = -1;
     _lastProgressSecond = -1;
     _health.begin();
@@ -623,6 +658,20 @@ class _NovaPlayerState extends State<NovaPlayer>
           if (uri.trim().isEmpty) throw StateError('Empty media');
           _activeGeneration = generation;
           await player.setVolume(_isAndroid ? 100 : volume);
+          if (_isAndroid && !live && player.platform is NativePlayer) {
+            final native = player.platform as NativePlayer;
+            // media_kit disables seek frame dropping by default. Let mpv catch
+            // video up to the audio clock on constrained Android decoders.
+            for (final entry in const {
+              'video-sync': 'audio',
+              'framedrop': 'vo',
+              'hr-seek-framedrop': 'yes',
+            }.entries) {
+              try {
+                await native.setProperty(entry.key, entry.value);
+              } catch (_) {}
+            }
+          }
           if (!current()) return;
           // A live stream is not seekable: do not send mpv a start=0 option.
           await player.open(
@@ -709,15 +758,17 @@ class _NovaPlayerState extends State<NovaPlayer>
 
   void _skip(int seconds) {
     final player = _player;
-    if (player == null || widget.isLive) return;
+    if (player == null || widget.isLive || _opening || _error != null) return;
     final duration = player.state.duration;
-    final target = player.state.position + Duration(seconds: seconds);
+    final target =
+        (_seeking.target ?? player.state.position) + Duration(seconds: seconds);
     final bounded = Duration(
       milliseconds: target.inMilliseconds
           .clamp(0, duration.inMilliseconds > 0 ? duration.inMilliseconds : 0)
           .toInt(),
     );
-    unawaited(_perform(() => player.seek(bounded)));
+    _seeking.request(bounded);
+    _showHud('Position ${_clock(bounded)}');
   }
 
   void _toggleMute() {
@@ -981,56 +1032,127 @@ class _NovaPlayerState extends State<NovaPlayer>
     widget.onClose?.call();
   }
 
-  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+  void _showTvControls() {
     _chrome.activity();
+    _tvPauseFocus.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed && !_tvChannelsOpen) _tvPauseFocus.requestFocus();
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _closeChannels() {
+    _tvChannelsOpen = false;
+    _chrome.hide();
+    _refresh();
+    (_fullscreen ? _fullscreenFocus : _focus).requestFocus();
+  }
+
+  void _openChannels() {
+    if (!_fullscreen ||
+        widget.channelChoices.isEmpty ||
+        widget.onSelectChannel == null) {
+      _showTvControls();
+      return;
+    }
+    _tvChannelsOpen = true;
+    _chrome.hide();
+    _refresh();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    final key = event.logicalKey;
+    if (event is KeyUpEvent && key == _seekKey) {
+      _seekKey = null;
+      _seekRepeats = 0;
+      unawaited(_seeking.flush());
+      return KeyEventResult.handled;
+    }
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (_tvChannelsOpen) return KeyEventResult.ignored;
+    final repeat = event is KeyRepeatEvent;
+    final select =
+        key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter;
     if (widget.television) {
-      final key = event.logicalKey;
-      if (key == LogicalKeyboardKey.space ||
-          (node.hasPrimaryFocus &&
-              (key == LogicalKeyboardKey.select ||
-                  key == LogicalKeyboardKey.enter ||
-                  key == LogicalKeyboardKey.numpadEnter))) {
-        unawaited(_togglePlayback());
+      if (node.hasPrimaryFocus && select && widget.isLive && !repeat) {
+        if (!_chrome.visible) {
+          _openChannels();
+        } else {
+          _showTvControls();
+        }
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.space || (node.hasPrimaryFocus && select)) {
+        _chrome.activity();
+        if (!repeat) unawaited(_togglePlayback());
         return KeyEventResult.handled;
       }
       if (key == LogicalKeyboardKey.contextMenu ||
-          (node.hasPrimaryFocus &&
+          (!widget.isLive &&
+              node.hasPrimaryFocus &&
               (key == LogicalKeyboardKey.arrowDown ||
                   key == LogicalKeyboardKey.arrowUp))) {
-        _tvPauseFocus.requestFocus();
+        _showTvControls();
         return KeyEventResult.handled;
       }
-      if (key == LogicalKeyboardKey.channelUp ||
-          key == LogicalKeyboardKey.channelDown) {
-        (key == LogicalKeyboardKey.channelUp
-                ? widget.onNextChannel
-                : widget.onPreviousChannel)
-            ?.call();
-        return KeyEventResult.handled;
-      }
-      if (key == LogicalKeyboardKey.mediaFastForward ||
-          key == LogicalKeyboardKey.mediaRewind) {
-        if (!widget.isLive) {
-          _skip(key == LogicalKeyboardKey.mediaFastForward ? 10 : -10);
-        }
-        return KeyEventResult.handled;
-      }
-      if (key == LogicalKeyboardKey.arrowRight ||
-          key == LogicalKeyboardKey.arrowLeft) {
-        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
-        if (widget.isLive) {
-          (key == LogicalKeyboardKey.arrowRight
+      if (widget.isLive &&
+          (key == LogicalKeyboardKey.arrowUp ||
+              key == LogicalKeyboardKey.arrowDown ||
+              key == LogicalKeyboardKey.channelUp ||
+              key == LogicalKeyboardKey.channelDown)) {
+        if (!repeat) {
+          (key == LogicalKeyboardKey.arrowUp ||
+                      key == LogicalKeyboardKey.channelUp
                   ? widget.onNextChannel
                   : widget.onPreviousChannel)
               ?.call();
-        } else {
-          _skip(key == LogicalKeyboardKey.arrowRight ? 10 : -10);
         }
         return KeyEventResult.handled;
       }
+      if (widget.isLive &&
+          (key == LogicalKeyboardKey.arrowRight ||
+              key == LogicalKeyboardKey.arrowLeft)) {
+        if (node.hasPrimaryFocus) {
+          _showTvControls();
+          return KeyEventResult.handled;
+        }
+        _chrome.activity();
+        return KeyEventResult.ignored;
+      }
     }
-    if (event.logicalKey == LogicalKeyboardKey.escape &&
+    final forward =
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.mediaFastForward;
+    final backward =
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.mediaRewind;
+    final mediaSeek =
+        key == LogicalKeyboardKey.mediaFastForward ||
+        key == LogicalKeyboardKey.mediaRewind;
+    if (!widget.isLive &&
+        (forward || backward) &&
+        (!widget.television || node.hasPrimaryFocus || mediaSeek)) {
+      _chrome.activity();
+      if (_seekKey != key || !repeat) {
+        _seekKey = key;
+        _seekRepeats = 0;
+      }
+      if (repeat) _seekRepeats++;
+      final step = _seekRepeats >= 18
+          ? 60
+          : _seekRepeats >= 6
+          ? 30
+          : 10;
+      _skip(forward ? step : -step);
+      return KeyEventResult.handled;
+    }
+    if (repeat) return KeyEventResult.ignored;
+    _chrome.activity();
+    if (key == LogicalKeyboardKey.escape &&
         (_fullscreen || _desktop.isFullscreen || widget.onClose != null)) {
       if (_fullscreen) {
         unawaited(_toggleFullscreen());
@@ -1041,20 +1163,12 @@ class _NovaPlayerState extends State<NovaPlayer>
       }
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.space) {
+    if (key == LogicalKeyboardKey.space) {
       unawaited(_togglePlayback());
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.keyF) {
+    if (key == LogicalKeyboardKey.keyF) {
       unawaited(_toggleFullscreen());
-      return KeyEventResult.handled;
-    }
-    if (!widget.isLive && event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      _skip(10);
-      return KeyEventResult.handled;
-    }
-    if (!widget.isLive && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      _skip(-10);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -1075,6 +1189,7 @@ class _NovaPlayerState extends State<NovaPlayer>
     if (!_isAndroid || widget.television) {
       DesktopMediaControls.instance.unregister(this);
     }
+    _seeking.dispose();
     _chrome.dispose();
     _tvPauseFocus.dispose();
     _hudTimer?.cancel();
@@ -1138,12 +1253,15 @@ class _NovaPlayerState extends State<NovaPlayer>
     if (!_isAndroid || !widget.handleBackInternally) return surface;
     return PopScope(
       canPop:
+          !_tvChannelsOpen &&
           !_fullscreen &&
           !_touchLocked &&
           !(widget.television && _chrome.visible),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (_fullscreenNavigatorKey.currentState?.canPop() == true) {
+        if (_tvChannelsOpen) {
+          _closeChannels();
+        } else if (_fullscreenNavigatorKey.currentState?.canPop() == true) {
           _fullscreenNavigatorKey.currentState?.pop();
         } else if (widget.television && _chrome.visible) {
           _chrome.hide();
@@ -1379,6 +1497,36 @@ class _NovaPlayerState extends State<NovaPlayer>
                   bottom: 0,
                   child: _chromeView('player-controls', _controls(state)),
                 ),
+                if (_tvChannelsOpen)
+                  Positioned.fill(
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTap: _closeChannels,
+                            child: const ColoredBox(color: Colors.black38),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            width: (MediaQuery.sizeOf(context).width * .48)
+                                .clamp(220.0, 440.0),
+                            height: double.infinity,
+                            child: TvChannelPanel(
+                              channels: widget.channelChoices,
+                              selectedId: widget.selectedChannelId,
+                              onClose: _closeChannels,
+                              onSelected: (id) {
+                                widget.onSelectChannel?.call(id);
+                                _closeChannels();
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1542,7 +1690,7 @@ class _NovaPlayerState extends State<NovaPlayer>
   Widget _controls(PlayerState? state) {
     if (widget.television) return _tvControls(state);
     final duration = state?.duration ?? Duration.zero;
-    final position = state?.position ?? Duration.zero;
+    final position = _seeking.target ?? state?.position ?? Duration.zero;
     final volume =
         (_adjustments?.volume ?? state?.volume ?? widget.initialVolume)
             .clamp(0, 100)
@@ -1615,13 +1763,10 @@ class _NovaPlayerState extends State<NovaPlayer>
                     onChangeEnd: canSeek
                         ? (value) {
                             _scrubPosition = null;
-                            unawaited(
-                              _perform(
-                                () => _player!.seek(
-                                  Duration(milliseconds: value.round()),
-                                ),
-                              ),
+                            _seeking.request(
+                              Duration(milliseconds: value.round()),
                             );
+                            unawaited(_seeking.flush());
                           }
                         : null,
                   ),
@@ -1794,7 +1939,7 @@ class _NovaPlayerState extends State<NovaPlayer>
   Widget _tvControls(PlayerState? state) {
     final ready = !_opening && state != null && _error == null;
     final duration = state?.duration ?? Duration.zero;
-    final position = state?.position ?? Duration.zero;
+    final position = _seeking.target ?? state?.position ?? Duration.zero;
     final audio =
         state?.tracks.audio
             .where((t) => t.id != 'auto' && t.id != 'no')
@@ -1838,14 +1983,13 @@ class _NovaPlayerState extends State<NovaPlayer>
                     onChanged: ready && duration.inMilliseconds > 0
                         ? (value) {
                             _chrome.activity();
-                            unawaited(
-                              _perform(
-                                () => _player!.seek(
-                                  Duration(milliseconds: value.round()),
-                                ),
-                              ),
+                            _seeking.request(
+                              Duration(milliseconds: value.round()),
                             );
                           }
+                        : null,
+                    onChangeEnd: ready && duration.inMilliseconds > 0
+                        ? (_) => unawaited(_seeking.flush())
                         : null,
                   ),
                 ),
@@ -1856,6 +2000,12 @@ class _NovaPlayerState extends State<NovaPlayer>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                if (widget.isLive)
+                  _icon(
+                    Icons.refresh_rounded,
+                    'Réactualiser la chaîne',
+                    _opening ? null : _retryNow,
+                  ),
                 IconButton(
                   focusNode: _tvPauseFocus,
                   tooltip: state?.playing == true ? 'Pause' : 'Lecture',
@@ -1875,16 +2025,16 @@ class _NovaPlayerState extends State<NovaPlayer>
                   _icon(Icons.skip_next, 'Épisode suivant', _nextEpisode),
                 ],
                 if (!widget.isLive) _speedMenu(state, ready),
-                if (state != null && audio.isNotEmpty)
+                if (!widget.isLive && state != null && audio.isNotEmpty)
                   _audioMenu(audio, state, ready),
-                _subtitleMenu(subtitles, state, ready),
+                if (!widget.isLive) _subtitleMenu(subtitles, state, ready),
                 _aspectMenu(),
                 _icon(
                   _fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
                   _fullscreen ? 'Quitter le plein écran' : 'Plein écran',
                   () => unawaited(_toggleFullscreen()),
                 ),
-                if (widget.onClose != null)
+                if (!widget.isLive && widget.onClose != null)
                   _icon(
                     Icons.close,
                     'Retour au catalogue',
@@ -1893,9 +2043,11 @@ class _NovaPlayerState extends State<NovaPlayer>
               ],
             ),
           ),
-          const Text(
-            'OK : lecture / pause  ·  Bas : réglages  ·  Gauche / droite : ±10 s en VOD',
-            style: TextStyle(color: Colors.white70, fontSize: 11),
+          Text(
+            widget.isLive
+                ? '↑ ↓ Chaînes · ← → Réglages · OK sans commandes : liste des chaînes'
+                : 'OK : lecture / pause · Bas : réglages · Maintenir ← → : avance rapide',
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
         ],
       ),
@@ -2241,6 +2393,10 @@ class _NovaPlayerState extends State<NovaPlayer>
       );
 
   void _externalFullscreen() {
+    if (_tvChannelsOpen) {
+      _closeChannels();
+      return;
+    }
     if (widget.television &&
         _fullscreenNavigatorKey.currentState?.canPop() == true) {
       _fullscreenNavigatorKey.currentState!.pop();

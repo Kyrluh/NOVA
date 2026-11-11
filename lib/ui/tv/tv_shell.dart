@@ -119,7 +119,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
     MaterialPageRoute<void>(
       builder: (_) => TvPageFrame(
         title: 'Tri et langues',
-        child: CatalogOrganizationPage(controller: app),
+        child: CatalogOrganizationPage(controller: app, television: true),
       ),
     ),
   );

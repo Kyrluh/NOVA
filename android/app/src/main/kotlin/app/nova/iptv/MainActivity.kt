@@ -176,8 +176,17 @@ class MainActivity : FlutterActivity() {
         val initial = args["value"] as? String ?: ""
         val isUrl = args["url"] == true
         val secret = args["secret"] == true
+        val search = args["search"] == true
         val limit = (args["maxLength"] as? Number)?.toInt()?.coerceIn(1, 16384) ?: 4096
-        val editor = EditText(this).apply {
+        val editor = object : EditText(this) {
+            override fun onKeyPreIme(keyCode: Int, event: KeyEvent): Boolean {
+                if (search && keyCode == KeyEvent.KEYCODE_BACK) {
+                    if (event.action == KeyEvent.ACTION_UP) finishSourceEditor(text.toString())
+                    return true
+                }
+                return super.onKeyPreIme(keyCode, event)
+            }
+        }.apply {
             inputType = InputType.TYPE_CLASS_TEXT or when {
                 secret -> InputType.TYPE_TEXT_VARIATION_PASSWORD
                 isUrl -> InputType.TYPE_TEXT_VARIATION_URI
@@ -215,6 +224,7 @@ class MainActivity : FlutterActivity() {
             } else false
         }
         dialog.setCanceledOnTouchOutside(false)
+        dialog.setOnCancelListener { finishSourceEditor(if (search) editor.text.toString() else null) }
         dialog.setOnDismissListener { finishSourceEditor(null) }
         try {
             dialog.show()
