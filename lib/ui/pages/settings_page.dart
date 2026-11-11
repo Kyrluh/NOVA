@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'profiles_page.dart';
+import 'app_updates_page.dart';
 import '../widgets/catalog_columns_setting.dart';
 
 import '../../domain/models.dart';
@@ -39,6 +40,11 @@ enum _SettingsCategory {
     'Données locales',
     'Importer ou exporter les réglages, licences et réinitialisation.',
     Icons.folder_outlined,
+  ),
+  updates(
+    'Mise à jour de l’application',
+    'Vérifier et télécharger la dernière version compatible de NOVA.',
+    Icons.system_update_alt_rounded,
   );
 
   const _SettingsCategory(this.label, this.description, this.icon);
@@ -366,6 +372,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _content(BuildContext context) => AnimatedBuilder(
     animation: widget.controller,
     builder: (context, _) {
+      if (_selected == _SettingsCategory.updates) {
+        return const AppUpdatesPanel();
+      }
       final settings = widget.controller.settings;
       return ListView(
         key: PageStorageKey(('settings-panel', _selected)),

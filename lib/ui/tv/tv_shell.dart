@@ -19,6 +19,7 @@ import 'tv_catalog.dart';
 import 'tv_details.dart';
 import 'tv_live.dart';
 import 'tv_widgets.dart';
+import '../pages/app_updates_page.dart';
 
 class NovaTvShell extends StatefulWidget {
   const NovaTvShell({
@@ -763,6 +764,16 @@ class _NovaTvShellState extends State<NovaTvShell> {
             () => app.sources == null
                 ? const Center(child: Text('Gestion des sources indisponible.'))
                 : SourcesPage(controller: app.sources!, television: true),
+          ),
+        ),
+        _settingCard(
+          'updates',
+          'Mise à jour de l’application',
+          'Vérifier la dernière APK TV / Fire TV sur GitHub',
+          Icons.system_update_alt_rounded,
+          () => _settingsPanel(
+            'Mise à jour de l’application',
+            () => const AppUpdatesPanel(television: true),
           ),
         ),
       ],

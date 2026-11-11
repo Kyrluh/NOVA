@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <windowsx.h>
+#include <shellapi.h>
 #include <flutter/standard_method_codec.h>
 
 #include "flutter/generated_plugin_registrant.h"
@@ -37,7 +38,27 @@ bool FlutterWindow::OnCreate() {
   window_channel_->SetMethodCallHandler(
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,
              std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-        if (call.method_name() == "isFullscreen") {
+        if (call.method_name() == "getUpdateInfo") {
+          result->Success(flutter::EncodableValue(flutter::EncodableMap{
+              {flutter::EncodableValue("platform"), flutter::EncodableValue("windows")},
+              {flutter::EncodableValue("version"), flutter::EncodableValue(FLUTTER_VERSION)},
+              {flutter::EncodableValue("build"), flutter::EncodableValue(FLUTTER_VERSION_BUILD)},
+          }));
+        } else if (call.method_name() == "openUpdateUrl") {
+          const auto* url = call.arguments() ? std::get_if<std::string>(call.arguments()) : nullptr;
+          const std::string prefix = "https://github.com/Kyrluh/NOVA/releases/download/";
+          if (!url || url->rfind(prefix, 0) != 0 || url->size() < 4 ||
+              url->substr(url->size() - 4) != ".zip" || url->find_first_of("?#\r\n") != std::string::npos) {
+            result->Error("invalid_url", "Invalid NOVA release URL.");
+          } else {
+            const std::wstring address(url->begin(), url->end());
+            if (reinterpret_cast<INT_PTR>(::ShellExecuteW(GetHandle(), L"open", address.c_str(), nullptr, nullptr, SW_SHOWNORMAL)) > 32) {
+              result->Success();
+            } else {
+              result->Error("browser_unavailable", "Unable to open the download.");
+            }
+          }
+        } else if (call.method_name() == "isFullscreen") {
           result->Success(flutter::EncodableValue(fullscreen_));
         } else if (call.method_name() == "setFullscreen") {
           const auto* enabled = call.arguments()
