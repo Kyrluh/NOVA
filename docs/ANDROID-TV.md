@@ -4,7 +4,7 @@ Application dédiée aux téléviseurs et boîtiers Android, conçue pour les fl
 
 ## APK et compatibilité
 
-- Fichier : **NOVA-IPTV-TV-0.8.4-universal.apk**.
+- Fichier : **NOVA-IPTV-TV-0.8.5-universal.apk**.
 - Package de production : **`app.nova.iptv.tv`** ; application téléphone : `app.nova.iptv`.
 - Android **API24/7.0 minimum**, cible API36 ; architectures ARM32, ARM64 et x86_64.
 - Android TV / Google TV et Fire TV sous **Fire OS basé sur Android**, sous réserve de respecter l'API minimum et les capacités vidéo de l'appareil.

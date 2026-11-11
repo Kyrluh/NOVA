@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import '../data/demo_catalog.dart';
 import '../data/local_store.dart';
 import '../domain/catalog_preferences.dart';
+import '../domain/catalog_defaults.dart';
 import '../domain/models.dart';
 import '../domain/user_profile.dart';
 import '../domain/media_variants.dart';
@@ -144,9 +145,9 @@ class AppController extends ChangeNotifier {
     _settings = AppSettings.fromJson(
       Map<String, dynamic>.from(data['settings'] as Map? ?? {}),
     );
-    _catalogPreferences = CatalogPreferences.fromJson(
-      data['catalogPreferences'],
-    );
+    _catalogPreferences = _profileCatalogPreferences(data);
+    _defaultsCatalogRevision = -2;
+    _applyInitialCategoryFilters();
     _restoreTvChannelOrder();
     _platformPreferences = PlatformPreferences.fromJson(
       data['platformPreferences'],
@@ -196,6 +197,7 @@ class AppController extends ChangeNotifier {
   PlatformPreferences _platformPreferences = const PlatformPreferences();
   final Set<String> _dismissedResumeIds = {};
   int _preferencesRevision = 0;
+  int _defaultsCatalogRevision = -2;
   int _visibleCatalogRevision = -2;
   int _visiblePreferencesRevision = -1;
   List<MediaItem> _visibleItems = const [];
@@ -379,7 +381,9 @@ class AppController extends ChangeNotifier {
   void _sourceChanged() {
     if (_disposed) return;
     _ensureIndex();
-    if (_migrateEpisodeReferences() && _isReady) {
+    final referencesChanged = _migrateEpisodeReferences();
+    final defaultsChanged = _isReady && _applyInitialCategoryFilters();
+    if ((referencesChanged || defaultsChanged) && _isReady) {
       _changed();
       return;
     }
@@ -454,6 +458,62 @@ class AppController extends ChangeNotifier {
 
   Future<void> init() => _initialization ??= _load();
 
+  CatalogPreferences _profileCatalogPreferences(Map<String, dynamic> data) {
+    if (data.containsKey('catalogPreferences')) {
+      return CatalogPreferences.fromJson(data['catalogPreferences']);
+    }
+    data['useInitialCatalogFilters'] = true;
+    data['initialCategoryGroups'] = <String>[];
+    return initialCatalogPreferences();
+  }
+
+  /// Translate portable names into this installation's source/category keys.
+  /// A source/kind is seeded only once, so users can unhide it permanently.
+  bool _applyInitialCategoryFilters() {
+    final profile = _profiles[_activeProfileId];
+    final revision = sources?.catalogRevision ?? -1;
+    if (profile?['useInitialCatalogFilters'] != true ||
+        _defaultsCatalogRevision == revision) {
+      return false;
+    }
+    _defaultsCatalogRevision = revision;
+    final applied = (profile!['initialCategoryGroups'] as List? ?? [])
+        .whereType<String>()
+        .toSet();
+    final groups = <String, List<MediaItem>>{};
+    for (final item in allItems) {
+      if (item.sourceId == null) continue;
+      final group = '${Uri.encodeComponent(item.sourceId!)}|${item.kind.name}';
+      if (!applied.contains(group)) (groups[group] ??= []).add(item);
+    }
+    if (groups.isEmpty) return false;
+    final hidden = {
+      for (final kind in MediaKind.values)
+        kind: Set<String>.of(
+          _catalogPreferences.ruleFor(kind).hiddenCategories,
+        ),
+    };
+    for (final entry in groups.entries) {
+      for (final item in entry.value) {
+        if (initiallyHiddenCategory(item)) {
+          hidden[item.kind]!.add(catalogCategoryKey(item));
+        }
+      }
+      applied.add(entry.key);
+    }
+    for (final kind in MediaKind.values) {
+      _catalogPreferences = _catalogPreferences.copyWithRule(
+        kind,
+        _catalogPreferences
+            .ruleFor(kind)
+            .copyWith(hiddenCategories: hidden[kind]),
+      );
+    }
+    profile['initialCategoryGroups'] = applied.toList();
+    _preferencesRevision++;
+    return true;
+  }
+
   /// Dedicated TV builds had no channel-order control. Reset legacy choices
   /// once per profile, preserving filters and future explicit sorting choices.
   bool _restoreTvChannelOrder() {
@@ -502,9 +562,10 @@ class AppController extends ChangeNotifier {
       if (settings is Map<String, dynamic>) {
         _settings = AppSettings.fromJson(settings);
       }
-      _catalogPreferences = CatalogPreferences.fromJson(
-        data['catalogPreferences'],
-      );
+      final newDefaults = !data.containsKey('catalogPreferences');
+      _catalogPreferences = _profileCatalogPreferences(data);
+      final categoryDefaults = _applyInitialCategoryFilters();
+      if (newDefaults || categoryDefaults) saveSourceOrder = true;
       _androidTvSourceOrderVersion = data['androidTvSourceOrderVersion'] == 1
           ? 1
           : 0;
@@ -656,6 +717,8 @@ class AppController extends ChangeNotifier {
   }
 
   void resetData() {
+    final profile = _profiles[_activeProfileId];
+    if (profile != null) profile['useInitialCatalogFilters'] = false;
     _settings = const AppSettings();
     _catalogPreferences = const CatalogPreferences();
     _platformPreferences = const PlatformPreferences();
