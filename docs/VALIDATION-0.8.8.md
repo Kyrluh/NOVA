@@ -26,7 +26,7 @@ Une Fire TV **AFTKRT / Android API 30**, disposant d'environ 1,7 Gio de RAM et d
 
 Le chargement initial, le rechargement au démarrage et l'affichage de l'écran d'attente suivi des profils ont été observés sur l'appareil. La recherche de chaînes a ouvert le clavier natif ; Retour a conservé « TF1 » et filtré la liste ; la flèche bas a ensuite placé le focus sur Catégorie. L'ordre affiché commence par TF1, France 2, France 3 et France 4.
 
-Une tentative de lecture TF1 HD a activé le décodeur matériel H.264 avec une sortie déclarée 1280 × 720 à 25 images/s dans les traces du Stick. Une capture ADB présentait la zone vidéo noire : ces traces ne suffisent pas à garantir l'image et le son réellement perçus sur le téléviseur. Cette confirmation reste nécessaire, ainsi qu'un essai prolongé et les autres codecs/flux.
+La lecture TF1 HD a activé le décodeur matériel H.264 avec une sortie déclarée 1280 × 720 à 25 images/s dans les traces du Stick. Une capture ADB présentait la zone vidéo noire, mais le propriétaire a confirmé sur le téléviseur que **l'image et le son fonctionnent**. L'essai prolongé et les autres codecs/flux ne sont pas couverts par cette confirmation.
 
 La fermeture spontanée signalée n'a pas été reproduite avec cette source pendant la session. Les arrêts d'installation et de redémarrage commandés via ADB sont distingués des plantages. Les changements réduisent des pics de mémoire évitables ; ils ne démontrent pas à eux seuls la cause de la fermeture initiale. Aucune mesure comparative de fluidité ou garantie d'absence de crash prolongé n'est annoncée.
 
