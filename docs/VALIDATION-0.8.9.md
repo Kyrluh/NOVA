@@ -27,10 +27,12 @@ Une capture ADB du même spectacle avec cette sortie directe montre une image no
 
 ## Vérifications
 
-Douze scénarios ciblés passent : deux tests de cache de fiches (écriture limitée à un élément, restauration et invalidation après actualisation ; grands fragments Unicode et rollback) ; compatibilité du cache Windows ; annulation/réouverture d'une fiche et déduplication des détails ; regroupement/progression/favoris et choix des variantes dans les fiches commune/TV ; réglage des colonnes sur Windows/Android/TV ; sélection du chemin vidéo selon Fire TV/émulateur/téléphone/autre TV ; conservation de la liste pendant la progression et invalidation sur changement du tri.
+Treize scénarios ciblés passent : deux tests de cache de fiches (écriture limitée à un élément, restauration et invalidation après actualisation ; grands fragments Unicode et rollback) ; compatibilité du cache Windows ; annulation/réouverture d'une fiche et déduplication des détails ; regroupement/progression/favoris et choix des variantes dans les fiches commune/TV ; réglage des colonnes sur Windows/Android/TV ; sélection du chemin vidéo selon Fire TV/émulateur/téléphone/autre TV ; conservation de la liste pendant la progression et invalidation sur changement du tri ; Retour ferme le panneau ou les contrôles puis quitte le lecteur direct.
 
 Dans le test de 1 000 éléments, l'écriture complète demande plus de vingt opérations de chiffrement, contre une seule pour modifier un synopsis court. Ce résultat vérifie la quantité de travail évitée ; il ne constitue pas un gain de FPS mesuré sur la Fire TV. Analyse statique des fichiers modifiés sans anomalie. Pas de suite complète ni d'émulateur.
 
 L'APK de production signée a été installée sur la Fire TV du propriétaire sans désinstallation. Lolo et le profil existant ont été conservés. Catalogue Films de 15 250 fiches visibles, synopsis d'Artus et lecture HEVC ont été essayés sur l'appareil ; la sortie vidéo directe a produit la capture décrite ci-dessus. Aucun nouvel ANR n'a été constaté pendant cet essai court. Un essai prolongé reste nécessaire : la disparition définitive de tous les blocages n'est pas démontrée.
 
 Les traces ANR, captures, adresses ADB et données de compte restent locales et hors Git. Signature Android conservée et versionCode 27 ; seuls l'APK TV et ses empreintes sont publiés dans la release.
+
+La commande Retour du direct utilise une requête distincte du plein écran : elle ferme les commandes visibles en priorité, puis arrête le lecteur et rend le focus à la liste lorsque seule la vidéo est affichée. Le dernier choix de chaîne reste sélectionné ; relancer une chaîne recrée le lecteur.

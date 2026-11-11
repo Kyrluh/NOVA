@@ -52,7 +52,7 @@ Ouvrir une fiche puis lancer le film ou choisir une saison et un épisode. Une s
 - **Menu depuis l'image** : accéder aux contrôles ; haut/bas en VOD fait de même. Haut/bas en direct change de chaîne.
 - **Gauche/droite sur l'image VOD** : ±10 secondes ; sur les contrôles : naviguer entre eux sans chercher dans la vidéo.
 - **Avance/retour rapide** : ±10 secondes en VOD ; maintenir la touche accélère par pas de 30 puis 60 secondes. Même accélération avec gauche/droite sur l'image VOD. Les déplacements sont regroupés et la position cible est affichée ; relâcher applique la cible finale.
-- **Retour** : fermer les contrôles/le plein écran avant de revenir au catalogue.
+- **Retour en direct** : fermer d'abord le panneau de chaînes, le menu ou les contrôles affichés. Lorsque l'image seule est visible, arrêter la chaîne et revenir à la liste TV. Regarder ou choisir une chaîne permet de relancer la lecture.
 
 La barre du **direct** propose dans cet ordre : **réactualiser la chaîne, pause/lecture, format et plein écran**. La barre **VOD** conserve lecture/pause, épisode précédent/suivant, vitesse, pistes audio, sous-titres texte et format. Elle ne propose pas les gestes de luminosité/volume ni le verrouillage tactile du téléphone. Le PiP est désactivé dans cette interface TV ; l'activité n'ajoute pas de service permanent en arrière-plan. Les touches système Home et volume gardent leur rôle système.
 

@@ -11,6 +11,31 @@ import 'package:nova_iptv/player/tv_channel_panel.dart';
 
 void main() {
   testWidgets(
+    'TV Back dismisses HUD and channel panel before closing the fullscreen live player',
+    (tester) async {
+      final f = await _mount(tester, television: true);
+      await f.remount(television: true, live: true, closeable: true);
+      f.fullscreenRequests.value++;
+      await tester.pumpAndSettle();
+      f.backRequests.value++;
+      await tester.pumpAndSettle();
+      expect(f.closed, 0);
+      expect(f.host.fullscreenCalls.last, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.byType(TvChannelPanel), findsOneWidget);
+      f.backRequests.value++;
+      await tester.pumpAndSettle();
+      expect(find.byType(TvChannelPanel), findsNothing);
+      expect(f.closed, 0);
+      expect(f.host.fullscreenCalls.last, isTrue);
+      f.backRequests.value++;
+      await tester.pumpAndSettle();
+      expect(f.closed, 1);
+      expect(f.host.fullscreenCalls.last, isFalse);
+    },
+  );
+  testWidgets(
     'TV remote controls playback and navigating the toolbar does not seek',
     (tester) async {
       final f = await _mount(tester, television: true);
@@ -474,6 +499,8 @@ Future<_Fixture> _mount(
 }
 
 class _Fixture {
+  int closed = 0;
+  final backRequests = ValueNotifier<int>(0);
   String? selectedChannel;
   int channelNext = 0;
   int channelPrevious = 0;
@@ -492,6 +519,7 @@ class _Fixture {
     bool television = false,
     bool gestures = true,
     bool live = false,
+    bool closeable = false,
     double? width,
     double height = 340,
   }) async {
@@ -517,6 +545,8 @@ class _Fixture {
                 onSelectChannel: (id) => selectedChannel = id,
                 key: key,
                 fullscreenRequests: fullscreenRequests,
+                backRequests: backRequests,
+                onClose: closeable ? () => closed++ : null,
                 android: true,
                 androidHost: host,
                 uri: 'http://localhost/original-fixture.mp4',

@@ -24,14 +24,16 @@ class TvLive extends StatefulWidget {
 }
 
 class TvLiveState extends State<TvLive> {
-  bool _expanded = false;
+  bool _watching = true;
+  bool _playerMounted = false;
   bool handleBack() {
-    if (!_expanded) return false;
-    _fullscreen.value++;
+    if (!_playerMounted) return false;
+    _back.value++;
     return true;
   }
 
   final _fullscreen = ValueNotifier<int>(0);
+  final _back = ValueNotifier<int>(0);
   final _search = TextEditingController();
   final _firstChannelFocus = FocusNode(debugLabel: 'TV first channel');
   late String? _selectedId = widget.initialChannelId;
@@ -39,6 +41,7 @@ class TvLiveState extends State<TvLive> {
   @override
   void dispose() {
     _fullscreen.dispose();
+    _back.dispose();
     _search.dispose();
     _firstChannelFocus.dispose();
     super.dispose();
@@ -53,7 +56,10 @@ class TvLiveState extends State<TvLive> {
   }
 
   void _selectChannel(MediaItem channel) {
-    setState(() => _selectedId = channel.id);
+    setState(() {
+      _selectedId = channel.id;
+      _watching = true;
+    });
     widget.controller.recordProgress(
       channel.id,
       WatchProgress(
@@ -85,6 +91,10 @@ class TvLiveState extends State<TvLive> {
       final selected =
           all.where((i) => i.id == _selectedId).firstOrNull ??
           channels.firstOrNull;
+      _playerMounted =
+          _watching &&
+          selected?.mediaUrl?.isNotEmpty == true &&
+          widget.nativeReady;
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -183,7 +193,8 @@ class TvLiveState extends State<TvLive> {
                         selected: selected?.id == item.id,
                         label: item.title,
                         onPressed: () {
-                          if (selected?.id == item.id &&
+                          if (_watching &&
+                              selected?.id == item.id &&
                               _selectedId == item.id) {
                             _fullscreen.value++;
                           } else {
@@ -220,21 +231,28 @@ class TvLiveState extends State<TvLive> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child:
-                            selected.mediaUrl?.isNotEmpty == true &&
-                                widget.nativeReady
+                        child: _playerMounted
                             ? NovaPlayer(
                                 key: const ValueKey('tv-live-player'),
                                 television: true,
                                 pictureInPicture: false,
                                 touchGestures: false,
                                 handleBackInternally: false,
-                                onFullscreenChanged: (value) =>
-                                    _expanded = value,
                                 uri: selected.mediaUrl!,
                                 title: selected.title,
                                 isLive: true,
                                 fullscreenRequests: _fullscreen,
+                                backRequests: _back,
+                                onClose: () {
+                                  setState(() => _watching = false);
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted) {
+                                      _firstChannelFocus.requestFocus();
+                                    }
+                                  });
+                                },
                                 initialVolume: app.settings.volume,
                                 reconnectEnabled: app.settings.reconnectEnabled,
                                 reconnectAttempts:
@@ -287,7 +305,13 @@ class TvLiveState extends State<TvLive> {
                       Row(
                         children: [
                           FilledButton.icon(
-                            onPressed: () => _fullscreen.value++,
+                            onPressed: () {
+                              if (!_watching) setState(() => _watching = true);
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) _fullscreen.value++;
+                              });
+                              WidgetsBinding.instance.scheduleFrame();
+                            },
                             icon: const Icon(Icons.fullscreen),
                             label: const Text('Regarder'),
                           ),

@@ -51,6 +51,7 @@ class NovaPlayer extends StatefulWidget {
     this.backendFactory,
     this.fullscreenController,
     this.fullscreenRequests,
+    this.backRequests,
     this.android,
     this.androidHost,
     this.touchGestures = true,
@@ -92,6 +93,7 @@ class NovaPlayer extends StatefulWidget {
   final NovaPlayerBackend Function()? backendFactory;
   final DesktopFullscreen? fullscreenController;
   final ValueNotifier<int>? fullscreenRequests;
+  final ValueNotifier<int>? backRequests;
   @visibleForTesting
   final bool? android;
   @visibleForTesting
@@ -212,6 +214,7 @@ class _NovaPlayerState extends State<NovaPlayer>
   void initState() {
     super.initState();
     widget.fullscreenRequests?.addListener(_externalFullscreen);
+    widget.backRequests?.addListener(_externalBack);
     _chrome.addListener(_chromeChanged);
     _chrome.activity();
     if (_isAndroid) {
@@ -592,6 +595,10 @@ class _NovaPlayerState extends State<NovaPlayer>
     if (oldWidget.fullscreenRequests != widget.fullscreenRequests) {
       oldWidget.fullscreenRequests?.removeListener(_externalFullscreen);
       widget.fullscreenRequests?.addListener(_externalFullscreen);
+    }
+    if (oldWidget.backRequests != widget.backRequests) {
+      oldWidget.backRequests?.removeListener(_externalBack);
+      widget.backRequests?.addListener(_externalBack);
     }
     final player = _player;
     if (player is AndroidSessionPlayer) player.isLive = widget.isLive;
@@ -1177,6 +1184,7 @@ class _NovaPlayerState extends State<NovaPlayer>
   @override
   void dispose() {
     widget.fullscreenRequests?.removeListener(_externalFullscreen);
+    widget.backRequests?.removeListener(_externalBack);
     _disposed = true;
     Future<void>? androidRelease;
     if (_isAndroid) {
@@ -1283,7 +1291,10 @@ class _NovaPlayerState extends State<NovaPlayer>
     final focus = _fullscreen ? _fullscreenFocus : _focus;
     return Focus(
       focusNode: focus,
-      autofocus: !widget.television || _fullscreen || widget.onClose != null,
+      autofocus:
+          !widget.television ||
+          _fullscreen ||
+          (widget.onClose != null && !widget.isLive),
       onKeyEvent: _handleKey,
       child: MouseRegion(
         cursor: _chrome.visible ? MouseCursor.defer : SystemMouseCursors.none,
@@ -2404,6 +2415,22 @@ class _NovaPlayerState extends State<NovaPlayer>
       return;
     }
     if (mounted && !_disposed) unawaited(_toggleFullscreen());
+  }
+
+  void _externalBack() {
+    if (!mounted || _disposed) return;
+    if (_tvChannelsOpen) {
+      _closeChannels();
+    } else if (_fullscreenNavigatorKey.currentState?.canPop() == true) {
+      _fullscreenNavigatorKey.currentState!.pop();
+    } else if (_chrome.visible) {
+      _chrome.hide();
+      (_fullscreen ? _fullscreenFocus : _focus).requestFocus();
+    } else if (widget.onClose != null) {
+      unawaited(_close());
+    } else if (_fullscreen) {
+      unawaited(_toggleFullscreen());
+    }
   }
 
   String _rateLabel(double rate) => rate
