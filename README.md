@@ -2,9 +2,9 @@
 
 Lecteur IPTV natif pour **Windows et Android**, développé avec Flutter. NOVA réunit la TV en direct, les films, les séries et la reprise de lecture dans une interface sombre adaptée à la souris, au tactile et à la télécommande. Windows et le téléphone utilisent libmpv ; l'application TV utilise Media3 avec un rendu vidéo Android natif.
 
-**TV : 0.9.2+31** · **Android téléphone : 0.8.8+26** · **Windows x64 : 0.8.8+26** · **GPL-3.0-or-later**
+**TV : 0.10.0+32** · **Android téléphone : 0.10.0+32** · **Windows x64 : 0.10.0+32** · **GPL-3.0-or-later**
 
-**Interface 0.10.0+32 : Windows et Android téléphone compilés en Release, installables préparés localement.** Windows propose des accès fixes aux sources, au profil et aux paramètres, ainsi que **Ctrl+F/Ctrl+K** pour la recherche. Le mobile dispose d'un accueil compact, d'un menu **Plus** organisé et d'un retour adapté à Android ; les grilles exploitent le grand écran du Fold. Les catégories sont recherchables, les filtres conservés pendant la session, les actions de lecture placées avant les synopsis et les réglages regroupés par usage. **26 scénarios ciblés réussis**, sans suite complète ni émulateur. L'APK TV 0.10.0 a été construite lors de l'étape précédente ; cette adaptation fournit le portable Windows et les APK téléphone ARM64/universelle. Les sources sont mises à jour sur GitHub ; **aucune nouvelle release publiée**, les téléchargements publics ci-dessous restent ceux des versions précédentes. [Interface Windows/mobile et installables locaux](docs/INTERFACE-WINDOWS-MOBILE-0.10.0.md) · [Interface TV et validation précédente](docs/INTERFACE-TV-0.10.0.md).
+**NOVA IPTV 0.10.0 : interface adaptée à Windows, Android mobile et TV.** Windows propose des accès fixes aux sources, au profil et aux paramètres, ainsi que **Ctrl+F/Ctrl+K** pour la recherche. Le mobile dispose d'un accueil compact, d'un menu **Plus** organisé et d'un retour adapté à Android ; les grilles exploitent le grand écran du Fold. Les catégories sont recherchables, les filtres conservés pendant la session, les actions de lecture placées avant les synopsis et les réglages regroupés par usage. La TV reçoit une navigation à la télécommande plus directe et des fiches compactes. La release fournit le **portable Windows**, les **APK téléphone ARM64 et universelle**, l'**APK TV universelle dédiée**, les sources et les empreintes SHA-256. [Télécharger la version 0.10.0](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.0) · [Notes de version](docs/RELEASE-0.10.0.md) · [Validation Windows/mobile](docs/INTERFACE-WINDOWS-MOBILE-0.10.0.md) · [Validation TV](docs/INTERFACE-TV-0.10.0.md).
 
 **NOVA IPTV TV 0.9.2** améliore le lecteur Android TV/Fire OS, la réactivité des catalogues et la navigation à la télécommande. Les sous-titres sont désactivés au démarrage de chaque vidéo, chaîne ou épisode ; ils restent activables manuellement. Les profils, sources, favoris, reprises et préférences sont conservés lors d'une mise à jour installée par-dessus l'ancienne version. [Télécharger l'APK TV](https://github.com/Kyrluh/NOVA/releases/download/v0.9.2/NOVA-IPTV-TV-0.9.2-universal.apk) · [Notes de version et validation](docs/TV-VALIDATION-0.9.2.md).
 
@@ -71,16 +71,16 @@ La version **0.7.1** ajoute **Récemment ajoutés** sous **Reprendre** à l'accu
 
 ## Installer et mettre à jour
 
-Les installables sont disponibles dans les releases [**TV 0.9.2**](https://github.com/Kyrluh/NOVA/releases/tag/v0.9.2), [**Android téléphone 0.8.8**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.8) et [**Windows 0.8.8**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.8). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
+Les installables Windows, téléphone et TV sont disponibles dans la [**release 0.10.0**](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.0). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
 
 | Plateforme | Téléchargement |
 | --- | --- |
-| Windows x64 portable | [ZIP Windows](https://github.com/Kyrluh/NOVA/releases/download/v0.8.8/NOVA-IPTV-0.8.8-windows-x64.zip) |
-| Android TV / Google TV / Fire OS compatible | [APK TV universelle dédiée](https://github.com/Kyrluh/NOVA/releases/download/v0.9.2/NOVA-IPTV-TV-0.9.2-universal.apk) |
-| Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.8.8/NOVA-IPTV-0.8.8-arm64-v8a.apk) |
-| Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.8.8/NOVA-IPTV-0.8.8-universal.apk) |
+| Windows x64 portable | [ZIP Windows](https://github.com/Kyrluh/NOVA/releases/download/v0.10.0/NOVA-IPTV-0.10.0-windows-x64.zip) |
+| Android TV / Google TV / Fire OS compatible | [APK TV universelle dédiée](https://github.com/Kyrluh/NOVA/releases/download/v0.10.0/NOVA-IPTV-TV-0.10.0-universal.apk) |
+| Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.10.0/NOVA-IPTV-0.10.0-arm64-v8a.apk) |
+| Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.10.0/NOVA-IPTV-0.10.0-universal.apk) |
 
-Les empreintes SHA-256 sont disponibles pour [TV 0.9.2](https://github.com/Kyrluh/NOVA/releases/download/v0.9.2/SHA256SUMS.txt), [Windows 0.8.8](https://github.com/Kyrluh/NOVA/releases/download/v0.8.8/SHA256SUMS.txt) et [Android téléphone 0.8.8](https://github.com/Kyrluh/NOVA/releases/download/v0.8.8/SHA256SUMS.txt). Les compilations locales produisent leurs installables dans `dist/`, `dist/android/` ou `dist/android-tv/`.
+Les [empreintes SHA-256 de la version 0.10.0](https://github.com/Kyrluh/NOVA/releases/download/v0.10.0/SHA256SUMS.txt) couvrent les archives et APK de cette release. Les compilations locales produisent leurs installables dans `dist/`, `dist/android/` ou `dist/android-tv/`.
 
 ### Windows
 
@@ -108,7 +108,7 @@ Voir [le guide TV](docs/ANDROID-TV.md) pour les commandes de télécommande et l
 
 ## Ajouter une source
 
-1. Ouvrir **Paramètres → Gérer les sources → Ajouter une source**. Sur Android compact : **Plus → Paramètres**.
+1. Ouvrir **Mes sources IPTV** dans l'en-tête Windows, **Plus → Mes sources IPTV** sur Android compact, ou **Sources** dans l'en-tête TV. Les paramètres proposent aussi **Sources et guide TV → Gérer les sources**.
 2. Choisir **Playlist M3U · URL**, **Playlist M3U · Fichier local** ou **Xtream Codes**.
 3. Donner un nom à la source et renseigner son adresse. Pour Xtream, ajouter les identifiants du fournisseur.
 4. Ajouter une URL XMLTV dans la partie guide TV si nécessaire.
@@ -138,7 +138,7 @@ Le guide **XMLTV** et les sélections **internet des plateformes/tendances** gar
 
 ## Lecteur et commandes
 
-Windows et Android téléphone utilisent **libmpv**, intégré via `media_kit` et `media_kit_video`. La version TV **0.9.2** utilise **Media3 ExoPlayer** avec un rendu natif ; cette release ne fournit aucun nouveau binaire Windows ou téléphone. La compatibilité dépend du codec, du flux, du matériel et des décodeurs disponibles. [Lecteur TV et commandes](docs/ANDROID-TV.md).
+Windows et Android téléphone utilisent **libmpv**, intégré via `media_kit` et `media_kit_video`. La version TV utilise **Media3 ExoPlayer** avec un rendu natif depuis la version 0.9.2. La compatibilité dépend du codec, du flux, du matériel et des décodeurs disponibles. [Lecteur TV et commandes](docs/ANDROID-TV.md).
 
 - **Lecture/pause** au centre de l'image lorsque l'ATH est affiché, et dans la barre inférieure.
 - **Vitesse VOD de 0,25× à 3×**, également réglable par défaut dans les paramètres.

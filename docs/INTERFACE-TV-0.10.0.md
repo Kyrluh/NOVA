@@ -1,6 +1,6 @@
 # Interface NOVA IPTV TV 0.10.0
 
-APK locale **0.10.0+32 compilée en Release**, non publiée et non installée sur la TV. Fichier : `dist/android-tv/NOVA-IPTV-TV-0.10.0-universal.apk`. Les sources de cette interface sont regroupées avec les adaptations Windows/mobile dans le commit 0.10.0 ; aucune nouvelle release n'est publiée. Les téléchargements publics restent en TV 0.9.2 et Windows/téléphone 0.8.8.
+APK **0.10.0+32 compilée en Release**, distribuée dans la [release 0.10.0](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.0). Fichier : `dist/android-tv/NOVA-IPTV-TV-0.10.0-universal.apk`. Cette APK a été construite lors de l'étape TV précédente ; la publication n'ajoute pas de compilation ou de test sur TV physique. Aucune installation ADB n'est effectuée.
 
 ## Accès plus directs
 

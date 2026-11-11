@@ -1,6 +1,6 @@
 # Interface Windows et Android mobile 0.10.0
 
-Adaptation **0.10.0+32** de l'interface Windows et Android téléphone/tablette. Les compilations Release Windows et Android mobile ont réussi. Les installables sont préparés localement ; les sources sont poussées sur `origin/main` selon la consigne du propriétaire. **Aucune nouvelle release n'est publiée et aucune installation ADB n'est effectuée.**
+Adaptation **0.10.0+32** de l'interface Windows et Android téléphone/tablette. Les compilations Release Windows et Android mobile ont réussi. Les installables sont distribués dans la [release 0.10.0](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.0) ; les sources sont poussées sur `origin/main`. Aucune installation ADB n'est effectuée.
 
 L'APK TV `dist/android-tv/NOVA-IPTV-TV-0.10.0-universal.apk` a déjà été construite localement lors de l'étape TV précédente. Cette adaptation concerne Windows et Android mobile ; elle n'annonce pas de nouveau binaire TV. Voir la [note TV 0.10.0](INTERFACE-TV-0.10.0.md) pour son périmètre et ses contrôles.
 
@@ -81,4 +81,4 @@ Les archives sont locales, hors Git :
 | Android téléphone ARM64 | `dist/android/NOVA-IPTV-0.10.0-arm64-v8a.apk` |
 | Android téléphone universelle | `dist/android/NOVA-IPTV-0.10.0-universal.apk` |
 
-Les APK mobiles doivent conserver le package `app.nova.iptv` et la signature de production existante. Les installables, clés de signature et données personnelles restent hors Git. Les téléchargements publics restent ceux des dernières releases publiées tant qu'une nouvelle publication n'a pas été demandée.
+Les APK mobiles conservent le package `app.nova.iptv` et la signature de production existante. Les installables, clés de signature et données personnelles restent hors Git. Les APK et archives sont disponibles séparément dans la release GitHub 0.10.0.
