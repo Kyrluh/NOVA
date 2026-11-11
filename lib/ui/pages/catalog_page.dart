@@ -30,14 +30,106 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
   static const _recent = '\u0000recent';
   String? _category = _recent;
   String _sort = 'recent';
+  Object? _storageScope;
+
+  Object _scopeFor(MediaCatalogPage page) =>
+      ('media-catalog-filters', page.controller.activeProfileId, page.kind);
+
+  void _saveFilters() {
+    if (_storageScope == null) return;
+    PageStorage.maybeOf(context)?.writeState(context, {
+      'query': _search.text,
+      'category': _category,
+      'sort': _sort,
+    }, identifier: _storageScope);
+  }
+
+  void _restoreFilters() {
+    _storageScope = _scopeFor(widget);
+    final saved = PageStorage.maybeOf(context)
+        ?.readState(context, identifier: _storageScope);
+    _search.text = saved is Map && saved['query'] is String
+        ? saved['query'] as String
+        : '';
+    _category =
+        saved is Map &&
+            saved.containsKey('category') &&
+            (saved['category'] == null || saved['category'] is String)
+        ? saved['category'] as String?
+        : _recent;
+    _sort =
+        saved is Map &&
+            const {
+              'recent',
+              'catalogue',
+              'title',
+              'year',
+            }.contains(saved['sort'])
+        ? saved['sort'] as String
+        : 'recent';
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_storageScope == null) _restoreFilters();
+  }
+
+  Future<void> _chooseCategory(List<String> categories) async {
+    final android = NovaAdaptiveScope.isAndroid(context);
+    final picker = _CatalogCategoryPicker(
+      categories: categories,
+      selected: _category,
+      autofocusSearch: !android,
+    );
+    final result = android
+        ? await showModalBottomSheet<({String? value})>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            showDragHandle: true,
+            builder: (context) => Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: FractionallySizedBox(heightFactor: .85, child: picker),
+            ),
+          )
+        : await showDialog<({String? value})>(
+            context: context,
+            builder: (context) => Dialog(
+              clipBehavior: Clip.antiAlias,
+              child: SizedBox(
+                width: 520,
+                height: (MediaQuery.sizeOf(context).height * .8).clamp(
+                  200,
+                  620,
+                ),
+                child: picker,
+              ),
+            ),
+          );
+    if (!mounted || result == null) return;
+    setState(() => _category = result.value);
+    _saveFilters();
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _search.clear();
+      _category = _recent;
+      _sort = 'recent';
+    });
+    _saveFilters();
+    FocusScope.of(context).unfocus();
+  }
 
   @override
   void didUpdateWidget(covariant MediaCatalogPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.kind != widget.kind) {
-      _category = _recent;
-      _sort = 'recent';
-      _search.clear();
+    if (_storageScope != _scopeFor(widget)) {
+      _saveFilters();
+      _restoreFilters();
     }
   }
 
@@ -67,6 +159,9 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
           categories.sort();
         }
         categories.insert(0, _recent);
+        if (_category != null && !categories.contains(_category)) {
+          _category = _recent;
+        }
         final query = _normalize(_search.text.trim());
         var items = catalog.where((item) {
           return (_category == null ||
@@ -108,7 +203,10 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                 builder: (context, constraints) {
                   final search = TextField(
                     controller: _search,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) {
+                      setState(() {});
+                      _saveFilters();
+                    },
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       hintText: 'Rechercher dans les ${title.toLowerCase()}',
@@ -116,7 +214,10 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                           ? null
                           : IconButton(
                               tooltip: 'Effacer la recherche',
-                              onPressed: () => setState(_search.clear),
+                              onPressed: () {
+                                setState(_search.clear);
+                                _saveFilters();
+                              },
                               icon: const Icon(Icons.close_rounded, size: 18),
                             ),
                     ),
@@ -169,7 +270,10 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                     onChanged: _category == _recent
                         ? null
                         : (value) {
-                            if (value != null) setState(() => _sort = value);
+                            if (value != null) {
+                              setState(() => _sort = value);
+                              _saveFilters();
+                            }
                           },
                   );
                   if (constraints.maxWidth <
@@ -191,62 +295,181 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
                 },
               ),
               SizedBox(height: NovaAdaptiveScope.isAndroid(context) ? 10 : 22),
-              if (NovaAdaptiveScope.isAndroid(context))
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: categories.length + 1,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const ValueKey('catalog-category-picker'),
+                  onPressed: () => _chooseCategory(categories),
+                  icon: const Icon(Icons.filter_list_rounded, size: 19),
+                  label: Text(
+                    'Catégories · ${_catalogCategoryLabel(_category)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              SizedBox(
+                key: const ValueKey('catalog-category-strip'),
+                height: NovaAdaptiveScope.isAndroid(context) ? 44 : 48,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categories.length + 1,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final category = index == 0
+                        ? _recent
+                        : index == 1
+                        ? null
+                        : categories[index - 1];
+                    return ChoiceChip(
+                      label: Text(
+                        category == _recent
+                            ? 'Récemment ajoutés'
+                            : category ?? 'Tout explorer',
+                      ),
+                      selected: _category == category,
+                      onSelected: (_) {
+                        setState(() => _category = category);
+                        _saveFilters();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          emptyTitle: query.isNotEmpty
+              ? 'Aucun résultat pour « ${_search.text.trim()} »'
+              : _category != null && _category != _recent
+              ? 'Aucun contenu dans cette catégorie'
+              : 'Votre catalogue est vide',
+          emptyMessage: query.isNotEmpty
+              ? 'Essayez un autre titre ou effacez la recherche.'
+              : _category != null && _category != _recent
+              ? 'Choisissez une autre catégorie ou réinitialisez les filtres.'
+              : 'Les contenus disponibles dans vos sources et vos langues sélectionnées apparaîtront ici.',
+          emptyAction:
+              query.isNotEmpty || (_category != null && _category != _recent)
+              ? OutlinedButton.icon(
+                  key: const ValueKey('catalog-reset-filters'),
+                  onPressed: _resetFilters,
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: Text(
+                    _category != null && _category != _recent
+                        ? 'Réinitialiser les filtres'
+                        : 'Effacer la recherche',
+                  ),
+                )
+              : null,
+        );
+      },
+    );
+  }
+}
+
+String _catalogCategoryLabel(String? category) =>
+    category == _MediaCatalogPageState._recent
+    ? 'Récemment ajoutés'
+    : category ?? 'Tout explorer';
+
+class _CatalogCategoryPicker extends StatefulWidget {
+  const _CatalogCategoryPicker({
+    required this.categories,
+    required this.selected,
+    required this.autofocusSearch,
+  });
+  final List<String> categories;
+  final String? selected;
+  final bool autofocusSearch;
+  @override
+  State<_CatalogCategoryPicker> createState() => _CatalogCategoryPickerState();
+}
+
+class _CatalogCategoryPickerState extends State<_CatalogCategoryPicker> {
+  final _query = TextEditingController();
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _normalize(_query.text.trim());
+    final values =
+        <String?>[
+              _MediaCatalogPageState._recent,
+              null,
+              ...widget.categories.where(
+                (category) => category != _MediaCatalogPageState._recent,
+              ),
+            ]
+            .where(
+              (category) =>
+                  query.isEmpty ||
+                  _normalize(_catalogCategoryLabel(category)).contains(query),
+            )
+            .toList();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Choisir une catégorie',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Fermer les catégories',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('catalog-category-search'),
+            controller: _query,
+            autofocus: widget.autofocusSearch,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'Rechercher une catégorie',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Effacer le filtre des catégories',
+                      onPressed: () => setState(_query.clear),
+                      icon: const Icon(Icons.close),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: values.isEmpty
+                ? const Center(child: Text('Aucune catégorie correspondante.'))
+                : ListView.builder(
+                    itemCount: values.length,
                     itemBuilder: (context, index) {
-                      final category = index == 0
-                          ? _recent
-                          : index == 1
-                          ? null
-                          : categories[index - 1];
-                      return ChoiceChip(
-                        label: Text(
-                          category == _recent
-                              ? 'Récemment ajoutés'
-                              : category ?? 'Tout explorer',
-                        ),
-                        selected: _category == category,
-                        onSelected: (_) => setState(() => _category = category),
+                      final value = values[index];
+                      final selected = value == widget.selected;
+                      return ListTile(
+                        key: ValueKey(('catalog-category-option', value)),
+                        title: Text(_catalogCategoryLabel(value)),
+                        selected: selected,
+                        trailing: selected
+                            ? const Icon(Icons.check_rounded)
+                            : null,
+                        onTap: () => Navigator.pop(context, (value: value)),
                       );
                     },
                   ),
-                )
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('Récemment ajoutés'),
-                      selected: _category == _recent,
-                      onSelected: (_) => setState(() => _category = _recent),
-                    ),
-                    ChoiceChip(
-                      label: const Text('Tout explorer'),
-                      selected: _category == null,
-                      onSelected: (_) => setState(() => _category = null),
-                    ),
-                    for (final category in categories.where(
-                      (c) => c != _recent,
-                    ))
-                      ChoiceChip(
-                        label: Text(category),
-                        selected: _category == category,
-                        onSelected: (_) => setState(() => _category = category),
-                      ),
-                  ],
-                ),
-            ],
           ),
-          emptyTitle: 'Aucun résultat',
-          emptyMessage: 'Essayez un autre titre ou une autre catégorie.',
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -398,6 +621,7 @@ class CatalogGrid extends StatelessWidget {
     this.controls,
     this.emptyIcon = Icons.movie_filter_outlined,
     this.headerAction,
+    this.emptyAction,
   });
 
   final AppController controller;
@@ -410,6 +634,7 @@ class CatalogGrid extends StatelessWidget {
   final Widget? controls;
   final IconData emptyIcon;
   final Widget? headerAction;
+  final Widget? emptyAction;
 
   @override
   Widget build(BuildContext context) {
@@ -516,6 +741,10 @@ class CatalogGrid extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: novaMuted, height: 1.6),
                       ),
+                      if (emptyAction != null) ...[
+                        const SizedBox(height: 18),
+                        emptyAction!,
+                      ],
                     ],
                   ),
                 ),

@@ -147,6 +147,8 @@ class TvPageFrame extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 25,
                       fontWeight: FontWeight.w700,

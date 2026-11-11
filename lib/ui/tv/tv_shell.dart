@@ -38,7 +38,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
     'live': ('TV en direct', Icons.live_tv_rounded),
     'movies': ('Films', Icons.movie_outlined),
     'series': ('Séries', Icons.video_library_outlined),
-    'platforms': ('Plateformes', Icons.dashboard_outlined),
+    'platforms': ('Par plateforme', Icons.dashboard_outlined),
     'trends': ('Tendances', Icons.trending_up),
     'resume': ('Reprendre', Icons.history_rounded),
     'favorites': ('Favoris', Icons.favorite_border),
@@ -53,6 +53,11 @@ class _NovaTvShellState extends State<NovaTvShell> {
   };
   String _section = 'home';
   CatalogPlatform? _platform;
+  final _utilityTrail = <({String section, CatalogPlatform? platform})>[];
+  final _platformFocus = {
+    for (final platform in CatalogPlatform.values)
+      platform: FocusNode(debugLabel: 'TV platform ${platform.name}'),
+  };
   String? _requestedChannel;
   List<MediaItem>? _kindCatalogInput;
   final _kindCatalogs = <MediaKind, List<MediaItem>>{};
@@ -98,15 +103,48 @@ class _NovaTvShellState extends State<NovaTvShell> {
     for (final node in _navigation.values) {
       node.dispose();
     }
+    for (final node in _platformFocus.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
-  void _select(String section) => setState(() {
-    _section = section;
-    _platform = null;
-  });
+  void _select(String section) {
+    if (_section == section) {
+      if (_platform != null) setState(() => _platform = null);
+      return;
+    }
+    setState(() {
+      if (const {'search', 'sources', 'settings'}.contains(section)) {
+        _utilityTrail.add((section: _section, platform: _platform));
+      } else {
+        _utilityTrail.clear();
+      }
+      _section = section;
+      _platform = null;
+    });
+  }
+
   Future<void> _back() async {
     if (_section == 'live' && (_liveKey.currentState?.handleBack() ?? false)) {
+      return;
+    }
+    if (_utilityTrail.isNotEmpty &&
+        const {'search', 'sources', 'settings'}.contains(_section)) {
+      final previous = _utilityTrail.removeLast();
+      setState(() {
+        _section = previous.section;
+        _platform = previous.platform;
+      });
+      _navigation[_section]?.requestFocus();
+      return;
+    }
+    if (_section == 'platforms' && _platform != null) {
+      final previous = _platform!;
+      setState(() => _platform = null);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _platformFocus[previous]?.requestFocus();
+      });
       return;
     }
     if (_section != 'home') {
@@ -183,19 +221,36 @@ class _NovaTvShellState extends State<NovaTvShell> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(
-                      width: MediaQuery.sizeOf(context).width < 900 ? 155 : 185,
+                      width: MediaQuery.sizeOf(context).width < 900 ? 148 : 170,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Padding(
-                            padding: EdgeInsets.fromLTRB(8, 8, 4, 22),
-                            child: Text(
-                              'NOVA\nIPTV TV',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 2,
-                              ),
+                            padding: EdgeInsets.fromLTRB(8, 5, 4, 18),
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'NOVA',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'TV',
+                                  style: TextStyle(
+                                    color: novaMuted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           Expanded(
@@ -216,7 +271,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 9,
-                                      vertical: 11,
+                                      vertical: 7,
                                     ),
                                     child: Row(
                                       children: [
@@ -247,19 +302,55 @@ class _NovaTvShellState extends State<NovaTvShell> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 18),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: Text(
-                              _sections[_section]!.$1,
-                              style: const TextStyle(
-                                fontSize: 27,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _section == 'home'
+                                        ? 'Bonjour ${app.activeProfile.name}'
+                                        : _sections[_section]!.$1,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  key: const ValueKey('tv-header-search'),
+                                  tooltip: 'Recherche globale',
+                                  onPressed: () => _select('search'),
+                                  icon: const Icon(Icons.search),
+                                ),
+                                IconButton(
+                                  key: const ValueKey('tv-header-sources'),
+                                  tooltip: 'Mes sources',
+                                  onPressed: () => _select('sources'),
+                                  icon: const Icon(Icons.cloud_outlined),
+                                ),
+                                IconButton(
+                                  key: const ValueKey('tv-header-profile'),
+                                  tooltip: 'Changer de profil',
+                                  onPressed: app.showProfilePicker,
+                                  icon: const Icon(
+                                    Icons.account_circle_outlined,
+                                  ),
+                                ),
+                                IconButton(
+                                  key: const ValueKey('tv-header-settings'),
+                                  tooltip: 'Paramètres',
+                                  onPressed: () => _select('settings'),
+                                  icon: const Icon(Icons.settings_outlined),
+                                ),
+                              ],
                             ),
                           ),
                           if (app.sources != null)
@@ -288,6 +379,8 @@ class _NovaTvShellState extends State<NovaTvShell> {
       controller: app,
       onNavigate: _select,
       onDetails: _details,
+      television: true,
+      showHeader: false,
     ),
     'trends' => _home(),
     'live' => TvLive(
@@ -506,6 +599,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
         const SizedBox(height: 16),
         Expanded(
           child: GridView.count(
+            key: const PageStorageKey('tv-platform-grid'),
             crossAxisCount: 3,
             childAspectRatio: 1.4,
             mainAxisSpacing: 14,
@@ -513,6 +607,9 @@ class _NovaTvShellState extends State<NovaTvShell> {
             children: [
               for (final platform in CatalogPlatform.values)
                 TvTile(
+                  key: ValueKey('tv-platform-${platform.name}'),
+                  label: platform.label,
+                  focusNode: _platformFocus[platform],
                   onPressed: () => setState(() => _platform = platform),
                   child: Padding(
                     padding: const EdgeInsets.all(10),
@@ -542,38 +639,155 @@ class _NovaTvShellState extends State<NovaTvShell> {
     );
   }
 
-  Widget _settings() => ListView(
-    children: [
-      ProfileSettingsTile(controller: app),
-      CatalogColumnsSetting(controller: app),
-      const SizedBox(height: 16),
-      ListTile(
-        title: const Text('Mes sources'),
-        subtitle: const Text(
-          'Ajouter M3U / Xtream, actualiser et gérer le guide TV',
+  void _settingsPanel(String title, Widget Function() content) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TvPageFrame(
+          title: title,
+          child: ListenableBuilder(
+            listenable: app,
+            builder: (_, _) => content(),
+          ),
         ),
-        leading: const Icon(Icons.cloud),
-        onTap: () => _select('sources'),
       ),
-      ListTile(
-        title: const Text('Tri, langues et catégories'),
-        leading: const Icon(Icons.sort),
-        onTap: _organize,
+    );
+  }
+
+  Widget _settingCard(
+    String id,
+    String title,
+    String description,
+    IconData icon,
+    VoidCallback onPressed,
+  ) => TvTile(
+    key: ValueKey('tv-settings-$id'),
+    label: title,
+    onPressed: onPressed,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Flexible(
+                  child: Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: novaMuted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 20, color: novaMuted),
+        ],
       ),
+    ),
+  );
+
+  Widget _settings() => LayoutBuilder(
+    builder: (context, bounds) => GridView(
+      key: const PageStorageKey('tv-settings-hub'),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: bounds.maxWidth >= 560 ? 2 : 1,
+        mainAxisExtent: 132,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+      ),
+      children: [
+        _settingCard(
+          'profile',
+          'Profil et envies',
+          'Nom, genres préférés et choix du profil',
+          Icons.person_outline,
+          () => _settingsPanel(
+            'Profil et envies',
+            () => ListView(children: [ProfileSettingsTile(controller: app)]),
+          ),
+        ),
+        _settingCard(
+          'library',
+          'Bibliothèque et affichage',
+          'Affiches par ligne, tri, langues et catégories',
+          Icons.grid_view_rounded,
+          () => _settingsPanel(
+            'Bibliothèque et affichage',
+            () => ListView(
+              children: [
+                const Text(
+                  'Personnalisez votre catalogue. Vos choix sont enregistrés dans ce profil.',
+                  style: TextStyle(color: novaMuted),
+                ),
+                const SizedBox(height: 22),
+                CatalogColumnsSetting(controller: app),
+                const SizedBox(height: 22),
+                OutlinedButton.icon(
+                  onPressed: _organize,
+                  icon: const Icon(Icons.filter_list),
+                  label: const Text('Tri, langues et catégories'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _settingCard(
+          'playback',
+          'Lecture',
+          'Épisodes, vitesse et reconnexion',
+          Icons.play_circle_outline,
+          () => _settingsPanel('Lecture', _playbackSettings),
+        ),
+        _settingCard(
+          'sources',
+          'Sources et guide TV',
+          'Ajouter, actualiser ou modifier M3U / Xtream et XMLTV',
+          Icons.cloud_outlined,
+          () => _settingsPanel(
+            'Sources et guide TV',
+            () => app.sources == null
+                ? const Center(child: Text('Gestion des sources indisponible.'))
+                : SourcesPage(controller: app.sources!, television: true),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _playbackSettings() => ListView(
+    children: [
       SwitchListTile(
         title: const Text('Épisode suivant automatiquement'),
+        subtitle: const Text('Enchaîner la suite à la fin de l’épisode.'),
         value: app.settings.autoNext,
         onChanged: (value) =>
             app.updateSettings(app.settings.copyWith(autoNext: value)),
       ),
       SwitchListTile(
         title: const Text('Reconnexion automatique'),
+        subtitle: const Text('Réessayer si la lecture est interrompue.'),
         value: app.settings.reconnectEnabled,
         onChanged: (value) =>
             app.updateSettings(app.settings.copyWith(reconnectEnabled: value)),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
       DropdownButtonFormField<double>(
+        key: ValueKey('tv-default-rate-${app.settings.playbackRate}'),
         initialValue: app.settings.playbackRate,
         decoration: const InputDecoration(labelText: 'Vitesse VOD par défaut'),
         items: [
@@ -588,7 +802,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
       ),
       const SizedBox(height: 22),
       const Text(
-        'NOVA IPTV TV · application indépendante\nLes sources sont actualisées au démarrage. Le guide XMLTV se charge depuis Sources.',
+        'Les sous-titres sont désactivés au lancement. Vous pouvez les activer dans le lecteur.',
         style: TextStyle(color: novaMuted),
       ),
     ],

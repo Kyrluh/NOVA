@@ -1,7 +1,7 @@
 # Préférences du propriétaire
 
 - Répondre en français.
-- Travailler localement. Ne pousser aucun commit et ne publier aucune release sur GitHub sans une nouvelle demande explicite du propriétaire. Cette préférence remplace l'ancienne publication automatique.
+- À la fin d'une tâche demandée qui modifie le projet, créer un commit explicite et pousser automatiquement les changements liés à cette tâche vers `origin/main` (`https://github.com/Kyrluh/NOVA.git`). Le propriétaire a demandé ce comportement ; ne pas redemander la même autorisation à chaque tâche.
 - Préserver les modifications étrangères à la tâche et l'historique distant. Ne pas forcer les pushes.
 - Privilégier des tests courts et ciblés. Ne pas relancer systématiquement la suite complète ou un émulateur pour une petite correction.
 - Ne jamais commiter les clés, identifiants, bases utilisateur, outils locaux ou installables. Les APK et ZIP à distribuer vont dans les releases GitHub, pas dans Git.

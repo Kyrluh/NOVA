@@ -4,6 +4,8 @@ Lecteur IPTV natif pour **Windows et Android**, développé avec Flutter. NOVA r
 
 **TV : 0.9.2+31** · **Android téléphone : 0.8.8+26** · **Windows x64 : 0.8.8+26** · **GPL-3.0-or-later**
 
+**Interface 0.10.0+32 : Windows et Android téléphone compilés en Release, installables préparés localement.** Windows propose des accès fixes aux sources, au profil et aux paramètres, ainsi que **Ctrl+F/Ctrl+K** pour la recherche. Le mobile dispose d'un accueil compact, d'un menu **Plus** organisé et d'un retour adapté à Android ; les grilles exploitent le grand écran du Fold. Les catégories sont recherchables, les filtres conservés pendant la session, les actions de lecture placées avant les synopsis et les réglages regroupés par usage. **26 scénarios ciblés réussis**, sans suite complète ni émulateur. L'APK TV 0.10.0 a été construite lors de l'étape précédente ; cette adaptation fournit le portable Windows et les APK téléphone ARM64/universelle. Les sources sont mises à jour sur GitHub ; **aucune nouvelle release publiée**, les téléchargements publics ci-dessous restent ceux des versions précédentes. [Interface Windows/mobile et installables locaux](docs/INTERFACE-WINDOWS-MOBILE-0.10.0.md) · [Interface TV et validation précédente](docs/INTERFACE-TV-0.10.0.md).
+
 **NOVA IPTV TV 0.9.2** améliore le lecteur Android TV/Fire OS, la réactivité des catalogues et la navigation à la télécommande. Les sous-titres sont désactivés au démarrage de chaque vidéo, chaîne ou épisode ; ils restent activables manuellement. Les profils, sources, favoris, reprises et préférences sont conservés lors d'une mise à jour installée par-dessus l'ancienne version. [Télécharger l'APK TV](https://github.com/Kyrluh/NOVA/releases/download/v0.9.2/NOVA-IPTV-TV-0.9.2-universal.apk) · [Notes de version et validation](docs/TV-VALIDATION-0.9.2.md).
 
 Le lecteur TV utilise **Media3 ExoPlayer avec une SurfaceView native**. Les informations du flux affichent moteur, codecs, décodeurs et réception de la première image. La reconnaissance HLS/DASH peut récupérer certains flux dont l'URL n'indique pas le format, avec une seule tentative adaptée après une erreur de conteneur.
@@ -25,7 +27,7 @@ Le correctif **Android 0.6.6** améliore la saisie des sources à la télécomma
 
 NOVA lit les sources personnelles configurées par l'utilisateur. Aucun abonnement, compte IPTV, chaîne commerciale ou playlist n'est fourni. Il n'y a ni publicité, ni compte NOVA, ni télémétrie applicative.
 
-![Accueil Windows — catalogue fictif de démonstration](docs/preview.png)
+![Accueil Windows 0.10.0 — catalogue fictif de démonstration](docs/preview.png)
 
 ## Fonctionnalités
 

@@ -19,6 +19,55 @@ import 'package:nova_iptv/ui/pages/details_dialog.dart';
 
 void main() {
   testWidgets(
+    'TV header utilities and grouped settings return to the current catalogue',
+    (tester) async {
+      await _start(tester);
+      for (final id in ['search', 'sources', 'profile', 'settings']) {
+        final button = find.byKey(ValueKey('tv-header-$id'));
+        expect(button.hitTestable(), findsOneWidget);
+        expect(tester.getRect(button).bottom, lessThan(540));
+      }
+      await tester.tap(find.byKey(const ValueKey('tv-nav-movies')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('tv-header-settings')));
+      await tester.pumpAndSettle();
+      expect(find.text('Profil et envies'), findsOneWidget);
+      expect(find.text('Bibliothèque et affichage'), findsOneWidget);
+      expect(find.text('Sources et guide TV'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('tv-settings-library')));
+      await tester.pumpAndSettle();
+      expect(find.text('Affiches par ligne · Films et Séries'), findsOneWidget);
+      expect(find.text('Tri, langues et catégories'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tv-settings-library')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(TvCatalog), findsOneWidget);
+      expect(find.byKey(const ValueKey('tv-nav-movies')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'TV Back returns from a platform catalogue to its selected platform tile',
+    (tester) async {
+      await _start(tester);
+      await tester.tap(find.byKey(const ValueKey('tv-nav-platforms')));
+      await tester.pumpAndSettle();
+      final netflix = find.byKey(const ValueKey('tv-platform-netflix'));
+      await tester.tap(netflix);
+      await tester.pumpAndSettle();
+      expect(find.text('Toutes les plateformes'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(netflix, findsOneWidget);
+      expect(find.text('Toutes les plateformes'), findsNothing);
+      expect(tester.widget<TvTile>(netflix).focusNode!.hasFocus, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
     'TV catalog input survives playback progress and invalidates for changed sorting',
     (tester) async {
       final app = await _start(tester);

@@ -357,13 +357,32 @@ void main() {
       await tester.pumpAndSettle();
       await _more(tester, 'Paramètres');
       expect(find.byType(SettingsPage), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('settings-category-playback')),
+      );
+      await tester.pumpAndSettle();
       final gestures = find.widgetWithText(SwitchListTile, 'Gestes tactiles');
-      await tester.ensureVisible(gestures);
+      await tester.scrollUntilVisible(
+        gestures,
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(SettingsPage).last,
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(gestures);
       await tester.pumpAndSettle();
       expect(app.settings.touchGestures, isFalse);
       expect(tester.takeException(), isNull);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('settings-category-hub')),
+        findsOneWidget,
+      );
       await _more(tester, 'Historique');
       expect(find.byType(HistoryPage), findsOneWidget);
       expect(
@@ -467,7 +486,7 @@ void main() {
             .first,
       );
       expect(tester.takeException(), isNull);
-      await _more(tester, 'Par PlateForme');
+      await _more(tester, 'Par plateforme');
       final netflix = find.byKey(const ValueKey('platform-tile-netflix'));
       await tester.scrollUntilVisible(
         netflix,
@@ -497,7 +516,15 @@ Future<void> _bottom(WidgetTester tester, String label) async {
 Future<void> _more(WidgetTester tester, String label) async {
   await _bottom(tester, 'Plus');
   final target = find.widgetWithText(ListTile, label).first;
-  await tester.ensureVisible(target);
+  final scrollable = find
+      .descendant(
+        of: find.byKey(const PageStorageKey('mobile-more')),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+  tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+  await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(target, 200, scrollable: scrollable);
   await tester.pumpAndSettle();
   await tester.tap(target);
   await tester.pumpAndSettle();

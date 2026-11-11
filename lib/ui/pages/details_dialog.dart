@@ -49,6 +49,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
   final _resumeKey = GlobalKey(debugLabel: 'current-resume-episode');
   String? _lastResumeId;
   bool _revealRequested = false;
+  bool _expandedSynopsis = false;
 
   EpisodeResumeTarget? _syncResume() {
     final target = episodeResumeTarget(_item, widget.controller.progress);
@@ -80,6 +81,13 @@ class _DetailsDialogState extends State<_DetailsDialog> {
     super.initState();
     _item = widget.controller.preferredVariant(widget.item);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _request++;
+    widget.controller.cancelDetails(_item);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -122,6 +130,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
       final item = _item;
       final resume = _syncResume();
       final tablet = novaTablet(context);
+      final android = NovaAdaptiveScope.isAndroid(context);
+      final compact = android && MediaQuery.sizeOf(context).width < 600;
       final metadata = [
         if (item.year > 0) '${item.year}',
         item.category,
@@ -132,19 +142,25 @@ class _DetailsDialogState extends State<_DetailsDialog> {
         insetPadding: EdgeInsets.symmetric(
           horizontal: tablet
               ? 12
-              : MediaQuery.sizeOf(context).width < 600
-              ? 12
+              : compact
+              ? 8
               : 40,
-          vertical: 24,
+          vertical: compact ? 12 : 24,
         ),
         clipBehavior: Clip.antiAlias,
         child: SizedBox(
           width: tablet
               ? (MediaQuery.sizeOf(context).width - 24).clamp(0, 1000)
-              : 850,
+              : compact
+              ? MediaQuery.sizeOf(context).width - 16
+              : (MediaQuery.sizeOf(context).width - 80).clamp(0, 1100),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height - 70,
+              maxHeight:
+                  (MediaQuery.sizeOf(context).height -
+                          MediaQuery.viewInsetsOf(context).bottom -
+                          (compact ? 32 : 70))
+                      .clamp(0, double.infinity),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -153,8 +169,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                   SizedBox(
                     height: tablet
                         ? 168
-                        : MediaQuery.sizeOf(context).width < 600
-                        ? 205
+                        : compact
+                        ? 160
                         : 235,
                     child: Stack(
                       fit: StackFit.expand,
@@ -212,6 +228,10 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                           child: IconButton.filledTonal(
                             tooltip: 'Fermer',
                             onPressed: () => Navigator.pop(context),
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
                             icon: const Icon(Icons.close_rounded),
                           ),
                         ),
@@ -238,9 +258,17 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                   if (_loading) const LinearProgressIndicator(minHeight: 2),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      tablet ? 18 : 28,
+                      compact
+                          ? 16
+                          : tablet
+                          ? 18
+                          : 28,
                       10,
-                      tablet ? 18 : 28,
+                      compact
+                          ? 16
+                          : tablet
+                          ? 18
+                          : 28,
                       20,
                     ),
                     child: Column(
@@ -250,12 +278,14 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                           controller: app,
                           item: item,
                           onChanged: (version) {
+                            widget.controller.cancelDetails(_item);
                             setState(() {
                               _item = version;
                               _season = 0;
                               _lastResumeId = null;
                               _error = null;
                               _loading = false;
+                              _expandedSynopsis = false;
                             });
                             _load();
                           },
@@ -264,23 +294,18 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                           metadata,
                           style: const TextStyle(color: novaMuted),
                         ),
-                        const SizedBox(height: 18),
-                        Text(
-                          item.description.isEmpty
-                              ? 'Aucun synopsis fourni par cette source.'
-                              : item.description,
-                          style: TextStyle(
-                            fontSize: tablet ? 13 : 15,
-                            height: tablet ? 1.45 : 1.7,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
                         Wrap(
                           spacing: 12,
                           runSpacing: 10,
                           children: [
-                            if (item.mediaUrl?.isNotEmpty == true)
+                            if (item.kind != MediaKind.series &&
+                                item.mediaUrl?.isNotEmpty == true)
                               FilledButton.icon(
+                                key: const ValueKey('details-primary'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 48),
+                                ),
                                 onPressed: () =>
                                     _play(item.mediaUrl!, item.title, item.id),
                                 icon: const Icon(Icons.play_arrow_rounded),
@@ -295,6 +320,9 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                                 ),
                               ),
                             OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 48),
+                              ),
                               onPressed: () => app.toggleFavorite(item.id),
                               icon: Icon(
                                 app.favorites.contains(item.id)
@@ -315,6 +343,12 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                               ),
                           ],
                         ),
+                        if (item.seasons.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          _seasonActions(item, resume),
+                        ],
+                        const SizedBox(height: 16),
+                        _synopsis(tablet),
                         if (_error != null) ...[
                           const SizedBox(height: 16),
                           NovaNotice(icon: Icons.info_outline, text: _error!),
@@ -339,27 +373,6 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                           ),
                         if (item.seasons.isNotEmpty) ...[
                           const SizedBox(height: 24),
-                          DropdownButton<int>(
-                            value: _season.clamp(0, item.seasons.length - 1),
-                            items: [
-                              for (var i = 0; i < item.seasons.length; i++)
-                                DropdownMenuItem(
-                                  value: i,
-                                  child: Text(
-                                    'Saison ${item.seasons[i].number}',
-                                  ),
-                                ),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() {
-                                  _season = value;
-                                  _revealRequested =
-                                      resume?.seasonIndex == value;
-                                });
-                              }
-                            },
-                          ),
                           for (final entry
                               in item.seasons[_season].episodes.indexed)
                             _episode(
@@ -378,6 +391,113 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             ),
           ),
         ),
+      );
+    },
+  );
+
+  Widget _seasonActions(MediaItem item, EpisodeResumeTarget? resume) {
+    final episodes =
+        item.seasons[_season.clamp(0, item.seasons.length - 1)].episodes;
+    final firstPlayable = episodes
+        .where((episode) => episode.mediaUrl?.isNotEmpty == true)
+        .firstOrNull;
+    return Wrap(
+      key: const ValueKey('details-season-actions'),
+      spacing: 14,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        DropdownButton<int>(
+          value: _season.clamp(0, item.seasons.length - 1),
+          itemHeight: 48,
+          items: [
+            for (var i = 0; i < item.seasons.length; i++)
+              DropdownMenuItem(
+                value: i,
+                child: Text('Saison ${item.seasons[i].number}'),
+              ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _season = value;
+                _revealRequested = resume?.seasonIndex == value;
+              });
+            }
+          },
+        ),
+        if (resume?.episode.mediaUrl?.isNotEmpty == true)
+          FilledButton.icon(
+            key: const ValueKey('details-primary'),
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+            onPressed: () => _play(
+              resume!.episode.mediaUrl!,
+              '${item.title} · ${resume.episode.title}',
+              resume.episode.id,
+            ),
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('Reprendre l’épisode'),
+          )
+        else if (firstPlayable != null)
+          FilledButton.icon(
+            key: const ValueKey('details-primary'),
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+            onPressed: () => _play(
+              firstPlayable.mediaUrl!,
+              '${item.title} · ${firstPlayable.title}',
+              firstPlayable.id,
+            ),
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('Lire l’épisode'),
+          ),
+        if (resume != null)
+          Text(
+            'S${item.seasons[resume.seasonIndex].number.toString().padLeft(2, '0')} · E${resume.episode.number.toString().padLeft(2, '0')}',
+            style: const TextStyle(color: novaMuted),
+          ),
+      ],
+    );
+  }
+
+  Widget _synopsis(bool tablet) => LayoutBuilder(
+    builder: (context, bounds) {
+      final description = _item.description.isEmpty
+          ? 'Aucun synopsis fourni par cette source.'
+          : _item.description;
+      final style = TextStyle(
+        fontSize: tablet ? 13 : 15,
+        height: tablet ? 1.45 : 1.7,
+      );
+      final painter = TextPainter(
+        text: TextSpan(text: description, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 3,
+      )..layout(maxWidth: bounds.maxWidth);
+      final canExpand = painter.didExceedMaxLines;
+      painter.dispose();
+      return Column(
+        key: const ValueKey('details-synopsis'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            description,
+            style: style,
+            maxLines: _expandedSynopsis ? null : 3,
+            overflow: _expandedSynopsis
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
+          ),
+          if (canExpand)
+            TextButton.icon(
+              onPressed: () =>
+                  setState(() => _expandedSynopsis = !_expandedSynopsis),
+              icon: Icon(
+                _expandedSynopsis ? Icons.expand_less : Icons.expand_more,
+              ),
+              label: Text(_expandedSynopsis ? 'Voir moins' : 'Lire la suite'),
+            ),
+        ],
       );
     },
   );
@@ -417,7 +537,11 @@ class _DetailsDialogState extends State<_DetailsDialog> {
               ),
               child: Text('${episode.number}'.padLeft(2, '0')),
             ),
-            title: Text(episode.title),
+            title: Text(
+              episode.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             subtitle: Text(
               [
                 if (episode.durationMinutes > 0)

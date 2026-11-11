@@ -44,6 +44,45 @@ class _TvCatalogState extends State<TvCatalog> {
   String? _resultsQuery;
   String? _resultsCategory;
   bool _resultsDirty = true;
+  Object? _storageScope;
+  Object _scopeFor(TvCatalog catalog) => (
+    catalog.controller.activeProfileId,
+    catalog.key ??
+        (
+          catalog.search,
+          catalog.recentCategory,
+          catalog.items.firstOrNull?.kind,
+        ),
+  );
+
+  void _saveFilters() {
+    final scope = _storageScope;
+    if (scope == null) return;
+    PageStorage.maybeOf(context)?.writeState(
+      context,
+      {'query': _search.text, 'category': _category},
+      identifier: ('tv-catalog-filters', scope),
+    );
+  }
+
+  void _restoreFilters() {
+    _storageScope = _scopeFor(widget);
+    final saved = PageStorage.maybeOf(context)
+        ?.readState(context, identifier: ('tv-catalog-filters', _storageScope));
+    _search.text = saved is Map && saved['query'] is String
+        ? saved['query'] as String
+        : '';
+    _category =
+        saved is Map &&
+            saved.containsKey('category') &&
+            (saved['category'] == null || saved['category'] is String)
+        ? saved['category'] as String?
+        : widget.recentCategory
+        ? _recent
+        : null;
+    _resultsDirty = true;
+  }
+
   void _ensureIndex() {
     final visible = widget.controller.items;
     if (identical(_indexInput, widget.items) &&
@@ -84,10 +123,103 @@ class _TvCatalogState extends State<TvCatalog> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_storageScope == null) _restoreFilters();
+  }
+
+  @override
+  void didUpdateWidget(covariant TvCatalog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_storageScope != _scopeFor(widget)) {
+      _saveFilters();
+      _restoreFilters();
+    }
+  }
+
+  @override
   void dispose() {
     _search.dispose();
     _gridFocus.dispose();
     super.dispose();
+  }
+
+  void _clearFilters({bool category = false}) {
+    setState(() {
+      _search.clear();
+      if (category) _category = widget.recentCategory ? _recent : null;
+    });
+    _saveFilters();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _gridFocus.context != null) _gridFocus.requestFocus();
+    });
+  }
+
+  Widget _emptyResults() {
+    final text = _search.text.trim();
+    final searching = text.isNotEmpty;
+    final filtering = _category != null && _category != _recent;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              searching
+                  ? Icons.search_off_rounded
+                  : Icons.video_library_outlined,
+              size: 38,
+              color: novaMuted,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              searching
+                  ? 'Aucun résultat pour « $text »'
+                  : filtering
+                  ? 'Aucun contenu dans cette catégorie'
+                  : 'Aucun contenu dans cette rubrique',
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              searching
+                  ? filtering
+                        ? 'Essayez un autre titre ou élargissez la catégorie.'
+                        : 'Vérifiez le titre ou essayez un autre mot.'
+                  : 'Vos sources ou vos filtres de bibliothèque ne proposent pas de contenu ici.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: novaMuted),
+            ),
+            if (searching || filtering) ...[
+              const SizedBox(height: 18),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  if (searching)
+                    FilledButton.icon(
+                      onPressed: _clearFilters,
+                      icon: const Icon(Icons.close_rounded),
+                      label: const Text('Effacer la recherche'),
+                    ),
+                  if (filtering)
+                    OutlinedButton.icon(
+                      onPressed: () => _clearFilters(category: true),
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: const Text('Réinitialiser les filtres'),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -137,7 +269,10 @@ class _TvCatalogState extends State<TvCatalog> {
                 key: const ValueKey('tv-catalog-search'),
                 controller: _search,
                 autofocus: widget.search,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) {
+                  _saveFilters();
+                  setState(() {});
+                },
                 onSubmitted: (_) {
                   if (items.isNotEmpty) _gridFocus.requestFocus();
                 },
@@ -173,7 +308,10 @@ class _TvCatalogState extends State<TvCatalog> {
                       child: Text(group, overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: (value) => setState(() => _category = value),
+                onChanged: (value) {
+                  setState(() => _category = value);
+                  _saveFilters();
+                },
               ),
             ),
           ],
@@ -186,11 +324,7 @@ class _TvCatalogState extends State<TvCatalog> {
         const SizedBox(height: 10),
         Expanded(
           child: items.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Aucun contenu disponible. Ajoutez une source ou changez vos filtres.',
-                  ),
-                )
+              ? _emptyResults()
               : LayoutBuilder(
                   builder: (context, bounds) {
                     final columns = effectiveCatalogColumns(
@@ -202,7 +336,12 @@ class _TvCatalogState extends State<TvCatalog> {
                     final tileWidth =
                         (bounds.maxWidth - (columns - 1) * 14) / columns;
                     return GridView.builder(
-                      key: const PageStorageKey('tv-poster-grid'),
+                      key: PageStorageKey<Object>((
+                        'tv-poster-grid',
+                        _storageScope,
+                        _category,
+                        query,
+                      )),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
                         // Large manual cards must leave the next row built and

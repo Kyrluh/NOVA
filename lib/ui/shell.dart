@@ -45,7 +45,7 @@ const _labels = [
   'TV en direct',
   'Films',
   'Séries',
-  'Par PlateForme',
+  'Par plateforme',
   'Tendances',
   'Favoris',
   'Continuer à regarder',
@@ -101,6 +101,8 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
   bool _closing = false;
   String _query = '';
   final _search = TextEditingController();
+  final _searchFocus = FocusNode(debugLabel: 'NOVA global search');
+  final _navigationTrail = <({NovaSection section, bool more})>[];
   final _livePageKey = GlobalKey<LivePageState>(
     debugLabel: 'persistent-live-page',
   );
@@ -117,7 +119,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
   void initState() {
     super.initState();
     if (_android) _collapsed = true;
-    if (_windowShortcuts) {
+    if (!_android || _windowShortcuts) {
       HardwareKeyboard.instance.addHandler(_handleWindowKey);
     }
     if (widget.manageWindow && widget.handleWindowClose) {
@@ -139,23 +141,75 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
 
   @override
   void dispose() {
-    if (_windowShortcuts) {
+    if (!_android || _windowShortcuts) {
       HardwareKeyboard.instance.removeHandler(_handleWindowKey);
     }
     if (widget.manageWindow && widget.handleWindowClose) {
       windowManager.removeListener(this);
     }
     _search.dispose();
+    _searchFocus.dispose();
     unawaited(app.flush());
     super.dispose();
   }
 
-  void _navigate(NovaSection section) => setState(() {
-    _section = section;
-    _mobileMore = false;
-  });
+  void _navigate(NovaSection section) {
+    if (_section == section && !_mobileMore) return;
+    setState(() {
+      if (_mobileMore ||
+          const {
+            NovaSection.search,
+            NovaSection.settings,
+            NovaSection.organize,
+          }.contains(section)) {
+        _navigationTrail.add((section: _section, more: _mobileMore));
+      } else {
+        _navigationTrail.clear();
+      }
+      _section = section;
+      _mobileMore = false;
+    });
+  }
+
+  void _backToLibrary() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      if (_mobileMore) {
+        _mobileMore = false;
+      } else if (_navigationTrail.isNotEmpty) {
+        final previous = _navigationTrail.removeLast();
+        _section = previous.section;
+        _mobileMore = previous.more;
+      } else {
+        _section = NovaSection.home;
+      }
+    });
+  }
+
+  void _focusGlobalSearch() {
+    _navigate(NovaSection.search);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocus.requestFocus();
+      _search.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _search.text.length,
+      );
+    });
+  }
+
   bool _handleWindowKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
+    if (!_android &&
+        !_desktop.hasExpandedPlayer &&
+        HardwareKeyboard.instance.isControlPressed &&
+        (event.logicalKey == LogicalKeyboardKey.keyF ||
+            event.logicalKey == LogicalKeyboardKey.keyK) &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      _focusGlobalSearch();
+      return true;
+    }
+    if (!_windowShortcuts) return false;
     if (event.logicalKey == LogicalKeyboardKey.f11) {
       unawaited(_toggleWindow());
       return true;
@@ -414,83 +468,99 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
     child: LayoutBuilder(
       builder: (context, bounds) {
         final compact = _android && bounds.maxWidth < 600;
-        return Scaffold(
-          bottomNavigationBar: compact
-              ? NavigationBar(
-                  key: const ValueKey('mobile-navigation'),
-                  height: 68,
-                  selectedIndex: !_mobileMore && _section.index < 4
-                      ? _section.index
-                      : 4,
-                  onDestinationSelected: (index) {
-                    if (index < 4) {
-                      _navigate(NovaSection.values[index]);
-                    } else {
-                      setState(() => _mobileMore = true);
-                    }
-                  },
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home_rounded),
-                      label: 'Accueil',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.live_tv_outlined),
-                      label: 'TV',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.movie_outlined),
-                      label: 'Films',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.video_library_outlined),
-                      label: 'Séries',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.menu_rounded),
-                      label: 'Plus',
-                    ),
-                  ],
-                )
-              : null,
-          body: SafeArea(
-            top: _android,
-            bottom: _android && !compact,
-            child: Row(
-              children: [
-                if (!compact) _sidebar(),
-                Expanded(
-                  key: const ValueKey('shell-content'),
-                  child: Column(
-                    children: [
-                      _android ? _mobileTopbar(compact) : _topbar(),
-                      if (app.sources != null)
-                        SourceStartupProgress(controller: app.sources!),
-                      if (app.storageError != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 28),
-                          child: NovaNotice(
-                            icon: Icons.info_outline,
-                            text: app.storageError!,
-                          ),
-                        ),
-                      if (app.sources?.error != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
-                          child: NovaNotice(
-                            icon: Icons.cloud_off_outlined,
-                            text: app.sources!.error!,
-                          ),
-                        ),
-                      Expanded(
-                        key: const ValueKey('section-body'),
-                        child: _mobileMore ? _morePage() : _sectionPage(),
+        // Playback owns Back while the live player is mounted. Library pages
+        // use Android Back to retrace navigation instead of leaving the app.
+        final handlesBack =
+            _android &&
+            (_mobileMore ||
+                (_section != NovaSection.home && _section != NovaSection.live));
+        return PopScope(
+          canPop: !handlesBack,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop &&
+                handlesBack &&
+                (ModalRoute.of(context)?.isCurrent ?? true)) {
+              _backToLibrary();
+            }
+          },
+          child: Scaffold(
+            bottomNavigationBar: compact
+                ? NavigationBar(
+                    key: const ValueKey('mobile-navigation'),
+                    height: 68,
+                    selectedIndex: !_mobileMore && _section.index < 4
+                        ? _section.index
+                        : 4,
+                    onDestinationSelected: (index) {
+                      if (index < 4) {
+                        _navigate(NovaSection.values[index]);
+                      } else {
+                        setState(() => _mobileMore = true);
+                      }
+                    },
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home_rounded),
+                        label: 'Accueil',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.live_tv_outlined),
+                        label: 'TV',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.movie_outlined),
+                        label: 'Films',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.video_library_outlined),
+                        label: 'Séries',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.menu_rounded),
+                        label: 'Plus',
                       ),
                     ],
+                  )
+                : null,
+            body: SafeArea(
+              top: _android,
+              bottom: _android && !compact,
+              child: Row(
+                children: [
+                  if (!compact) _sidebar(),
+                  Expanded(
+                    key: const ValueKey('shell-content'),
+                    child: Column(
+                      children: [
+                        _android ? _mobileTopbar(compact) : _topbar(),
+                        if (app.sources != null)
+                          SourceStartupProgress(controller: app.sources!),
+                        if (app.storageError != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: NovaNotice(
+                              icon: Icons.info_outline,
+                              text: app.storageError!,
+                            ),
+                          ),
+                        if (app.sources?.error != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
+                            child: NovaNotice(
+                              icon: Icons.cloud_off_outlined,
+                              text: app.sources!.error!,
+                            ),
+                          ),
+                        Expanded(
+                          key: const ValueKey('section-body'),
+                          child: _mobileMore ? _morePage() : _sectionPage(),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -503,6 +573,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
       controller: app,
       onDetails: _details,
       onNavigate: (section) => _navigate(NovaSection.values.byName(section)),
+      showProfileActions: false,
     ),
     NovaSection.trends => HomePage(
       controller: app,
@@ -565,14 +636,30 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
     key: const PageStorageKey('mobile-more'),
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
     children: [
-      for (final section in NovaSection.values.where((s) => s.index >= 4))
-        ListTile(
-          leading: Icon(_icons[section.index]),
-          title: Text(_labels[section.index]),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => _navigate(section),
-        ),
-      const Divider(),
+      _moreHeading('Bibliothèque'),
+      for (final section in [
+        NovaSection.resume,
+        NovaSection.favorites,
+        NovaSection.history,
+      ])
+        _moreDestination(section),
+      _moreHeading('Découvrir'),
+      for (final section in [
+        NovaSection.platforms,
+        NovaSection.trends,
+        NovaSection.search,
+      ])
+        _moreDestination(section),
+      _moreHeading('Personnaliser'),
+      _moreDestination(NovaSection.organize),
+      _moreDestination(NovaSection.settings),
+      ListTile(
+        leading: const Icon(Icons.switch_account_outlined),
+        title: const Text('Changer de profil'),
+        subtitle: Text(app.activeProfile.name),
+        onTap: app.showProfilePicker,
+      ),
+      _moreHeading('Sources et fichiers'),
       ListTile(
         leading: const Icon(Icons.playlist_add),
         title: const Text('Mes sources IPTV'),
@@ -583,82 +670,143 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
         title: const Text('Ouvrir une vidéo'),
         onTap: _openFile,
       ),
+      ListTile(
+        leading: const Icon(Icons.link_rounded),
+        title: const Text('Ouvrir une URL vidéo'),
+        onTap: _openUrl,
+      ),
     ],
   );
 
-  Widget _mobileTopbar(bool compact) => SizedBox(
-    height: 48,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
-        children: [
-          if (!compact)
-            IconButton(
-              tooltip: _collapsed ? 'Développer le menu' : 'Réduire le menu',
-              onPressed: () => setState(() => _collapsed = !_collapsed),
-              icon: const Icon(Icons.menu_rounded),
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.only(left: 4, right: 10),
-              child: NovaMark(size: 27),
-            ),
-          Expanded(
-            child: _section == NovaSection.search && !_mobileMore
-                ? TextField(
-                    key: const ValueKey('mobile-global-search'),
-                    controller: _search,
-                    onChanged: (value) => setState(() => _query = value),
-                    decoration: const InputDecoration(
-                      hintText: 'Rechercher un titre…',
-                      isDense: true,
-                      border: InputBorder.none,
-                    ),
-                  )
-                : Text(
-                    _mobileMore ? 'Votre espace' : _labels[_section.index],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-          ),
-          if (_section != NovaSection.search || _mobileMore)
-            IconButton(
-              tooltip: 'Recherche globale',
-              onPressed: () => _navigate(NovaSection.search),
-              icon: const Icon(Icons.search_rounded),
-            ),
-          PopupMenuButton<String>(
-            tooltip: 'Ouvrir un média',
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            onSelected: (action) {
-              if (action == 'sources') {
-                _openSources();
-              } else if (action == 'file') {
-                _openFile();
-              } else {
-                _openUrl();
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'sources',
-                child: Text('Ajouter une source IPTV'),
-              ),
-              PopupMenuItem(
-                value: 'file',
-                child: Text('Ouvrir un fichier vidéo'),
-              ),
-              PopupMenuItem(value: 'url', child: Text('Ouvrir une URL vidéo')),
-            ],
-          ),
-        ],
-      ),
+  Widget _moreHeading(String title) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+    child: Text(
+      title,
+      style: const TextStyle(color: novaMuted, fontWeight: FontWeight.w700),
     ),
   );
+
+  Widget _moreDestination(NovaSection section) => ListTile(
+    leading: Icon(_icons[section.index]),
+    title: Text(_labels[section.index]),
+    trailing: const Icon(Icons.chevron_right_rounded),
+    onTap: () => section == NovaSection.search
+        ? _focusGlobalSearch()
+        : _navigate(section),
+  );
+
+  Widget _mobileTopbar(bool compact) {
+    final searching = _section == NovaSection.search && !_mobileMore;
+    return SizedBox(
+      height: 56,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          children: [
+            if (searching || _mobileMore || _navigationTrail.isNotEmpty)
+              IconButton(
+                tooltip: 'Retour',
+                onPressed: _backToLibrary,
+                icon: const Icon(Icons.arrow_back_rounded),
+              )
+            else if (!compact)
+              IconButton(
+                tooltip: _collapsed ? 'Développer le menu' : 'Réduire le menu',
+                onPressed: () => setState(() => _collapsed = !_collapsed),
+                icon: const Icon(Icons.menu_rounded),
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.only(left: 4, right: 10),
+                child: NovaMark(size: 27),
+              ),
+            Expanded(
+              child: searching
+                  ? TextField(
+                      key: const ValueKey('mobile-global-search'),
+                      controller: _search,
+                      focusNode: _searchFocus,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => _searchFocus.unfocus(),
+                      onChanged: (value) => setState(() => _query = value),
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher un titre…',
+                        isDense: true,
+                        border: InputBorder.none,
+                        suffixIcon: _search.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Effacer la recherche',
+                                onPressed: _clearSearch,
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      ),
+                    )
+                  : Text(
+                      _mobileMore ? 'Votre espace' : _labels[_section.index],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ),
+            if (!searching) ...[
+              IconButton(
+                tooltip: 'Recherche globale',
+                onPressed: _focusGlobalSearch,
+                icon: const Icon(Icons.search_rounded),
+              ),
+              IconButton(
+                tooltip: 'Changer de profil',
+                onPressed: app.showProfilePicker,
+                icon: const Icon(Icons.switch_account_outlined),
+              ),
+              IconButton(
+                tooltip: 'Paramètres',
+                onPressed: () => _navigate(NovaSection.settings),
+                icon: const Icon(Icons.settings_outlined),
+              ),
+            ],
+            PopupMenuButton<String>(
+              tooltip: 'Ouvrir un média',
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              onSelected: (action) {
+                if (action == 'sources') {
+                  _openSources();
+                } else if (action == 'file') {
+                  _openFile();
+                } else {
+                  _openUrl();
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'sources',
+                  child: Text('Ajouter une source IPTV'),
+                ),
+                PopupMenuItem(
+                  value: 'file',
+                  child: Text('Ouvrir un fichier vidéo'),
+                ),
+                PopupMenuItem(
+                  value: 'url',
+                  child: Text('Ouvrir une URL vidéo'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearSearch() {
+    _search.clear();
+    setState(() => _query = '');
+    _searchFocus.requestFocus();
+  }
 
   Widget _sidebar() {
     final expanded =
@@ -854,7 +1002,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
               children: [
                 if (expanded)
                   const Text(
-                    'NOVA  0.7.0',
+                    'NOVA IPTV',
                     style: TextStyle(fontSize: 10, color: novaMuted),
                   ),
                 IconButton(
@@ -879,27 +1027,49 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
 
   Widget _topbar() => Container(
     height: 80,
-    padding: const EdgeInsets.symmetric(horizontal: 30),
+    padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Row(
       children: [
-        Text(
-          _labels[_section.index],
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        if (_navigationTrail.isNotEmpty)
+          IconButton(
+            tooltip: 'Retour',
+            onPressed: _backToLibrary,
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+        Expanded(
+          child: Text(
+            _labels[_section.index],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ),
-        const Spacer(),
         SizedBox(
           width: MediaQuery.sizeOf(context).width < 1150 ? 200 : 290,
           child: TextField(
+            key: const ValueKey('desktop-global-search'),
             controller: _search,
+            focusNode: _searchFocus,
+            onTap: () => _navigate(NovaSection.search),
             onChanged: (value) => setState(() {
               _query = value;
               _section = NovaSection.search;
             }),
-            decoration: const InputDecoration(
-              hintText: 'Un film, une série, une chaîne…',
-              prefixIcon: Icon(Icons.search_rounded, size: 19),
+            decoration: InputDecoration(
+              hintText: 'Rechercher…',
+              prefixIcon: const Tooltip(
+                message: 'Rechercher (Ctrl+F / Ctrl+K)',
+                child: Icon(Icons.search_rounded, size: 19),
+              ),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Effacer la recherche',
+                      onPressed: _clearSearch,
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                    ),
               isDense: true,
-              contentPadding: EdgeInsets.all(12),
+              contentPadding: const EdgeInsets.all(12),
             ),
           ),
         ),
@@ -941,18 +1111,21 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
             ),
           ),
         ),
-        const SizedBox(width: 20),
-        Tooltip(
-          message: 'Profil local',
-          child: CircleAvatar(
-            radius: 17,
-            backgroundColor: Color(app.settings.accent).withValues(alpha: .16),
-            child: const Icon(
-              Icons.person_outline_rounded,
-              size: 18,
-              color: Color(0xFFC4B5FD),
-            ),
-          ),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: 'Mes sources IPTV',
+          onPressed: _openSources,
+          icon: const Icon(Icons.playlist_add_rounded),
+        ),
+        IconButton(
+          tooltip: 'Changer de profil',
+          onPressed: app.showProfilePicker,
+          icon: const Icon(Icons.switch_account_outlined),
+        ),
+        IconButton(
+          tooltip: 'Paramètres',
+          onPressed: () => _navigate(NovaSection.settings),
+          icon: const Icon(Icons.settings_outlined),
         ),
       ],
     ),

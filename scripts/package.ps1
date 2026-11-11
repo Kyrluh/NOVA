@@ -41,7 +41,7 @@ $files = foreach ($name in $sourcePaths) {
     $path = Join-Path $projectRoot $name
     if (Test-Path -LiteralPath $path -PathType Container) {
         Get-ChildItem -LiteralPath $path -File -Recurse | Where-Object {
-            $_.FullName -notmatch '\\(ephemeral|\.gradle|\.cxx|build|\.signing)\\' -and
+            $_.FullName -notmatch '\\(ephemeral|\.gradle|\.kotlin|\.cxx|build|\.signing)\\' -and
             $_.Name -notin @('local.properties','key.properties','GeneratedPluginRegistrant.java') -and
             $_.Extension -notin @('.jks','.keystore','.p12','.dpapi')
         }

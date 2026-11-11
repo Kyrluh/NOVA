@@ -14,10 +14,50 @@ import '../theme.dart';
 import '../widgets/page_widgets.dart';
 import '../adaptive.dart';
 
+enum _SettingsCategory {
+  profile(
+    'Profil et envies',
+    'Nom du profil, genres préférés et profils disponibles.',
+    Icons.person_outline_rounded,
+  ),
+  library(
+    'Bibliothèque et apparence',
+    'Affiches, couleurs, langues, catégories et ordre des contenus.',
+    Icons.grid_view_rounded,
+  ),
+  playback(
+    'Lecture',
+    'Vitesse, volume, épisodes et options adaptées à votre appareil.',
+    Icons.play_circle_outline_rounded,
+  ),
+  sources(
+    'Sources et guide TV',
+    'Gérer M3U, Xtream Codes et le programme XMLTV.',
+    Icons.cloud_outlined,
+  ),
+  data(
+    'Données locales',
+    'Importer ou exporter les réglages, licences et réinitialisation.',
+    Icons.folder_outlined,
+  );
+
+  const _SettingsCategory(this.label, this.description, this.icon);
+  final String label;
+  final String description;
+  final IconData icon;
+}
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
     super.key,
     required this.controller,
+    this.onManageSources,
+    this.onOrganize,
+  }) : _category = null;
+
+  const SettingsPage._category({
+    required this.controller,
+    required this._category,
     this.onManageSources,
     this.onOrganize,
   });
@@ -25,6 +65,7 @@ class SettingsPage extends StatefulWidget {
   final AppController controller;
   final VoidCallback? onManageSources;
   final VoidCallback? onOrganize;
+  final _SettingsCategory? _category;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -36,6 +77,111 @@ class _SettingsPageState extends State<SettingsPage> {
     XTypeGroup(label: 'Réglages NOVA (JSON)', extensions: ['json']),
   ];
   bool _busy = false;
+  late _SettingsCategory _selected =
+      widget._category ?? _SettingsCategory.profile;
+
+  void _openCategory(_SettingsCategory category) {
+    final android = NovaAdaptiveScope.isAndroid(context);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NovaAdaptiveScope(
+          android: android,
+          child: Scaffold(
+            appBar: AppBar(title: Text(category.label)),
+            body: SettingsPage._category(
+              controller: widget.controller,
+              category: category,
+              onManageSources: widget.onManageSources,
+              onOrganize: widget.onOrganize,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _organizeCatalogue() {
+    if (widget._category != null) Navigator.of(context).pop();
+    widget.onOrganize?.call();
+  }
+
+  Widget _categoryTile(_SettingsCategory category, {required bool split}) =>
+      ListTile(
+        key: ValueKey('settings-category-${category.name}'),
+        leading: Icon(category.icon),
+        title: Text(category.label),
+        subtitle: split ? null : Text(category.description),
+        selected: split && _selected == category,
+        selectedTileColor: Theme.of(context).colorScheme.primary
+            .withValues(alpha: .12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        trailing: split ? null : const Icon(Icons.chevron_right_rounded),
+        onTap: split
+            ? () => setState(() => _selected = category)
+            : () => _openCategory(category),
+      );
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, bounds) {
+      if (widget._category != null) return _content(context);
+      if (bounds.maxWidth >= 850) {
+        return Row(
+          key: const ValueKey('settings-split-view'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 244,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 22, 8, 24),
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 12, 20),
+                    child: Text(
+                      'Paramètres',
+                      style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  for (final category in _SettingsCategory.values)
+                    _categoryTile(category, split: true),
+                ],
+              ),
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: _content(context)),
+          ],
+        );
+      }
+      return ListView(
+        key: const ValueKey('settings-category-hub'),
+        padding: EdgeInsets.fromLTRB(
+          novaPageInset(context),
+          20,
+          novaPageInset(context),
+          32,
+        ),
+        children: [
+          const PageHeading(
+            title: 'Paramètres',
+            subtitle: 'Choisissez ce que vous souhaitez personnaliser.',
+          ),
+          const SizedBox(height: 22),
+          for (final category in _SettingsCategory.values) ...[
+            Material(
+              color: novaSurface,
+              borderRadius: BorderRadius.circular(12),
+              child: _categoryTile(category, split: false),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      );
+    },
+  );
 
   void _message(String message) {
     if (!mounted) return;
@@ -217,26 +363,238 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) setState(() => _busy = false);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.controller,
-      builder: (context, child) {
-        final settings = widget.controller.settings;
-        return ListView(
-          padding: EdgeInsets.fromLTRB(
-            novaPageInset(context),
-            20,
-            novaPageInset(context),
-            40,
-          ),
-          children: [
-            const PageHeading(
-              title: 'Paramètres',
-              subtitle: 'Votre espace, vos préférences. Les changements sont enregistrés automatiquement.',
+  Widget _content(BuildContext context) => AnimatedBuilder(
+    animation: widget.controller,
+    builder: (context, _) {
+      final settings = widget.controller.settings;
+      return ListView(
+        key: PageStorageKey(('settings-panel', _selected)),
+        padding: EdgeInsets.fromLTRB(
+          novaPageInset(context),
+          20,
+          novaPageInset(context),
+          40,
+        ),
+        children: [
+          if (widget._category == null)
+            PageHeading(title: _selected.label, subtitle: _selected.description)
+          else
+            Text(
+              _selected.description,
+              style: const TextStyle(color: novaMuted),
             ),
-            const SizedBox(height: 28),
+          const SizedBox(height: 22),
+          if (_selected == _SettingsCategory.profile)
             ProfileSettingsTile(controller: widget.controller),
+          if (_selected == _SettingsCategory.library) ...[
+            _SettingsSection(
+              icon: Icons.palette_outlined,
+              title: 'Apparence',
+              children: [
+                _SettingRow(
+                  title: 'Couleur d’accent',
+                  subtitle: 'Une touche personnelle sur le thème sombre.',
+                  control: Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      for (final accent in const [
+                        (color: 0xff8b5cf6, name: 'Violet'),
+                        (color: 0xff5294ef, name: 'Bleu'),
+                        (color: 0xff38ada8, name: 'Turquoise'),
+                        (color: 0xffd77da2, name: 'Rose'),
+                      ])
+                        Tooltip(
+                          message: accent.name,
+                          child: Semantics(
+                            button: true,
+                            selected: settings.accent == accent.color,
+                            label: 'Accent ${accent.name}',
+                            child: Material(
+                              color: Color(accent.color),
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () => widget.controller.updateSettings(
+                                  settings.copyWith(accent: accent.color),
+                                ),
+                                child: SizedBox.square(
+                                  dimension: 38,
+                                  child: settings.accent == accent.color
+                                      ? const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.white,
+                                          size: 21,
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                _SettingRow(
+                  title: 'Taille des affiches',
+                  subtitle:
+                      'Taille en mode automatique et dans les carrousels.',
+                  control: Row(
+                    children: [
+                      const Icon(
+                        Icons.photo_size_select_small_rounded,
+                        size: 17,
+                        color: novaMuted,
+                      ),
+                      Expanded(
+                        child: Slider(
+                          value: settings.posterScale,
+                          min: .75,
+                          max: 1.5,
+                          divisions: 3,
+                          label: '${(settings.posterScale * 100).round()} %',
+                          semanticFormatterCallback: (value) =>
+                              '${(value * 100).round()} pour cent',
+                          onChanged: (value) =>
+                              widget.controller.updateSettings(
+                                settings.copyWith(posterScale: value),
+                              ),
+                        ),
+                      ),
+                      Text(
+                        '${(settings.posterScale * 100).round()} %',
+                        style: const TextStyle(color: novaMuted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                CatalogColumnsSetting(controller: widget.controller),
+                _SettingRow(
+                  title: 'Animations',
+                  subtitle: 'Transitions discrètes entre les écrans et sur les affiches.',
+                  control: Align(
+                    alignment: Alignment.centerRight,
+                    child: Switch(
+                      value: settings.animations,
+                      onChanged: (value) => widget.controller.updateSettings(
+                        settings.copyWith(animations: value),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (widget.onOrganize != null) ...[
+              _SettingsSection(
+                icon: Icons.sort_rounded,
+                title: 'Tri et affichage',
+                children: [
+                  _SettingRow(
+                    title: 'Langues et catégories visibles',
+                    subtitle: 'Choisissez les contenus à afficher et leur ordre, séparément pour la TV, les films et les séries.',
+                    control: OutlinedButton.icon(
+                      key: const Key('configure-catalog'),
+                      onPressed: _organizeCatalogue,
+                      icon: const Icon(Icons.sort_rounded, size: 18),
+                      label: const Text('Configurer le tri'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ],
+          if (_selected == _SettingsCategory.playback) ...[
+            _SettingsSection(
+              icon: Icons.tune_rounded,
+              title: 'Lecteur',
+              children: [
+                _SettingRow(
+                  title: 'Vitesse de lecture par défaut',
+                  subtitle:
+                      'Appliquée à l’ouverture d’un film ou d’un fichier. '
+                      'Le direct reste à 1× sans mode différé.',
+                  control: InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Vitesse'),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<double>(
+                        key: const Key('playback-speed'),
+                        value: settings.playbackRate,
+                        isDense: true,
+                        isExpanded: true,
+                        menuMaxHeight: 320,
+                        items: [
+                          for (final rate in playbackRates)
+                            DropdownMenuItem(
+                              value: rate,
+                              child: Text(
+                                rate == 1
+                                    ? '${rateLabel(rate)} · Normale'
+                                    : rateLabel(rate),
+                              ),
+                            ),
+                        ],
+                        onChanged: (rate) {
+                          if (rate != null) {
+                            widget.controller.updateSettings(
+                              settings.copyWith(playbackRate: rate),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                _SettingRow(
+                  title: 'Volume à l’ouverture',
+                  subtitle:
+                      'Le volume peut ensuite être ajusté dans le lecteur.',
+                  control: Row(
+                    children: [
+                      Icon(
+                        settings.volume == 0
+                            ? Icons.volume_off_rounded
+                            : Icons.volume_up_rounded,
+                        size: 20,
+                        color: novaMuted,
+                      ),
+                      Expanded(
+                        child: Slider(
+                          value: settings.volume,
+                          max: 100,
+                          divisions: 20,
+                          label: '${settings.volume.round()} %',
+                          semanticFormatterCallback: (value) =>
+                              '${value.round()} pour cent',
+                          onChanged: (value) => widget.controller
+                              .updateSettings(settings.copyWith(volume: value)),
+                        ),
+                      ),
+                      Text(
+                        '${settings.volume.round()} %',
+                        style: const TextStyle(color: novaMuted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!NovaAdaptiveScope.isAndroid(context))
+                  const _SettingRow(
+                    title: 'Raccourcis du lecteur',
+                    subtitle: 'Disponibles lorsque le lecteur est ouvert.',
+                    control: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _KeyHint(keyName: 'Espace', action: 'Pause'),
+                        _KeyHint(keyName: 'F', action: 'Plein écran'),
+                        _KeyHint(keyName: 'Échap', action: 'Retour'),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
             if (NovaAdaptiveScope.isAndroid(context)) ...[
               _SettingsSection(
                 icon: Icons.touch_app_outlined,
@@ -372,6 +730,11 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 20),
             ],
+
+            if (!NovaAdaptiveScope.isAndroid(context))
+              _desktopContinuity(settings),
+          ],
+          if (_selected == _SettingsCategory.sources) ...[
             if (widget.onManageSources != null) ...[
               _SettingsSection(
                 icon: Icons.playlist_add_rounded,
@@ -391,212 +754,14 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 20),
             ],
-            _SettingsSection(
-              icon: Icons.palette_outlined,
-              title: 'Apparence',
-              children: [
-                _SettingRow(
-                  title: 'Couleur d’accent',
-                  subtitle: 'Une touche personnelle sur le thème sombre.',
-                  control: Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      for (final accent in const [
-                        (color: 0xff8b5cf6, name: 'Violet'),
-                        (color: 0xff5294ef, name: 'Bleu'),
-                        (color: 0xff38ada8, name: 'Turquoise'),
-                        (color: 0xffd77da2, name: 'Rose'),
-                      ])
-                        Tooltip(
-                          message: accent.name,
-                          child: Semantics(
-                            button: true,
-                            selected: settings.accent == accent.color,
-                            label: 'Accent ${accent.name}',
-                            child: Material(
-                              color: Color(accent.color),
-                              shape: const CircleBorder(),
-                              child: InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: () => widget.controller.updateSettings(
-                                  settings.copyWith(accent: accent.color),
-                                ),
-                                child: SizedBox.square(
-                                  dimension: 38,
-                                  child: settings.accent == accent.color
-                                      ? const Icon(
-                                          Icons.check_rounded,
-                                          color: Colors.white,
-                                          size: 21,
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                _SettingRow(
-                  title: 'Taille des affiches',
-                  subtitle:
-                      'Taille en mode automatique et dans les carrousels.',
-                  control: Row(
-                    children: [
-                      const Icon(
-                        Icons.photo_size_select_small_rounded,
-                        size: 17,
-                        color: novaMuted,
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: settings.posterScale,
-                          min: .75,
-                          max: 1.5,
-                          divisions: 3,
-                          label: '${(settings.posterScale * 100).round()} %',
-                          semanticFormatterCallback: (value) =>
-                              '${(value * 100).round()} pour cent',
-                          onChanged: (value) =>
-                              widget.controller.updateSettings(
-                                settings.copyWith(posterScale: value),
-                              ),
-                        ),
-                      ),
-                      Text(
-                        '${(settings.posterScale * 100).round()} %',
-                        style: const TextStyle(color: novaMuted, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                CatalogColumnsSetting(controller: widget.controller),
-                _SettingRow(
-                  title: 'Animations',
-                  subtitle: 'Transitions discrètes entre les écrans et sur les affiches.',
-                  control: Align(
-                    alignment: Alignment.centerRight,
-                    child: Switch(
-                      value: settings.animations,
-                      onChanged: (value) => widget.controller.updateSettings(
-                        settings.copyWith(animations: value),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _SettingsSection(
-              icon: Icons.tune_rounded,
-              title: 'Lecteur',
-              children: [
-                _SettingRow(
-                  title: 'Vitesse de lecture par défaut',
-                  subtitle:
-                      'Appliquée à l’ouverture d’un film ou d’un fichier. '
-                      'Le direct reste à 1× sans mode différé.',
-                  control: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Vitesse'),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<double>(
-                        key: const Key('playback-speed'),
-                        value: settings.playbackRate,
-                        isDense: true,
-                        isExpanded: true,
-                        menuMaxHeight: 320,
-                        items: [
-                          for (final rate in playbackRates)
-                            DropdownMenuItem(
-                              value: rate,
-                              child: Text(
-                                rate == 1
-                                    ? '${rateLabel(rate)} · Normale'
-                                    : rateLabel(rate),
-                              ),
-                            ),
-                        ],
-                        onChanged: (rate) {
-                          if (rate != null) {
-                            widget.controller.updateSettings(
-                              settings.copyWith(playbackRate: rate),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                _SettingRow(
-                  title: 'Volume à l’ouverture',
-                  subtitle:
-                      'Le volume peut ensuite être ajusté dans le lecteur.',
-                  control: Row(
-                    children: [
-                      Icon(
-                        settings.volume == 0
-                            ? Icons.volume_off_rounded
-                            : Icons.volume_up_rounded,
-                        size: 20,
-                        color: novaMuted,
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: settings.volume,
-                          max: 100,
-                          divisions: 20,
-                          label: '${settings.volume.round()} %',
-                          semanticFormatterCallback: (value) =>
-                              '${value.round()} pour cent',
-                          onChanged: (value) => widget.controller
-                              .updateSettings(settings.copyWith(volume: value)),
-                        ),
-                      ),
-                      Text(
-                        '${settings.volume.round()} %',
-                        style: const TextStyle(color: novaMuted, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                if (!NovaAdaptiveScope.isAndroid(context))
-                  const _SettingRow(
-                    title: 'Raccourcis du lecteur',
-                    subtitle: 'Disponibles lorsque le lecteur est ouvert.',
-                    control: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _KeyHint(keyName: 'Espace', action: 'Pause'),
-                        _KeyHint(keyName: 'F', action: 'Plein écran'),
-                        _KeyHint(keyName: 'Échap', action: 'Retour'),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            if (widget.onOrganize != null) ...[
-              _SettingsSection(
-                icon: Icons.sort_rounded,
-                title: 'Tri et affichage',
-                children: [
-                  _SettingRow(
-                    title: 'Langues et catégories visibles',
-                    subtitle: 'Choisissez les contenus à afficher et leur ordre, séparément pour la TV, les films et les séries.',
-                    control: OutlinedButton.icon(
-                      key: const Key('configure-catalog'),
-                      onPressed: widget.onOrganize,
-                      icon: const Icon(Icons.sort_rounded, size: 18),
-                      label: const Text('Configurer le tri'),
-                    ),
-                  ),
-                ],
+
+            if (widget.onManageSources == null)
+              const NovaNotice(
+                icon: Icons.info_outline,
+                text: 'La gestion des sources est indisponible dans cet environnement.',
               ),
-              const SizedBox(height: 20),
-            ],
+          ],
+          if (_selected == _SettingsCategory.data) ...[
             _SettingsSection(
               icon: Icons.folder_outlined,
               title: 'Données locales',
@@ -605,7 +770,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   padding: EdgeInsets.only(bottom: 18),
                   child: Text(
                     'L’export contient uniquement vos réglages d’apparence et de lecture. '
-                    'Les favoris et progressions restent conservés sur cet ordinateur.',
+                    'Les favoris et progressions restent conservés sur cet appareil.',
                     style: TextStyle(
                       color: novaMuted,
                       fontSize: 12,
@@ -651,7 +816,7 @@ class _SettingsPageState extends State<SettingsPage> {
             NovaNotice(
               icon: Icons.info_outline_rounded,
               text:
-                  'NOVA IPTV 0.7.0 · Sources personnelles M3U, Xtream Codes et XMLTV. '
+                  'NOVA IPTV · Sources personnelles M3U, Xtream Codes et XMLTV. '
                   '${NovaAdaptiveScope.isAndroid(context) ? 'Le stockage des sources est protégé par Android Keystore. ' : 'Les identifiants et catalogues sont protégés pour votre compte Windows. '}'
                   'Aucun compte, abonnement ou serveur IPTV fourni.',
             ),
@@ -662,7 +827,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 onPressed: () => showLicensePage(
                   context: context,
                   applicationName: 'NOVA IPTV',
-                  applicationVersion: '0.7.0',
                   applicationLegalese:
                       'Licences des composants de cette application.',
                 ),
@@ -671,10 +835,77 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ],
-        );
-      },
-    );
-  }
+        ],
+      );
+    },
+  );
+
+  Widget _desktopContinuity(AppSettings settings) => _SettingsSection(
+    icon: Icons.autorenew_rounded,
+    title: 'Continuité de lecture',
+    children: [
+      SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Épisode suivant automatiquement'),
+        value: settings.autoNext,
+        onChanged: (value) => widget.controller.updateSettings(
+          settings.copyWith(autoNext: value),
+        ),
+      ),
+      SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Reconnexion automatique'),
+        value: settings.reconnectEnabled,
+        onChanged: (value) => widget.controller.updateSettings(
+          settings.copyWith(reconnectEnabled: value),
+        ),
+      ),
+      _SettingRow(
+        title: 'Tentatives de reconnexion',
+        subtitle: 'Un échec n’efface ni la source ni la progression.',
+        control: DropdownButtonFormField<int>(
+          key: ValueKey(('reconnect-attempts', settings.reconnectAttempts)),
+          initialValue: settings.reconnectAttempts,
+          isExpanded: true,
+          items: [
+            for (var count = 0; count <= 10; count++)
+              DropdownMenuItem(value: count, child: Text('$count tentatives')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              widget.controller.updateSettings(
+                settings.copyWith(reconnectAttempts: value),
+              );
+            }
+          },
+        ),
+      ),
+      _SettingRow(
+        title: 'Délai entre les tentatives',
+        subtitle:
+            'Évite les demandes en rafale lorsque le réseau est instable.',
+        control: DropdownButtonFormField<int>(
+          key: ValueKey(('reconnect-delay', settings.reconnectDelaySeconds)),
+          initialValue: settings.reconnectDelaySeconds,
+          isExpanded: true,
+          items: [
+            for (var seconds = 1; seconds <= 30; seconds++)
+              DropdownMenuItem(
+                value: seconds,
+                child: Text('$seconds secondes'),
+              ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              widget.controller.updateSettings(
+                settings.copyWith(reconnectDelaySeconds: value),
+              );
+            }
+          },
+        ),
+      ),
+    ],
+  );
 }
 
 class _SettingsSection extends StatelessWidget {

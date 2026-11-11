@@ -122,7 +122,7 @@ ThemeData novaTheme(int accent) {
       selectedColor: accentColor.withAlpha(38),
       side: const BorderSide(color: Color(0xFF2A2E3C)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-      labelStyle: const TextStyle(fontSize: 12),
+      labelStyle: const TextStyle(fontFamily: 'Segoe UI', fontSize: 12),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     ),
     sliderTheme: base.sliderTheme.copyWith(
