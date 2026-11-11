@@ -54,6 +54,15 @@ class SourceController extends ChangeNotifier {
   String? _startupSourceName;
   String _startupPhase = 'Connexion à la source';
   double? _startupFraction = 0;
+  final Map<String, String> _catalogLoads = {};
+  CatalogLoadProgress? _loadProgress;
+  bool get catalogLoading => _catalogLoads.isNotEmpty;
+  double? get catalogLoadProgress => _loadProgress?.fraction;
+  String? get catalogLoadName =>
+      _catalogLoads[_loadProgress?.sourceId] ??
+      _catalogLoads.values.firstOrNull;
+  String get catalogLoadPhase =>
+      _loadProgress?.phase ?? 'Connexion à la source';
 
   bool get startupRefreshing => _startupRefreshing;
   bool get startupFinished => _startupFinished;
@@ -74,7 +83,12 @@ class SourceController extends ChangeNotifier {
 
   Future<void> _refreshAtStartup() async {
     await init();
-    if (_closed || _records.isEmpty) return;
+    if (_closed) return;
+    if (_records.isEmpty) {
+      _startupFinished = true;
+      _notify();
+      return;
+    }
     final ids = _records.keys.toList();
     _startupTotal = ids.length;
     _startupRefreshing = true;
@@ -117,6 +131,19 @@ class SourceController extends ChangeNotifier {
 
   void _catalogProgressChanged() {
     final progress = _client.catalogProgress.value;
+    if (progress != null && _catalogLoads.containsKey(progress.sourceId)) {
+      final previous = _loadProgress;
+      if (previous?.sourceId == progress.sourceId &&
+          previous?.phase == progress.phase &&
+          (previous?.fraction == progress.fraction ||
+              (previous?.fraction != null &&
+                  progress.fraction != null &&
+                  (previous!.fraction! - progress.fraction!).abs() < .01))) {
+        return;
+      }
+      _loadProgress = progress;
+      if (!_startupRefreshing) _notify();
+    }
     if (progress == null ||
         !_startupRefreshing ||
         progress.sourceId != _startupCurrentId) {
@@ -279,6 +306,9 @@ class SourceController extends ChangeNotifier {
     final id = config.id;
     final token = _begin(id, external);
     final original = _records[id];
+    _catalogLoads[id] = config.name;
+    _loadProgress = null;
+    _notify();
     try {
       final imported = await _client.loadCatalog(config, cancel: token);
       _ensureActive(id, token);
@@ -304,11 +334,16 @@ class SourceController extends ChangeNotifier {
         programmes: unchangedGuide ? original.programmes : const [],
         updatedAt: DateTime.now().toUtc(),
       );
+      _loadProgress = CatalogLoadProgress(
+        id,
+        .95,
+        'Enregistrement du catalogue',
+      );
       if (_startupCurrentId == id) {
         _startupFraction = .95;
         _startupPhase = 'Enregistrement du catalogue';
-        _notify();
       }
+      _notify();
       await _commit(() async {
         _ensureActive(id, token);
         await _repository.write(next);
@@ -329,6 +364,8 @@ class SourceController extends ChangeNotifier {
     } catch (exception) {
       _operationFailed(id, token, exception);
     } finally {
+      _catalogLoads.remove(id);
+      if (_loadProgress?.sourceId == id) _loadProgress = null;
       _finish(id, token);
     }
   }

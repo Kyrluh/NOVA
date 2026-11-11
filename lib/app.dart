@@ -9,6 +9,7 @@ import 'ui/tv/tv_shell.dart';
 import 'ui/tv/tv_widgets.dart';
 import 'ui/pages/profiles_page.dart';
 import 'ui/window_close_host.dart';
+import 'ui/pages/source_loading_page.dart';
 
 class NovaApp extends StatelessWidget {
   const NovaApp({
@@ -47,8 +48,35 @@ class NovaApp extends StatelessWidget {
         themeAnimationDuration: controller.settings.animations
             ? const Duration(milliseconds: 180)
             : Duration.zero,
-        home: !controller.isReady
-            ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+        builder: (context, child) {
+          final source = controller.sources;
+          final importing =
+              controller.isReady &&
+              source?.catalogLoading == true &&
+              !source!.startupRefreshing;
+          return Stack(
+            children: [
+              ExcludeFocus(
+                excluding: importing,
+                child: IgnorePointer(
+                  ignoring: importing,
+                  child: child ?? const SizedBox(),
+                ),
+              ),
+              if (importing)
+                Positioned.fill(child: SourceLoadingPage(controller: source)),
+            ],
+          );
+        },
+        home:
+            !controller.isReady ||
+                (controller.refreshSourcesOnStartup &&
+                    controller.sources?.hasConfiguredSources == true &&
+                    !controller.sources!.startupFinished)
+            ? SourceLoadingPage(
+                controller: controller.sources,
+                initializing: !controller.isReady,
+              )
             : requireProfiles && !controller.profileChosen
             ? ProfilesPage(controller: controller)
             : requireProfiles && !controller.activeProfile.genresConfigured

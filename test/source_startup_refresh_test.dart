@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nova_iptv/app.dart';
+import 'package:nova_iptv/ui/pages/profiles_page.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nova_iptv/data/local_store.dart';
@@ -48,6 +50,123 @@ SourceController _sources(
 );
 
 void main() {
+  for (final fails in [false, true]) {
+    testWidgets(
+      'Loading screen hides app until startup completes, failure=$fails',
+      (tester) async {
+        final client = _Client()..gate = Completer<SourceCatalog>();
+        final sources = _sources(client);
+        final app = AppController(
+          store: MemoryLocalStore(),
+          sources: sources,
+          refreshSourcesOnStartup: true,
+        );
+        await app.init();
+        await tester.pump();
+        for (final television in [false, true]) {
+          await tester.pumpWidget(
+            NovaApp(
+              controller: app,
+              television: television,
+              nativeReady: false,
+              manageWindow: false,
+              requireProfiles: true,
+            ),
+          );
+          await tester.pump();
+          expect(
+            find.byKey(const ValueKey('source-loading-screen')),
+            findsOneWidget,
+          );
+          expect(find.byType(ProfilesPage), findsNothing);
+          client.catalogProgress.value = const CatalogLoadProgress(
+            'a',
+            .5,
+            'Chargement des films',
+          );
+          await tester.pump();
+          expect(find.text('50 %'), findsOneWidget);
+        }
+        final job = sources.refreshAtStartup();
+        if (fails) {
+          client.gate!.completeError(StateError('fixture unavailable'));
+        } else {
+          client.gate!.complete(
+            SourceCatalog(items: [_item('a', 'Actualisé')]),
+          );
+        }
+        await job;
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('source-loading-screen')),
+          findsNothing,
+        );
+        expect(find.byType(ProfilesPage), findsOneWidget);
+        expect(app.items.single.title, fails ? 'Cache a' : 'Actualisé');
+        await app.flush();
+        await tester.pumpWidget(const SizedBox());
+        app.dispose();
+        sources.dispose();
+      },
+    );
+  }
+  testWidgets(
+    'First source import uses fullscreen progress and preserves the open form',
+    (tester) async {
+      final client = _Client()..gate = Completer<SourceCatalog>();
+      final sources = _sources(client, ids: []);
+      final app = AppController(
+        store: MemoryLocalStore(),
+        sources: sources,
+        refreshSourcesOnStartup: true,
+      );
+      final text = TextEditingController(text: 'Brouillon');
+      await app.init();
+      await tester.pump();
+      await tester.pumpWidget(
+        NovaApp(
+          controller: app,
+          nativeReady: false,
+          manageWindow: false,
+          requireProfiles: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(sources.startupFinished, isTrue);
+      final context = tester.element(find.byType(ProfilesPage));
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(content: TextField(controller: text)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final job = sources.add(
+        const SourceDraft(
+          name: 'Fixture',
+          kind: SourceKind.m3uUrl,
+          address: 'https://example.test/list.m3u',
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('source-loading-screen')),
+        findsOneWidget,
+      );
+      expect(find.byType(TextField).hitTestable(), findsNothing);
+      client.gate!.complete(SourceCatalog(items: [_item('a', 'Nouveau')]));
+      await job;
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('source-loading-screen')), findsNothing);
+      expect(find.byType(TextField).hitTestable(), findsOneWidget);
+      expect(text.text, 'Brouillon');
+      await app.flush();
+      await tester.pumpWidget(const SizedBox());
+      text.dispose();
+      app.dispose();
+      sources.dispose();
+    },
+  );
   test('App opens cache first, refreshes automatically once and preserves favorite and progress', () async {
     final client = _Client()..gate = Completer<SourceCatalog>();
     final sources = _sources(client);

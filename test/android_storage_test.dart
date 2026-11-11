@@ -200,6 +200,7 @@ void main() {
     expect(sizes.single['amount'] as int, greaterThan(20));
     expect(sizes.single['maximum'] as int, lessThan(200 * 1024));
     final restored = (await repository.readAll()).single;
+    expect(restored.toJson(), original.toJson());
     expect(restored.catalog.items, hasLength(2500));
     expect(
       restored.catalog.items.last.description,

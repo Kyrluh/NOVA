@@ -9,6 +9,7 @@ List<MediaItem> rememberCatalogAdditions(
   final known = {for (final item in previous) item.id: item};
   return incoming
       .map((item) {
+        if (item.addedAt != null) return item;
         final old = known[item.id];
         return item.copyWith(
           addedAt:

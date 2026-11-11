@@ -109,7 +109,9 @@ class _TvSourceFieldState extends State<TvSourceField> {
             valueListenable: widget.controller,
             builder: (context, value, _) => InputDecorator(
               isFocused: _focused,
-              isEmpty: value.text.isEmpty,
+              // The child already renders a placeholder when the value is
+              // empty. Do not paint the floating label/hint over that text.
+              isEmpty: false,
               decoration: widget.decoration.copyWith(
                 enabled: widget.enabled,
                 errorText: field.errorText,

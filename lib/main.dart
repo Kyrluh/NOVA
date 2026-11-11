@@ -21,6 +21,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const television = bool.fromEnvironment('NOVA_TV');
   if (television && Platform.isAndroid) {
+    // Leave room for the decoder and catalogue on small Fire TV devices.
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 32 * 1024 * 1024;
+    PaintingBinding.instance.imageCache.maximumSize = 96;
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,

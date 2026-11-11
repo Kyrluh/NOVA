@@ -4,7 +4,7 @@ Application dédiée aux téléviseurs et boîtiers Android, conçue pour les fl
 
 ## APK et compatibilité
 
-- Fichier : **NOVA-IPTV-TV-0.8.7-universal.apk**.
+- Fichier : **NOVA-IPTV-TV-0.8.8-universal.apk**.
 - Package de production : **`app.nova.iptv.tv`** ; application téléphone : `app.nova.iptv`.
 - Android **API24/7.0 minimum**, cible API36 ; architectures ARM32, ARM64 et x86_64.
 - Android TV / Google TV et Fire TV sous **Fire OS basé sur Android**, sous réserve de respecter l'API minimum et les capacités vidéo de l'appareil.
@@ -65,6 +65,8 @@ Les réglages audio/vidéo et les reconnections restent ceux du moteur partagé.
 Depuis la version TV 0.8.2, les flèches haut/bas déplacent le focus entre les champs du formulaire sans ouvrir le clavier. Sur le champ URL, appuyer sur **OK** ouvre un éditeur **Android natif** avec le clavier système de la TV. **Valider** enregistre le texte ; **Annuler** ou Retour conserve la valeur précédente. Le focus revient au champ modifié, puis la flèche bas passe au suivant. La même saisie est utilisée pour le nom, l'identifiant, le mot de passe personnalisé et XMLTV. Les caractères de l'URL, notamment `:`, `/`, `?`, `&`, `%` et `=`, sont conservés.
 
 Les catalogues sont actualisés au lancement avec la progression partagée. Les sources restent chiffrées dans le stockage de ce package. Aucun transfert automatique de mots de passe depuis une autre application ou un téléphone n'est effectué.
+
+Depuis la version **0.8.8**, le démarrage affiche un écran de chargement complet : lecture du cache, actualisation des sources, puis affichage des profils et des catalogues. L'import et l'actualisation manuelle recouvrent temporairement le formulaire avec cet écran, sans perdre sa saisie. Si une source échoue, le cache disponible reste accessible après la tentative. Sur les appareils TV, le cache d'images est limité à 32 Mio/96 entrées ; la sauvegarde Android produit directement des fragments JSON chiffrés plutôt qu'une deuxième copie complète du catalogue.
 
 ## Compilation
 

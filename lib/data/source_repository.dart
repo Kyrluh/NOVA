@@ -165,6 +165,43 @@ class SQLiteSourceRepository extends SourceRepository {
     }
   }
 
+  /// Android never needs a second complete JSON catalogue in memory just to
+  /// save it. Encode one item at a time and encrypt bounded fragments directly.
+  static Iterable<String> _recordPieces(SourceRecord record) sync* {
+    yield '{"version":1,"config":${jsonEncode(record.config.toJson())},"items":[';
+    var first = true;
+    for (final item in record.catalog.items) {
+      if (!first) yield ',';
+      first = false;
+      yield jsonEncode(item.toJson());
+    }
+    yield '],"suggestedEpgUrl":${jsonEncode(record.catalog.suggestedEpgUrl)},'
+        '"warnings":${jsonEncode(record.catalog.warnings)},'
+        '"failedKinds":${jsonEncode(record.catalog.failedKinds.map((kind) => kind.name).toList())},"programmes":[';
+    first = true;
+    for (final programme in record.programmes) {
+      if (!first) yield ',';
+      first = false;
+      yield jsonEncode(programme.toJson());
+    }
+    yield '],"updatedAt":${jsonEncode(record.updatedAt.toUtc().toIso8601String())}}';
+  }
+
+  static Iterable<String> _recordFragments(SourceRecord record) sync* {
+    var buffer = StringBuffer();
+    for (final piece in _recordPieces(record)) {
+      for (final fragment in _fragments(piece)) {
+        if (buffer.isNotEmpty &&
+            buffer.length + fragment.length > _fragmentCharacters) {
+          yield buffer.toString();
+          buffer = StringBuffer();
+        }
+        buffer.write(fragment);
+      }
+    }
+    if (buffer.isNotEmpty) yield buffer.toString();
+  }
+
   Future<String> _readPayload(Database db, String id) async {
     if (!_fragmented) return _readLegacyPayload(db, id);
     final countRows = await db.rawQuery(
@@ -254,8 +291,8 @@ class SQLiteSourceRepository extends SourceRepository {
   @override
   Future<void> write(SourceRecord record) => _serial(() async {
     try {
-      final plaintext = await compute(_encodeRecord, record);
       if (!_fragmented) {
+        final plaintext = await compute(_encodeRecord, record);
         final payload = await secrets.protect(plaintext);
         await (await _database()).insert('sources', {
           'id': record.config.id,
@@ -274,7 +311,7 @@ class SQLiteSourceRepository extends SourceRepository {
           'payload': _chunkedMarker,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
         var part = 0;
-        for (final fragment in _fragments(plaintext)) {
+        for (final fragment in _recordFragments(record)) {
           final payload = await secrets.protect(fragment);
           await transaction.insert('source_chunks', {
             'id': record.config.id,
