@@ -10,11 +10,11 @@ Dans le menu contextuel des chaînes ouvert depuis le lecteur plein écran, chaq
 - Le nom et le programme sont limités en largeur avec points de suspension. La hauteur des lignes s'adapte au texte agrandi, y compris pour le défilement automatique vers la sélection.
 - Sans programme courant associé, la ligne affiche **Programme indisponible**. La source doit fournir un guide ; NOVA n'invente pas les programmes absents.
 
-## Livraison locale
+## Livraison
 
 APK TV **0.10.3+35** : `dist/android-tv/NOVA-IPTV-TV-0.10.3-universal.apk`, avec la signature de production existante et le package `app.nova.iptv.tv`. Installer par-dessus l'application TV existante sans la désinstaller pour conserver ses données.
 
-Cette tâche prépare uniquement un nouveau binaire TV. Les APK téléphone et le portable Windows restent en 0.10.2. Aucune nouvelle release ni installation ADB n'est effectuée à cette étape.
+Cette version est distribuée dans la [release TV 0.10.3](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.3), avec l'APK universelle et son empreinte SHA-256. Elle est détectable depuis **Paramètres → Mise à jour de l’application → Vérifier les mises à jour** dans l'application TV 0.10.2. Les APK téléphone et le portable Windows restent en 0.10.2. La publication reprend l'APK TV déjà compilée ; aucune installation ADB n'est effectuée.
 
 ## Contrôles ciblés
 
