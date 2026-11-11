@@ -77,6 +77,7 @@ class NovaPlayer extends StatefulWidget {
     this.channelChoices = const [],
     this.selectedChannelId,
     this.onSelectChannel,
+    this.liveGuideBuilder,
   });
 
   final String uri;
@@ -121,6 +122,7 @@ class NovaPlayer extends StatefulWidget {
   final List<TvChannelOption> channelChoices;
   final String? selectedChannelId;
   final ValueChanged<String>? onSelectChannel;
+  final Widget Function(bool compact)? liveGuideBuilder;
 
   @override
   State<NovaPlayer> createState() => _NovaPlayerState();
@@ -1314,7 +1316,10 @@ class _NovaPlayerState extends State<NovaPlayer>
     );
   }
 
-  Widget _buildSurface() {
+  Widget _buildSurface() =>
+      LayoutBuilder(builder: (context, bounds) => _buildBoundedSurface(bounds));
+
+  Widget _buildBoundedSurface(BoxConstraints surfaceBounds) {
     final player = _player;
     final controller = _controller;
     final state = player?.state;
@@ -1538,7 +1543,29 @@ class _NovaPlayerState extends State<NovaPlayer>
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: _chromeView('player-controls', _controls(state)),
+                  child: _chromeView(
+                    'player-controls',
+                    LayoutBuilder(
+                      builder: (context, bounds) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.isLive &&
+                              widget.liveGuideBuilder != null &&
+                              surfaceBounds.maxHeight >= 140)
+                            ColoredBox(
+                              color: const Color(0xB3000000),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: widget.liveGuideBuilder!(
+                                  surfaceBounds.maxHeight < 240,
+                                ),
+                              ),
+                            ),
+                          _controls(state),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 if (_tvChannelsOpen)
                   Positioned.fill(

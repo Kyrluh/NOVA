@@ -7,6 +7,7 @@ import '../../state/app_controller.dart';
 import '../theme.dart';
 import 'tv_widgets.dart';
 import '../widgets/search_field.dart';
+import '../widgets/live_guide_hud.dart';
 import '../../player/tv_channel_panel.dart';
 
 class TvLive extends StatefulWidget {
@@ -281,6 +282,11 @@ class TvLiveState extends State<TvLive> {
                                 uri: selected.mediaUrl!,
                                 title: selected.title,
                                 isLive: true,
+                                liveGuideBuilder: (compact) => LiveGuideHud(
+                                  controller: app,
+                                  channel: selected,
+                                  compact: compact,
+                                ),
                                 fullscreenRequests: _fullscreen,
                                 backRequests: _back,
                                 onClose: () {

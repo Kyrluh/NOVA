@@ -9,6 +9,62 @@ import 'package:nova_iptv/state/source_controller.dart';
 
 void main() {
   test(
+    'Automatic guide shares requests and avoids full catalogue writes',
+    () async {
+      final client = _Client()..epgWaiter = Completer<List<EpgProgramme>>();
+      final repository = _FailingRepository([_record()])..fail = true;
+      final controller = SourceController(
+        repository: repository,
+        client: client,
+      );
+      addTearDown(controller.close);
+      await controller.init();
+      final revision = controller.catalogRevision;
+      final first = controller.ensureEpg('saved');
+      await controller.ensureEpg('saved');
+      expect(client.epgCalls, 1);
+      expect(controller.epgLoading('saved'), isTrue);
+      client.epgWaiter!.complete([
+        EpgProgramme(
+          channelId: 'channel',
+          title: 'Current',
+          description: '',
+          start: DateTime.now(),
+          end: DateTime.now().add(const Duration(hours: 1)),
+        ),
+      ]);
+      await first;
+      await controller.ensureEpg('saved');
+      expect(client.epgCalls, 1);
+      expect(controller.programmesFor('saved').single.title, 'Current');
+      expect(controller.catalogRevision, revision);
+      expect(controller.epgLoading('saved'), isFalse);
+      expect(controller.error, isNull);
+    },
+  );
+
+  test(
+    'Automatic guide failure is nonblocking and backs off retries',
+    () async {
+      final client = _Client()..failEpg = true;
+      final controller = SourceController(
+        repository: MemorySourceRepository([_record()]),
+        client: client,
+      );
+      addTearDown(controller.close);
+      await controller.init();
+      final items = controller.items;
+      await controller.ensureEpg('saved');
+      await controller.ensureEpg('saved');
+      expect(client.epgCalls, 1);
+      expect(controller.error, isNull);
+      expect(controller.epgError('saved'), isNotNull);
+      expect(controller.items, same(items));
+      expect(controller.busyIds, isEmpty);
+    },
+  );
+
+  test(
     'Leaving a detail cancels its request without cancelling a reopened detail',
     () async {
       final client = _Client()..detailWaiter = Completer<MediaItem>();
@@ -423,6 +479,8 @@ MediaItem _series({required bool detailsLoaded, bool withEpisodes = true}) =>
     );
 
 class _Client extends IptvClient {
+  int epgCalls = 0;
+  Completer<List<EpgProgramme>>? epgWaiter;
   int loads = 0;
   int detailCalls = 0;
   bool failLoad = false;
@@ -462,6 +520,8 @@ class _Client extends IptvClient {
     SourceConfig config, {
     CancellationToken? cancel,
   }) async {
+    epgCalls++;
+    if (epgWaiter != null) return epgWaiter!.future;
     if (failEpg) throw StateError('private-password');
     return [
       EpgProgramme(

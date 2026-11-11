@@ -5,6 +5,7 @@ import '../../player/desktop_fullscreen.dart';
 import '../../player/nova_player.dart';
 import '../../state/app_controller.dart';
 import '../episode_navigation.dart';
+import '../widgets/live_guide_hud.dart';
 
 @immutable
 class EpisodePlaybackSpec {
@@ -129,6 +130,9 @@ class _NovaPlaybackPageState extends State<NovaPlaybackPage> {
               );
             },
     );
+    final liveChannel = widget.live
+        ? widget.controller.items.where((item) => item.id == _id).firstOrNull
+        : null;
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -141,6 +145,13 @@ class _NovaPlaybackPageState extends State<NovaPlaybackPage> {
               uri: _uri,
               title: _title,
               isLive: widget.live,
+              liveGuideBuilder: liveChannel != null
+                  ? (compact) => LiveGuideHud(
+                      controller: widget.controller,
+                      channel: liveChannel,
+                      compact: compact,
+                    )
+                  : null,
               initialRate: settings.playbackRate,
               initialVolume: settings.volume,
               touchGestures: !widget.television && settings.touchGestures,

@@ -35,6 +35,10 @@ class SourceController extends ChangeNotifier {
   final Map<String, Future<MediaItem>> _details = {};
   final Set<CancellationToken> _testTokens = {};
   final Map<String, String> _sourceErrors = {};
+  final Map<String, DateTime> _epgAttempts = {};
+  final Map<String, DateTime> _epgSuccesses = {};
+  final Map<String, String> _epgErrors = {};
+  final Set<String> _epgLoads = {};
   final Set<Future<dynamic>> _pending = {};
   List<MediaItem> _items = const [];
   List<EpgProgramme> _programmes = const [];
@@ -188,6 +192,8 @@ class SourceController extends ChangeNotifier {
     _records[sourceId]?.programmes ?? const <EpgProgramme>[],
   );
   Set<String> get busyIds => Set.unmodifiable(_tokens.keys);
+  bool epgLoading(String id) => _epgLoads.contains(id);
+  String? epgError(String id) => _epgErrors[id];
   bool get isInitializing => _isInitializing;
   bool get hasConfiguredSources => _records.isNotEmpty;
   String? get error => _error;
@@ -328,6 +334,11 @@ class SourceController extends ChangeNotifier {
           original != null &&
           _sameProvider(original.config, effective) &&
           original.config.epgUrl == effective.epgUrl;
+      if (!unchangedGuide) {
+        _epgAttempts.remove(id);
+        _epgSuccesses.remove(id);
+        _epgErrors.remove(id);
+      }
       final next = SourceRecord(
         config: effective,
         catalog: catalog,
@@ -379,9 +390,40 @@ class SourceController extends ChangeNotifier {
     return _track(_epgJob(record));
   }
 
-  Future<void> _epgJob(SourceRecord original) async {
+  /// One background request per source, shared by every channel and HUD.
+  /// An unavailable guide never changes the catalogue or playback errors.
+  Future<void> ensureEpg(String id) {
+    final record = _records[id];
+    if (_closed ||
+        _disposed ||
+        record == null ||
+        _tokens.containsKey(id) ||
+        (record.config.kind != SourceKind.xtream &&
+            record.config.epgUrl.trim().isEmpty)) {
+      return Future<void>.value();
+    }
+    final now = DateTime.now();
+    final attempt = _epgAttempts[id];
+    if (attempt != null &&
+        now.difference(attempt) < const Duration(minutes: 5)) {
+      return Future<void>.value();
+    }
+    final success = _epgSuccesses[id];
+    if (success != null &&
+        now.difference(success) < const Duration(hours: 3) &&
+        record.programmes.any((programme) => programme.end.isAfter(now))) {
+      return Future<void>.value();
+    }
+    _epgAttempts[id] = now;
+    return _track(_epgJob(record, background: true));
+  }
+
+  Future<void> _epgJob(SourceRecord original, {bool background = false}) async {
     final id = original.config.id;
     final token = _begin(id);
+    _epgLoads.add(id);
+    _epgErrors.remove(id);
+    _notify();
     try {
       final programmes = await _client.loadEpg(original.config, cancel: token);
       _ensureActive(id, token);
@@ -395,18 +437,26 @@ class SourceController extends ChangeNotifier {
           programmes: programmes,
           updatedAt: latest.updatedAt,
         );
-        await _repository.write(next);
+        // Automatic guide loading keeps a session cache without rewriting the
+        // entire encrypted IPTV catalogue while the decoder is running.
+        if (!background) await _repository.write(next);
         if (!_active(id, token)) {
-          await _repository.write(latest);
+          if (!background) await _repository.write(latest);
           throw const SourceCancelled();
         }
         _records[id] = next;
+        _epgSuccesses[id] = DateTime.now();
+        _epgAttempts[id] = DateTime.now();
         _sourceErrors.remove(id);
         _rebuild(catalog: false, epg: true);
       });
     } catch (exception) {
-      _operationFailed(id, token, exception);
+      if (_active(id, token) && exception is! SourceCancelled) {
+        _epgErrors[id] = _friendly(exception).message;
+      }
+      if (!background) _operationFailed(id, token, exception);
     } finally {
+      _epgLoads.remove(id);
       _finish(id, token);
     }
   }
@@ -419,6 +469,9 @@ class SourceController extends ChangeNotifier {
         try {
           await _repository.delete(id);
           _records.remove(id);
+          _epgAttempts.remove(id);
+          _epgSuccesses.remove(id);
+          _epgErrors.remove(id);
           _sourceErrors.remove(id);
           _error = null;
           _rebuild(catalog: true, epg: true);

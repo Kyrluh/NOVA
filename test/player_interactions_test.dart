@@ -12,6 +12,39 @@ import 'package:nova_iptv/player/desktop_fullscreen.dart';
 import 'desktop_fullscreen_test.dart' show FakeFullscreenWindow;
 
 void main() {
+  for (final television in [false, true]) {
+    testWidgets(
+      'Live guide follows HUD and fullscreen without reopening ($television)',
+      (tester) async {
+        final desktop = DesktopFullscreen(window: FakeFullscreenWindow());
+        addTearDown(desktop.dispose);
+        final fixture = await _mount(
+          tester,
+          live: true,
+          television: television,
+          desktop: desktop,
+          liveGuideBuilder: (_) => const Text(
+            'Programme en cours test',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
+        final controls = find.byKey(const ValueKey('player-controls'));
+        expect(find.text('Programme en cours test'), findsOneWidget);
+        expect(tester.widget<AnimatedOpacity>(controls).opacity, 1);
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
+        expect(tester.widget<AnimatedOpacity>(controls).opacity, 0);
+        final fullscreen = desktop.toggle();
+        await tester.pumpAndSettle();
+        await fullscreen;
+        expect(find.text('Programme en cours test'), findsOneWidget);
+        expect(tester.widget<AnimatedOpacity>(controls).opacity, 1);
+        expect(fixture.platform.openCount, 1);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('Windows central button pauses, resumes and hides with the HUD', (
     tester,
   ) async {
@@ -476,6 +509,8 @@ Future<_Fixture> _mount(
   bool tracks = true,
   bool compact = false,
   bool live = false,
+  bool television = false,
+  Widget Function(bool)? liveGuideBuilder,
   double initialVolume = 80,
   ScrollController? parentScroll,
   DesktopFullscreen? desktop,
@@ -493,6 +528,8 @@ Future<_Fixture> _mount(
       uri: 'http://localhost/original-test-fixture',
       title: 'Test NOVA',
       isLive: live,
+      television: television,
+      liveGuideBuilder: liveGuideBuilder,
       initialVolume: initialVolume,
       episodeNavigation: episodeNavigation,
       autoNext: autoNext,

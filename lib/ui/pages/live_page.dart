@@ -12,6 +12,7 @@ import '../../state/app_controller.dart';
 import '../theme.dart';
 import '../adaptive.dart';
 import '../widgets/artwork.dart';
+import '../widgets/live_guide_hud.dart';
 
 class LivePage extends StatefulWidget {
   const LivePage({
@@ -1006,6 +1007,11 @@ class LivePageState extends State<LivePage> {
                           uri: item.mediaUrl!,
                           title: item.title,
                           isLive: true,
+                          liveGuideBuilder: (compact) => LiveGuideHud(
+                            controller: widget.controller,
+                            channel: item,
+                            compact: compact,
+                          ),
                           initialVolume: widget.controller.settings.volume,
                           touchGestures:
                               widget.controller.settings.touchGestures,
