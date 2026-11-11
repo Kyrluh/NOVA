@@ -11,6 +11,99 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('Android detail updates encrypt only one item and survive restart and refresh', () async {
+    final folder = await Directory.systemTemp.createTemp('nova-details-');
+    addTearDown(() => folder.delete(recursive: true));
+    final path = '${folder.path}/cache.sqlite';
+    final secrets = _TestSecrets();
+    var repo = SQLiteSourceRepository(
+      path: path,
+      secrets: secrets,
+      factory: databaseFactoryFfiNoIsolate,
+      fragmentedPayloads: true,
+    );
+    final original = _record('delta', 1000);
+    await repo.write(original);
+    final fullWrites = secrets.calls;
+    secrets.calls = 0;
+    final detail = original.catalog.items.first.copyWith(
+      description: 'Synopsis privé 👩‍🚀',
+      detailsLoaded: true,
+    );
+    await repo.writeDetails(_detailRecord(original, detail), detail);
+    expect(fullWrites, greaterThan(20));
+    expect(
+      secrets.calls,
+      1,
+      reason: 'Opening one synopsis must not encrypt the whole catalogue',
+    );
+    await repo.close();
+    repo = SQLiteSourceRepository(
+      path: path,
+      secrets: secrets,
+      factory: databaseFactoryFfiNoIsolate,
+      fragmentedPayloads: true,
+    );
+    final restored = (await repo.readAll()).single;
+    expect(restored.catalog.items, hasLength(1000));
+    expect(restored.catalog.items.first.description, detail.description);
+    expect(restored.catalog.items.first.detailsLoaded, isTrue);
+    expect(
+      restored.catalog.items.last.toJson(),
+      original.catalog.items.last.toJson(),
+    );
+    await repo.write(original);
+    expect(
+      (await repo.readAll()).single.catalog.items.first.description,
+      original.catalog.items.first.description,
+    );
+    await repo.writeDetails(_detailRecord(original, detail), detail);
+    await repo.delete(original.config.id);
+    expect(await repo.readAll(), isEmpty);
+    await repo.close();
+  });
+  test(
+    'Android detail fragments roll back atomically and preserve Unicode',
+    () async {
+      final folder = await Directory.systemTemp.createTemp(
+        'nova-detail-rollback-',
+      );
+      addTearDown(() => folder.delete(recursive: true));
+      final secrets = _TestSecrets();
+      final repo = SQLiteSourceRepository(
+        path: '${folder.path}/cache.sqlite',
+        secrets: secrets,
+        factory: databaseFactoryFfiNoIsolate,
+        fragmentedPayloads: true,
+      );
+      final base = _record('delta', 1);
+      await repo.write(base);
+      final detail = base.catalog.items.first.copyWith(
+        description: List.filled(20000, 'Été 👩‍🚀 中文').join(),
+        detailsLoaded: true,
+      );
+      await repo.writeDetails(_detailRecord(base, detail), detail);
+      expect(
+        (await repo.readAll()).single.catalog.items.first.description,
+        detail.description,
+      );
+      expect(secrets.longestPlaintext, lessThanOrEqualTo(48 * 1024));
+      secrets.calls = 0;
+      secrets.failAt = 2;
+      final broken = detail.copyWith(
+        description: detail.description.replaceAll('Été', 'Fin'),
+      );
+      await expectLater(
+        repo.writeDetails(_detailRecord(base, broken), broken),
+        throwsA(isA<SourceRepositoryException>()),
+      );
+      expect(
+        (await repo.readAll()).single.catalog.items.first.description,
+        detail.description,
+      );
+      await repo.close();
+    },
+  );
 
   test(
     'Desktop keeps version-one payloads readable by earlier Windows binaries',
@@ -243,6 +336,16 @@ void main() {
     },
   );
 }
+
+SourceRecord _detailRecord(SourceRecord original, MediaItem detail) =>
+    SourceRecord(
+      config: original.config,
+      catalog: SourceCatalog(
+        items: [detail, ...original.catalog.items.skip(1)],
+      ),
+      programmes: original.programmes,
+      updatedAt: original.updatedAt,
+    );
 
 SourceRecord _record(String id, int amount) => SourceRecord(
   config: SourceConfig(

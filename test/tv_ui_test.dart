@@ -6,6 +6,7 @@ import 'package:nova_iptv/data/demo_catalog.dart';
 import 'package:nova_iptv/data/local_store.dart';
 import 'package:nova_iptv/data/source_repository.dart';
 import 'package:nova_iptv/domain/models.dart';
+import 'package:nova_iptv/domain/catalog_preferences.dart';
 import 'package:nova_iptv/domain/source_models.dart';
 import 'package:nova_iptv/sources/iptv_client.dart';
 import 'package:nova_iptv/state/app_controller.dart';
@@ -17,6 +18,49 @@ import 'package:nova_iptv/ui/tv/tv_widgets.dart';
 import 'package:nova_iptv/ui/pages/details_dialog.dart';
 
 void main() {
+  testWidgets(
+    'TV catalog input survives playback progress and invalidates for changed sorting',
+    (tester) async {
+      final app = await _start(tester);
+      await tester.tap(find.byKey(const ValueKey('tv-nav-movies')));
+      await tester.pumpAndSettle();
+      final before = tester.widget<TvCatalog>(find.byType(TvCatalog)).items;
+      app.recordProgress(
+        before.first.id,
+        WatchProgress(
+          positionSeconds: 30,
+          durationSeconds: 200,
+          lastWatched: DateTime.utc(2026),
+        ),
+      );
+      await app.flush();
+      await tester.pumpAndSettle();
+      expect(
+        identical(
+          tester.widget<TvCatalog>(find.byType(TvCatalog)).items,
+          before,
+        ),
+        isTrue,
+      );
+      app.updateCatalogPreferences(
+        app.catalogPreferences.copyWithRule(
+          MediaKind.movie,
+          app.catalogPreferences
+              .ruleFor(MediaKind.movie)
+              .copyWith(order: CatalogOrder.titleAsc),
+        ),
+      );
+      await app.flush();
+      await tester.pumpAndSettle();
+      expect(
+        identical(
+          tester.widget<TvCatalog>(find.byType(TvCatalog)).items,
+          before,
+        ),
+        isFalse,
+      );
+    },
+  );
   for (final television in [false, true]) {
     testWidgets(
       'Resume reveals a distant episode and follows progress (${television ? "TV" : "shared"})',

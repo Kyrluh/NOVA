@@ -109,17 +109,20 @@ class AppController extends ChangeNotifier {
       _recommendationInput = visible;
       final movies = visible.where((i) => i.kind == MediaKind.movie).toList();
       final genres = activeProfile.genres;
-      final matches = movies.where((item) {
-        final text = genreText(
-          variantsFor(item)
-              .map((v) => '${v.category} ${v.description} ${v.subtitle}')
-              .join(' '),
-        );
-        return genres.any(
-          (g) =>
-              preferredGenres[g]?.any((word) => text.contains(word)) ?? false,
-        );
-      }).toList();
+      final matches = genres.isEmpty
+          ? const <MediaItem>[]
+          : movies.where((item) {
+              final text = genreText(
+                variantsFor(item)
+                    .map((v) => '${v.category} ${v.description} ${v.subtitle}')
+                    .join(' '),
+              );
+              return genres.any(
+                (g) =>
+                    preferredGenres[g]?.any((word) => text.contains(word)) ??
+                    false,
+              );
+            }).toList();
       final pool = matches.isNotEmpty ? matches : movies;
       pool.shuffle();
       final previous = _profiles[_activeProfileId]?['lastRecommendationId'];
@@ -306,6 +309,7 @@ class AppController extends ChangeNotifier {
   }
 
   List<MediaItem> get resumeItems {
+    if (_progress.isEmpty) return const [];
     final ongoing = items.where(canResume).toList();
     ongoing.sort(
       (a, b) => latestProgressFor(b, unfinishedOnly: true)!.lastWatched
@@ -421,6 +425,8 @@ class AppController extends ChangeNotifier {
         ? item.posterUrl
         : internetCatalog?.posterFor(item);
   }
+
+  void cancelDetails(MediaItem item) => sources?.cancelDetails(item.id);
 
   Future<MediaItem> loadDetails(MediaItem item) async =>
       item.isDemo || sources == null ? item : await sources!.details(item);

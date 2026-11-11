@@ -34,6 +34,41 @@ class _TvCatalogState extends State<TvCatalog> {
   final _search = TextEditingController();
   final _gridFocus = FocusNode(debugLabel: 'TV catalog results');
   String? _category;
+  List<MediaItem>? _indexInput;
+  List<MediaItem>? _indexCatalog;
+  final _groups = <String>{};
+  List<({MediaItem item, String query, Set<String> categories})> _indexed =
+      const [];
+  void _ensureIndex() {
+    final visible = widget.controller.items;
+    if (identical(_indexInput, widget.items) &&
+        identical(_indexCatalog, visible)) {
+      return;
+    }
+    _indexInput = widget.items;
+    _indexCatalog = visible;
+    _groups.clear();
+    for (final item in widget.items) {
+      _groups.addAll(
+        widget.controller.variantsFor(item).map((v) => v.category),
+      );
+    }
+    final ordered = widget.recentCategory
+        ? recentlyAdded(widget.items)
+        : widget.items;
+    _indexed = [
+      for (final item in ordered)
+        (
+          item: item,
+          query: '${item.title} ${item.category}'.toLowerCase(),
+          categories: widget.controller
+              .variantsFor(item)
+              .map((v) => v.category)
+              .toSet(),
+        ),
+    ];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,28 +84,24 @@ class _TvCatalogState extends State<TvCatalog> {
 
   @override
   Widget build(BuildContext context) {
-    final groups = widget.items
-        .expand((i) => widget.controller.variantsFor(i).map((v) => v.category))
-        .toSet();
+    _ensureIndex();
+    final groups = _groups;
     if (_category != null &&
         _category != _recent &&
         !groups.contains(_category)) {
       _category = null;
     }
     final query = _search.text.trim().toLowerCase();
-    var items = widget.items
+    final items = _indexed
         .where(
           (i) =>
               (_category == null ||
                   _category == _recent ||
-                  widget.controller
-                      .variantsFor(i)
-                      .any((v) => _category == v.category)) &&
-              (query.isEmpty ||
-                  '${i.title} ${i.category}'.toLowerCase().contains(query)),
+                  i.categories.contains(_category)) &&
+              (query.isEmpty || i.query.contains(query)),
         )
+        .map((entry) => entry.item)
         .toList();
-    if (widget.recentCategory) items = recentlyAdded(items);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

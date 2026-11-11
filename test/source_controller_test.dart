@@ -9,6 +9,34 @@ import 'package:nova_iptv/state/source_controller.dart';
 
 void main() {
   test(
+    'Leaving a detail cancels its request without cancelling a reopened detail',
+    () async {
+      final client = _Client()..detailWaiter = Completer<MediaItem>();
+      final repository = MemorySourceRepository([_record()]);
+      final controller = SourceController(
+        repository: repository,
+        client: client,
+      );
+      await controller.init();
+      final item = controller.items.single;
+      final oldRequest = controller.details(item);
+      final cancelled = expectLater(
+        oldRequest,
+        throwsA(isA<SourceCancelled>()),
+      );
+      controller.cancelDetails(item.id);
+      final current = controller.details(item);
+      client.detailWaiter!.complete(
+        item.copyWith(detailsLoaded: true, description: 'Fiche actuelle'),
+      );
+      await cancelled;
+      expect((await current).description, 'Fiche actuelle');
+      expect(controller.items.single.detailsLoaded, isTrue);
+      expect(client.detailCalls, 2);
+      await controller.close();
+    },
+  );
+  test(
     'Recent additions keep legacy cache dates across refresh and restart',
     () async {
       final original = _record();

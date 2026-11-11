@@ -4,7 +4,7 @@ Application dédiée aux téléviseurs et boîtiers Android, conçue pour les fl
 
 ## APK et compatibilité
 
-- Fichier : **NOVA-IPTV-TV-0.8.8-universal.apk**.
+- Fichier : **NOVA-IPTV-TV-0.8.9-universal.apk**.
 - Package de production : **`app.nova.iptv.tv`** ; application téléphone : `app.nova.iptv`.
 - Android **API24/7.0 minimum**, cible API36 ; architectures ARM32, ARM64 et x86_64.
 - Android TV / Google TV et Fire TV sous **Fire OS basé sur Android**, sous réserve de respecter l'API minimum et les capacités vidéo de l'appareil.
@@ -67,6 +67,8 @@ Depuis la version TV 0.8.2, les flèches haut/bas déplacent le focus entre les 
 Les catalogues sont actualisés au lancement avec la progression partagée. Les sources restent chiffrées dans le stockage de ce package. Aucun transfert automatique de mots de passe depuis une autre application ou un téléphone n'est effectué.
 
 Depuis la version **0.8.8**, le démarrage affiche un écran de chargement complet : lecture du cache, actualisation des sources, puis affichage des profils et des catalogues. L'import et l'actualisation manuelle recouvrent temporairement le formulaire avec cet écran, sans perdre sa saisie. Si une source échoue, le cache disponible reste accessible après la tentative. Sur les appareils TV, le cache d'images est limité à 32 Mio/96 entrées ; la sauvegarde Android produit directement des fragments JSON chiffrés plutôt qu'une deuxième copie complète du catalogue.
+
+La version **0.8.9** enregistre chaque synopsis dans un cache chiffré séparé, sans réécrire le catalogue entier. Elle réutilise les listes et tris pendant la lecture et annule la requête d'une fiche lorsqu'on la quitte. L'APK TV utilise Skia. Sur les appareils Amazon, la vidéo utilise **MediaCodec direct** (`mediacodec_embed`) pour contourner les artefacts de textures constatés avec le HEVC ; les autres TV conservent le mode automatique. Ce chemin direct repose sur les codecs pris en charge par le matériel, et certains traitements vidéo mpv y sont indisponibles ; les sous-titres texte sont affichés par Flutter. Les téléphones et Windows ne reçoivent pas de nouveau binaire dans cette livraison.
 
 ## Compilation
 

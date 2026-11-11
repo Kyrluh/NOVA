@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show compute;
+import 'package:crypto/crypto.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' as mobile_sqlite;
 
@@ -14,6 +15,8 @@ import 'secret_store.dart';
 String _encodeRecord(SourceRecord record) => jsonEncode(record.toJson());
 SourceRecord _decodeRecord(String value) =>
     SourceRecord.fromJson(jsonDecode(value) as Map<String, dynamic>);
+MediaItem _decodeDetail(String value) =>
+    MediaItem.fromJson(jsonDecode(value) as Map<String, dynamic>);
 
 class SourceRecord {
   const SourceRecord({
@@ -86,6 +89,8 @@ abstract class SourceRepository {
   List<String> get warnings => const [];
   Future<List<SourceRecord>> readAll();
   Future<void> write(SourceRecord record);
+  Future<void> writeDetails(SourceRecord record, MediaItem detail) =>
+      write(record);
   Future<void> delete(String id);
   Future<void> close();
 }
@@ -141,6 +146,15 @@ class SQLiteSourceRepository extends SourceRepository {
               },
               onUpgrade: (db, oldVersion, newVersion) async {
                 if (oldVersion < 2) await _createChunks(db);
+              },
+              onOpen: (db) async {
+                if (_fragmented) {
+                  await db.execute(
+                    'CREATE TABLE IF NOT EXISTS source_details (source_id TEXT NOT NULL, '
+                    'item_key TEXT NOT NULL, part INTEGER NOT NULL, payload BLOB NOT NULL, '
+                    'PRIMARY KEY (source_id, item_key, part))',
+                  );
+                }
               },
             ),
           );
@@ -271,8 +285,9 @@ class SQLiteSourceRepository extends SourceRepository {
       for (final row in rows) {
         try {
           final plaintext = await _readPayload(db, row['id'] as String);
-          final record = await compute(_decodeRecord, plaintext);
+          var record = await compute(_decodeRecord, plaintext);
           if (record.config.id != row['id']) throw const FormatException();
+          if (_fragmented) record = await _restoreDetails(db, record);
           records.add(record);
         } catch (_) {
           _warnings.add(
@@ -302,6 +317,11 @@ class SQLiteSourceRepository extends SourceRepository {
       }
       await (await _database()).transaction((transaction) async {
         await transaction.delete(
+          'source_details',
+          where: 'source_id = ?',
+          whereArgs: [record.config.id],
+        );
+        await transaction.delete(
           'source_chunks',
           where: 'id = ?',
           whereArgs: [record.config.id],
@@ -327,11 +347,103 @@ class SQLiteSourceRepository extends SourceRepository {
     }
   });
 
+  /// Android detail pages must not rewrite thousands of unrelated entries.
+  /// Only hashed keys and bounded encrypted payloads are persisted here.
+  @override
+  Future<void> writeDetails(SourceRecord record, MediaItem detail) {
+    if (!_fragmented) return write(record);
+    return _serial(() async {
+      try {
+        final key = sha256.convert(utf8.encode(detail.id)).toString();
+        final db = await _database();
+        await db.transaction((transaction) async {
+          await transaction.delete(
+            'source_details',
+            where: 'source_id = ? AND item_key = ?',
+            whereArgs: [record.config.id, key],
+          );
+          var part = 0;
+          for (final fragment in _fragments(jsonEncode(detail.toJson()))) {
+            final payload = await secrets.protect(fragment);
+            await transaction.insert('source_details', {
+              'source_id': record.config.id,
+              'item_key': key,
+              'part': part++,
+              'payload': payload,
+            });
+          }
+        });
+      } catch (_) {
+        throw const SourceRepositoryException(
+          'La fiche ne peut pas être enregistrée dans le cache protégé.',
+        );
+      }
+    });
+  }
+
+  Future<SourceRecord> _restoreDetails(Database db, SourceRecord record) async {
+    final keys = await db.rawQuery(
+      'SELECT item_key, COUNT(*) AS amount FROM source_details WHERE source_id = ? GROUP BY item_key',
+      [record.config.id],
+    );
+    if (keys.isEmpty) return record;
+    final details = <String, MediaItem>{};
+    for (final row in keys) {
+      try {
+        final buffer = StringBuffer();
+        for (var part = 0; part < (row['amount'] as int); part++) {
+          final fragments = await db.query(
+            'source_details',
+            columns: ['payload'],
+            where: 'source_id = ? AND item_key = ? AND part = ?',
+            whereArgs: [record.config.id, row['item_key'], part],
+            limit: 1,
+          );
+          buffer.write(
+            await secrets.unprotect(fragments.single['payload'] as Uint8List),
+          );
+        }
+        final text = buffer.toString();
+        final item = text.length > 256 * 1024
+            ? await compute(_decodeDetail, text)
+            : _decodeDetail(text);
+        if (sha256.convert(utf8.encode(item.id)).toString() !=
+                row['item_key'] ||
+            item.sourceId != record.config.id) {
+          throw const FormatException();
+        }
+        details[item.id] = item;
+      } catch (_) {
+        _warnings.add(
+          'Une fiche en cache est indisponible ; elle sera rechargée à son ouverture.',
+        );
+      }
+    }
+    return SourceRecord(
+      config: record.config,
+      catalog: SourceCatalog(
+        items: [
+          for (final item in record.catalog.items) details[item.id] ?? item,
+        ],
+        suggestedEpgUrl: record.catalog.suggestedEpgUrl,
+        warnings: record.catalog.warnings,
+        failedKinds: record.catalog.failedKinds,
+      ),
+      programmes: record.programmes,
+      updatedAt: record.updatedAt,
+    );
+  }
+
   @override
   Future<void> delete(String id) => _serial(() async {
     try {
       await (await _database()).transaction((transaction) async {
         if (_fragmented) {
+          await transaction.delete(
+            'source_details',
+            where: 'source_id = ?',
+            whereArgs: [id],
+          );
           await transaction.delete(
             'source_chunks',
             where: 'id = ?',

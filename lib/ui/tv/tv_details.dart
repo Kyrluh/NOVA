@@ -73,6 +73,7 @@ class _TvDetailsState extends State<TvDetails> {
 
   @override
   void dispose() {
+    widget.controller.cancelDetails(_item);
     _episodesScroll.dispose();
     _resumeFocus.dispose();
     super.dispose();
@@ -207,6 +208,7 @@ class _TvDetailsState extends State<TvDetails> {
                     controller: app,
                     item: _item,
                     onChanged: (version) {
+                      widget.controller.cancelDetails(_item);
                       setState(() {
                         _item = version;
                         _season = 0;

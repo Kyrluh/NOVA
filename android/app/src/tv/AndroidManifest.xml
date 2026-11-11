@@ -12,6 +12,9 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="true"
         android:supportsRtl="true">
+        <!-- Older TV GPU drivers can corrupt external video textures with
+             Impeller. Keep the stable Skia renderer in the dedicated TV APK. -->
+        <meta-data android:name="io.flutter.embedding.android.EnableImpeller" android:value="false" />
         <activity
             android:name="app.nova.iptv.MainActivity"
             android:exported="true"

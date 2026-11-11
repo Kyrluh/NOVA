@@ -82,6 +82,7 @@ class MainActivity : FlutterActivity() {
         channel?.setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
+                    "isAmazonDevice" -> result.success(Build.MANUFACTURER.equals("Amazon", ignoreCase = true))
                     "editSourceText" -> editSourceText(call, result)
                     "protect", "unprotect" -> crypto(call, result)
                     "getBrightness" -> {

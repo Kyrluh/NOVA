@@ -54,6 +54,43 @@ class _NovaTvShellState extends State<NovaTvShell> {
   String _section = 'home';
   CatalogPlatform? _platform;
   String? _requestedChannel;
+  List<MediaItem>? _kindCatalogInput;
+  final _kindCatalogs = <MediaKind, List<MediaItem>>{};
+  Object? _platformCatalogStamp;
+  List<MediaItem> _platformCatalog = const [];
+  List<MediaItem> _platformItems(CatalogPlatform platform) {
+    final visible = app.items;
+    final stamp = (
+      visible,
+      app.platformPreferences,
+      app.internetCatalog?.lastUpdated,
+      platform,
+    );
+    if (stamp != _platformCatalogStamp) {
+      _platformCatalogStamp = stamp;
+      _platformCatalog = visible
+          .where(
+            (item) =>
+                item.kind != MediaKind.live &&
+                app.platformsFor(item).contains(platform),
+          )
+          .toList(growable: false);
+    }
+    return _platformCatalog;
+  }
+
+  List<MediaItem> _kindItems(MediaKind kind) {
+    final visible = app.items;
+    if (!identical(visible, _kindCatalogInput)) {
+      _kindCatalogInput = visible;
+      _kindCatalogs.clear();
+    }
+    return _kindCatalogs.putIfAbsent(
+      kind,
+      () => visible.where((item) => item.kind == kind).toList(growable: false),
+    );
+  }
+
   final _liveKey = GlobalKey<TvLiveState>();
   AppController get app => widget.controller;
   @override
@@ -259,12 +296,8 @@ class _NovaTvShellState extends State<NovaTvShell> {
       nativeReady: widget.nativeReady,
       initialChannelId: _requestedChannel,
     ),
-    'movies' => _catalog(
-      app.items.where((i) => i.kind == MediaKind.movie).toList(),
-    ),
-    'series' => _catalog(
-      app.items.where((i) => i.kind == MediaKind.series).toList(),
-    ),
+    'movies' => _catalog(_kindItems(MediaKind.movie)),
+    'series' => _catalog(_kindItems(MediaKind.series)),
     'resume' => _catalog(app.resumeItems),
     'favorites' => _catalog(
       app.items.where((i) => app.favorites.contains(i.id)).toList(),
@@ -453,17 +486,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
               label: const Text('Toutes les plateformes'),
             ),
           ),
-          Expanded(
-            child: _catalog(
-              app.items
-                  .where(
-                    (i) =>
-                        i.kind != MediaKind.live &&
-                        app.platformsFor(i).contains(selected),
-                  )
-                  .toList(),
-            ),
-          ),
+          Expanded(child: _catalog(_platformItems(selected))),
         ],
       );
     }

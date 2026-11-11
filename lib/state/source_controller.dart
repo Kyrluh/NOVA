@@ -488,9 +488,9 @@ class SourceController extends ChangeNotifier {
           programmes: latest.programmes,
           updatedAt: latest.updatedAt,
         );
-        await _repository.write(next);
+        await _repository.writeDetails(next, detail);
         if (_closed || token.isCancelled || !_records.containsKey(config.id)) {
-          await _repository.write(latest);
+          await _repository.writeDetails(latest, latest.catalog.items[index]);
           throw const SourceCancelled();
         }
         _records[config.id] = next;
@@ -515,6 +515,11 @@ class SourceController extends ChangeNotifier {
       _detailTokens.remove(id);
       _details.remove(id);
     }
+  }
+
+  void cancelDetails(String id) {
+    _detailTokens.remove(id)?.cancel();
+    _details.remove(id);
   }
 
   void cancel(String id) {
