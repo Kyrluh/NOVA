@@ -2,7 +2,7 @@
 
 Lecteur IPTV natif pour **Windows et Android**, développé avec Flutter et libmpv. NOVA réunit la TV en direct, les films, les séries et la reprise de lecture dans une interface sombre adaptée à la souris comme au tactile.
 
-**TV : 0.8.3+21** · **Android téléphone : 0.8.3+21** · **Windows x64 : 0.8.3+21** · **GPL-3.0-or-later**
+**TV : 0.8.4+22** · **Android téléphone : 0.8.3+21** · **Windows x64 : 0.8.3+21** · **GPL-3.0-or-later**
 
 **NOVA IPTV TV** est une APK dédiée à la télécommande, distincte de l'application téléphone : menu latéral, focus visible, liste des chaînes et lecteur côte à côte, saisons/épisodes, commandes OK et flèches, touches multimédias et ajout de sources adapté au clavier TV. Elle cible **Android TV/Google TV** et **Fire OS à partir d'API24** ; les appareils Vega ne peuvent pas installer cette APK Android. [Installation et compatibilité TV](docs/ANDROID-TV.md).
 
@@ -13,6 +13,8 @@ NOVA lit les sources personnelles configurées par l'utilisateur. Aucun abonneme
 ![Accueil Windows — catalogue fictif de démonstration](docs/preview.png)
 
 ## Fonctionnalités
+
+**Correctif TV 0.8.4** : l'ancien ordre alphabétique est remplacé une fois par **Ordre de la source**, séparément dans chaque profil de l'APK TV. Les filtres, favoris et reprises sont conservés. Le choix **Ordre des chaînes** est désormais directement accessible dans TV en direct ; un choix manuel effectué après la correction reste mémorisé. Cette mise à jour reconstruit uniquement l'APK TV/Fire Stick ; téléphone et Windows restent en 0.8.3. [Validation TV 0.8.4](docs/TV-VALIDATION-0.8.4.md).
 
 **Affichage 0.8.3** : dans **Paramètres → Affiches par ligne · Films et Séries**, choisir **Automatique ou 1 à 12** sur Windows, téléphone et TV. Le choix est enregistré par profil et s'applique aux grilles de catalogue, y compris les favoris et résultats concernés. NOVA réduit le nombre sur une largeur trop petite pour préserver la lisibilité ; la préférence reste mémorisée pour retrouver la densité demandée sur un grand écran. En mode TV, les grandes cartes restent limitées à la hauteur visible pour conserver la navigation à la télécommande. Les carrousels gardent leur réglage de taille habituel.
 
@@ -50,16 +52,16 @@ La version **0.7.1** ajoute **Récemment ajoutés** sous **Reprendre** à l'accu
 
 ## Installer et mettre à jour
 
-Les installables sont disponibles dans les releases [**TV 0.8.3**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.3), [**Android téléphone 0.8.3**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.3) et [**Windows 0.8.3**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.3). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
+Les installables sont disponibles dans les releases [**TV 0.8.4**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.4), [**Android téléphone 0.8.3**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.3) et [**Windows 0.8.3**](https://github.com/Kyrluh/NOVA/releases/tag/v0.8.3). Le dépôt Git contient le **code source et la documentation** ; les binaires sont distribués séparément dans les releases. Les clés privées et les outils locaux restent hors Git.
 
 | Plateforme | Téléchargement |
 | --- | --- |
 | Windows x64 portable | [ZIP Windows](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/NOVA-IPTV-0.8.3-windows-x64.zip) |
-| Android TV / Google TV / Fire OS compatible | [APK TV universelle dédiée](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/NOVA-IPTV-TV-0.8.3-universal.apk) |
+| Android TV / Google TV / Fire OS compatible | [APK TV universelle dédiée](https://github.com/Kyrluh/NOVA/releases/download/v0.8.4/NOVA-IPTV-TV-0.8.4-universal.apk) |
 | Android ARM64, notamment Galaxy Z Fold | [APK ARM64](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/NOVA-IPTV-0.8.3-arm64-v8a.apk) |
 | Android universelle : ARM64, ARM32, x86_64 | [APK universelle](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/NOVA-IPTV-0.8.3-universal.apk) |
 
-Les empreintes SHA-256 sont disponibles pour [TV 0.8.3](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/SHA256SUMS.txt), [Windows 0.8.3](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/SHA256SUMS.txt) et [Android téléphone 0.8.3](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/SHA256SUMS.txt). Les compilations locales produisent leurs installables dans `dist/`, `dist/android/` ou `dist/android-tv/`.
+Les empreintes SHA-256 sont disponibles pour [TV 0.8.4](https://github.com/Kyrluh/NOVA/releases/download/v0.8.4/SHA256SUMS.txt), [Windows 0.8.3](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/SHA256SUMS.txt) et [Android téléphone 0.8.3](https://github.com/Kyrluh/NOVA/releases/download/v0.8.3/SHA256SUMS.txt). Les compilations locales produisent leurs installables dans `dist/`, `dist/android/` ou `dist/android-tv/`.
 
 ### Windows
 
@@ -243,7 +245,7 @@ Après préparation des outils Android et de la signature :
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-android-tv.ps1
 ```
 
-Ce script compile une APK universelle ARM32/ARM64/x86_64 puis vérifie son package TV, son lanceur Leanback, sa signature et ses architectures. Il produit `dist/android-tv/NOVA-IPTV-TV-0.8.3-universal.apk`. Le paramètre `--dart-define=NOVA_TV=true` sélectionne à la fois le manifeste/package natif et l'interface Flutter ; sans ce paramètre, les commandes Android habituelles continuent de produire l'application téléphone.
+Ce script compile une APK universelle ARM32/ARM64/x86_64 puis vérifie son package TV, son lanceur Leanback, sa signature et ses architectures. Il produit `dist/android-tv/NOVA-IPTV-TV-0.8.4-universal.apk`. Le paramètre `--dart-define=NOVA_TV=true` sélectionne à la fois le manifeste/package natif et l'interface Flutter ; sans ce paramètre, les commandes Android habituelles continuent de produire l'application téléphone.
 
 ### Vérifier une modification
 

@@ -73,6 +73,7 @@ Future<void> main() async {
     internetStore = _UnavailableStore();
   }
   final controller = AppController(
+    television: television,
     refreshSourcesOnStartup: true,
     store: store,
     internetCatalog: InternetCatalogController(store: internetStore),

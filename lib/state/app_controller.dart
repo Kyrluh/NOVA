@@ -25,6 +25,7 @@ class AppController extends ChangeNotifier {
     this.sources,
     this.internetCatalog,
     this.refreshSourcesOnStartup = false,
+    this.television = false,
     bool? android,
   })
     // ignore: prefer_initializing_formals
@@ -146,6 +147,7 @@ class AppController extends ChangeNotifier {
     _catalogPreferences = CatalogPreferences.fromJson(
       data['catalogPreferences'],
     );
+    _restoreTvChannelOrder();
     _platformPreferences = PlatformPreferences.fromJson(
       data['platformPreferences'],
     );
@@ -169,6 +171,7 @@ class AppController extends ChangeNotifier {
 
   final bool _android;
   final bool refreshSourcesOnStartup;
+  final bool television;
   final SourceController? sources;
   final InternetCatalogController? internetCatalog;
   void _internetChanged() {
@@ -451,6 +454,25 @@ class AppController extends ChangeNotifier {
 
   Future<void> init() => _initialization ??= _load();
 
+  /// Dedicated TV builds had no channel-order control. Reset legacy choices
+  /// once per profile, preserving filters and future explicit sorting choices.
+  bool _restoreTvChannelOrder() {
+    final profile = _profiles[_activeProfileId];
+    if (!television ||
+        profile == null ||
+        profile['tvChannelOrderVersion'] == 1) {
+      return false;
+    }
+    _catalogPreferences = _catalogPreferences.copyWithRule(
+      MediaKind.live,
+      _catalogPreferences
+          .ruleFor(MediaKind.live)
+          .copyWith(order: CatalogOrder.source),
+    );
+    profile['tvChannelOrderVersion'] = 1;
+    return true;
+  }
+
   Future<void> _load() async {
     var saveSourceOrder = false;
     try {
@@ -497,6 +519,7 @@ class AppController extends ChangeNotifier {
         // Persist once; later explicit sorting choices remain the user's choice.
         saveSourceOrder = true;
       }
+      if (_restoreTvChannelOrder()) saveSourceOrder = true;
       _preferencesRevision++;
       _platformPreferences = PlatformPreferences.fromJson(
         data['platformPreferences'],

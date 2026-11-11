@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
+import '../../domain/catalog_preferences.dart';
 import '../../player/nova_player.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
@@ -119,6 +120,53 @@ class TvLiveState extends State<TvLive> {
                       ),
                   ],
                   onChanged: (value) => setState(() => _category = value),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<CatalogOrder>(
+                  key: ValueKey(
+                    'tv-live-order-${app.catalogPreferences.ruleFor(MediaKind.live).order.name}',
+                  ),
+                  initialValue: app.catalogPreferences
+                      .ruleFor(MediaKind.live)
+                      .order,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Ordre des chaînes',
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: CatalogOrder.source,
+                      child: Text('Ordre de la source'),
+                    ),
+                    DropdownMenuItem(
+                      value: CatalogOrder.titleAsc,
+                      child: Text('Titre · A → Z'),
+                    ),
+                    DropdownMenuItem(
+                      value: CatalogOrder.titleDesc,
+                      child: Text('Titre · Z → A'),
+                    ),
+                    DropdownMenuItem(
+                      value: CatalogOrder.category,
+                      child: Text('Mes catégories'),
+                    ),
+                    DropdownMenuItem(
+                      value: CatalogOrder.yearDesc,
+                      child: Text('Année'),
+                    ),
+                  ],
+                  onChanged: (order) {
+                    if (order != null) {
+                      app.updateCatalogPreferences(
+                        app.catalogPreferences.copyWithRule(
+                          MediaKind.live,
+                          app.catalogPreferences
+                              .ruleFor(MediaKind.live)
+                              .copyWith(order: order),
+                        ),
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(height: 10),
                 Expanded(
