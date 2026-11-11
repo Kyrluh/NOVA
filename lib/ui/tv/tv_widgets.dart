@@ -17,11 +17,11 @@ ThemeData novaTvTheme(int accent) {
     ),
   );
   return base.copyWith(
-    focusColor: color.withValues(alpha: .35),
+    focusColor: color.withValues(alpha: .8),
     inputDecorationTheme: base.inputDecorationTheme.copyWith(
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: color, width: 3),
+        borderSide: const BorderSide(color: Colors.white, width: 3),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(

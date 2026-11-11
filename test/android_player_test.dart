@@ -9,7 +9,40 @@ import 'package:nova_iptv/player/android_player_host.dart';
 import 'package:nova_iptv/player/nova_player.dart';
 import 'package:nova_iptv/player/tv_channel_panel.dart';
 
+Future<void> _tvBack(WidgetTester tester) async {
+  await tester.sendKeyEvent(
+    LogicalKeyboardKey.goBack,
+    physicalKey: PhysicalKeyboardKey.escape,
+  );
+  await tester.pump();
+}
+
 void main() {
+  testWidgets(
+    'New videos start without subtitles while manual selection remains available',
+    (tester) async {
+      final f = await _mount(tester);
+      expect(f.platform.state.track.subtitle.id, 'no');
+      expect(f.platform.playedSubtitleIds, ['no']);
+      await f.platform.setSubtitleTrack(
+        const SubtitleTrack('s-fr', 'Français', 'fra'),
+      );
+      expect(f.platform.state.track.subtitle.id, 's-fr');
+      await f.remount(uri: 'http://localhost/next-episode.mp4');
+      expect(f.platform.state.track.subtitle.id, 'no');
+      expect(f.platform.playedSubtitleIds, ['no', 'no']);
+      await f.platform.setSubtitleTrack(
+        const SubtitleTrack('s-fr', 'Français', 'fra'),
+      );
+      await f.remount(
+        live: true,
+        uri: 'http://localhost/live.ts',
+        television: true,
+      );
+      expect(f.platform.state.track.subtitle.id, 'no');
+      expect(f.platform.playedSubtitleIds.last, 'no');
+    },
+  );
   testWidgets(
     'TV Back dismisses HUD and channel panel before closing the fullscreen live player',
     (tester) async {
@@ -17,19 +50,19 @@ void main() {
       await f.remount(television: true, live: true, closeable: true);
       f.fullscreenRequests.value++;
       await tester.pumpAndSettle();
-      f.backRequests.value++;
+      await _tvBack(tester);
       await tester.pumpAndSettle();
       expect(f.closed, 0);
       expect(f.host.fullscreenCalls.last, isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.select);
       await tester.pumpAndSettle();
       expect(find.byType(TvChannelPanel), findsOneWidget);
-      f.backRequests.value++;
+      await _tvBack(tester);
       await tester.pumpAndSettle();
       expect(find.byType(TvChannelPanel), findsNothing);
       expect(f.closed, 0);
       expect(f.host.fullscreenCalls.last, isTrue);
-      f.backRequests.value++;
+      await _tvBack(tester);
       await tester.pumpAndSettle();
       expect(f.closed, 1);
       expect(f.host.fullscreenCalls.last, isFalse);
@@ -71,6 +104,38 @@ void main() {
       expect(f.platform.opened, hasLength(1));
     },
   );
+
+  testWidgets('TV Menu opens controls before toggling stream information', (
+    tester,
+  ) async {
+    final f = await _mount(tester, television: true);
+    await f.remount(television: true, live: true);
+    Focus.of(tester.element(find.byKey(const ValueKey('player-touch-surface'))))
+        .requestFocus();
+    await tester.pump();
+    await _tvBack(tester);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('player-info')), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('player-info')), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('player-info')), findsOneWidget);
+    await _tvBack(tester);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('player-info')), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('player-info')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('player-info')), findsNothing);
+    expect(f.channelNext, 0);
+    expect(f.channelPrevious, 0);
+  });
 
   testWidgets('TV live remote changes channels without seeking', (
     tester,
@@ -522,6 +587,7 @@ class _Fixture {
     bool closeable = false,
     double? width,
     double height = 340,
+    String uri = 'http://localhost/original-fixture.mp4',
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -549,7 +615,7 @@ class _Fixture {
                 onClose: closeable ? () => closed++ : null,
                 android: true,
                 androidHost: host,
-                uri: 'http://localhost/original-fixture.mp4',
+                uri: uri,
                 title: 'Création originale',
                 isLive: live,
                 touchGestures: gestures,
@@ -651,6 +717,7 @@ class _FakePlatform extends PlatformPlayer {
   }
   final opened = <Media>[];
   final seeks = <Duration>[];
+  final playedSubtitleIds = <String>[];
   bool failOpen = false;
   void buffer() {
     state = state.copyWith(buffering: true);
@@ -671,6 +738,7 @@ class _FakePlatform extends PlatformPlayer {
     state = state.copyWith(
       position: media.start ?? Duration.zero,
       buffering: false,
+      track: state.track.copyWith(subtitle: SubtitleTrack.auto()),
     );
     bufferingController.add(false);
     if (play) await this.play();
@@ -684,6 +752,7 @@ class _FakePlatform extends PlatformPlayer {
 
   @override
   Future<void> play() async {
+    playedSubtitleIds.add(state.track.subtitle.id);
     state = state.copyWith(
       playing: true,
       position: state.position == Duration.zero

@@ -43,6 +43,7 @@ android {
         if (novaTv) {
             manifest.srcFile("src/tv/AndroidManifest.xml")
             res.srcDir("src/tv/res")
+            java.srcDir("src/tv/kotlin")
         }
     }
 
@@ -77,4 +78,14 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    if (novaTv) {
+        val media3Version = "1.11.1"
+        implementation("androidx.media3:media3-exoplayer:$media3Version")
+        implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
+        implementation("androidx.media3:media3-exoplayer-dash:$media3Version")
+        implementation("androidx.media3:media3-ui:$media3Version")
+    }
 }

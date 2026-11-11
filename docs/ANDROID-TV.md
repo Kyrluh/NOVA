@@ -1,10 +1,12 @@
 # NOVA IPTV TV
 
-Application dédiée aux téléviseurs et boîtiers Android, conçue pour les flèches, OK, Retour et les touches multimédias. Elle partage les modèles, sources, cache chiffré, logique de reprise et moteur libmpv de NOVA ; son interface et son package sont distincts.
+Application dédiée aux téléviseurs et boîtiers Android, conçue pour les flèches, OK, Retour et les touches multimédias. Elle partage les modèles, sources, cache chiffré et logique de reprise de NOVA ; son interface et son package sont distincts. Son lecteur Media3 utilise un rendu vidéo Android natif, tout en conservant la bibliothèque et les profils.
 
 ## APK et compatibilité
 
-- Fichier : **NOVA-IPTV-TV-0.8.9-universal.apk**.
+- Version TV : **0.9.2+31**, fichier [NOVA-IPTV-TV-0.9.2-universal.apk](https://github.com/Kyrluh/NOVA/releases/download/v0.9.2/NOVA-IPTV-TV-0.9.2-universal.apk). Package, signature existante, trois architectures, API24/36 et alignement ZIP 16 KiB vérifiés.
+- Les sous-titres sont désactivés au lancement de chaque vidéo/chaîne/épisode et activables uniquement sur demande dans le lecteur. Une reconnexion au même contenu conserve la sélection manuelle.
+- [Notes de version et validation 0.9.2](TV-VALIDATION-0.9.2.md).
 - Package de production : **`app.nova.iptv.tv`** ; application téléphone : `app.nova.iptv`.
 - Android **API24/7.0 minimum**, cible API36 ; architectures ARM32, ARM64 et x86_64.
 - Android TV / Google TV et Fire TV sous **Fire OS basé sur Android**, sous réserve de respecter l'API minimum et les capacités vidéo de l'appareil.
@@ -13,6 +15,10 @@ Application dédiée aux téléviseurs et boîtiers Android, conçue pour les fl
 Le manifeste déclare le lanceur Leanback, une bannière TV, le paysage et l'absence d'exigence tactile, conformément aux [éléments de configuration Android TV](https://developer.android.com/training/tv/get-started/create). Aucune dépendance Google Play Services n'est introduite par l'interface TV.
 
 ## Installation
+
+La version 0.9.2 a été installée sur la Fire TV du propriétaire. Les vérifications de compilation et les tests ciblés ne remplacent pas un essai prolongé des flux sur chaque modèle de TV. Windows et téléphone ne reçoivent pas de nouveau binaire dans cette release.
+
+En 0.9.1, **Menu** affiche les commandes si elles sont masquées ; lorsqu'elles sont visibles, il affiche/masque les informations du lecteur. **Retour** ferme d'abord ces informations. L'icône d'information en haut reste accessible et les quatre boutons du direct sont conservés. Sept scénarios ciblés passent ; l'analyse de trois fichiers ne relève aucune erreur. La récupération bornée du type HLS/DASH et la réinitialisation des décodeurs ne garantissent pas tous les flux ou appareils.
 
 1. Télécharger l'APK TV depuis la release GitHub, puis la transférer ou l'installer avec les outils autorisés de l'appareil.
 2. Sur les appareils Fire OS compatibles, l'installation via ADB suit la [procédure Amazon](https://developer.amazon.com/docs/fire-tv/installing-and-running-your-app.html).
@@ -58,7 +64,7 @@ La barre du **direct** propose dans cet ordre : **réactualiser la chaîne, paus
 
 Les champs de **recherche** des catalogues, du direct et du tri de catégories n'ouvrent le clavier qu'avec **OK**. Les flèches passent au contrôle voisin sans entrer en édition. **Valider** ou Retour dans l'éditeur de recherche conserve le texte et rend le focus à la recherche ; les flèches permettent alors de la quitter. **Annuler** conserve la recherche précédente.
 
-Les réglages audio/vidéo et les reconnections restent ceux du moteur partagé. Les codecs et le décodage matériel dépendent du téléviseur ou du Stick. Les [conventions Amazon pour les contrôleurs](https://developer.amazon.com/docs/fire-tv/controller-behavior-guidelines.html) servent de référence pour OK, Retour et Play/Pause.
+La refonte TV utilise les API natives Media3 pour la lecture, le rendu vidéo et les pistes. Les codecs et le décodage matériel dépendent du téléviseur ou du Stick ; les formats audio sans décodeur système nécessitent une solution de décodage supplémentaire. Windows et le téléphone conservent leur moteur libmpv. Les [conventions Amazon pour les contrôleurs](https://developer.amazon.com/docs/fire-tv/controller-behavior-guidelines.html) servent de référence pour OK, Retour et Play/Pause.
 
 ## Sources et mises à jour
 
@@ -68,7 +74,15 @@ Les catalogues sont actualisés au lancement avec la progression partagée. Les 
 
 Depuis la version **0.8.8**, le démarrage affiche un écran de chargement complet : lecture du cache, actualisation des sources, puis affichage des profils et des catalogues. L'import et l'actualisation manuelle recouvrent temporairement le formulaire avec cet écran, sans perdre sa saisie. Si une source échoue, le cache disponible reste accessible après la tentative. Sur les appareils TV, le cache d'images est limité à 32 Mio/96 entrées ; la sauvegarde Android produit directement des fragments JSON chiffrés plutôt qu'une deuxième copie complète du catalogue.
 
-La version **0.8.9** enregistre chaque synopsis dans un cache chiffré séparé, sans réécrire le catalogue entier. Elle réutilise les listes et tris pendant la lecture et annule la requête d'une fiche lorsqu'on la quitte. L'APK TV utilise Skia. Sur les appareils Amazon, la vidéo utilise **MediaCodec direct** (`mediacodec_embed`) pour contourner les artefacts de textures constatés avec le HEVC ; les autres TV conservent le mode automatique. Ce chemin direct repose sur les codecs pris en charge par le matériel, et certains traitements vidéo mpv y sont indisponibles ; les sous-titres texte sont affichés par Flutter. Les téléphones et Windows ne reçoivent pas de nouveau binaire dans cette livraison.
+La branche locale enregistre chaque synopsis dans un cache chiffré séparé, sans réécrire le catalogue entier. Elle réutilise les listes et tris pendant la lecture et annule la requête d'une fiche lorsqu'on la quitte. L'APK TV utilise Skia. L'essai de sortie MediaCodec directe en **0.8.9** a provoqué une image TF1 réduite avec un fond vert sur le Stick testé ; cet essai n'est pas publié.
+
+## Lecteur Media3 — 0.9.2+31
+
+Le lecteur TV utilise **Media3 ExoPlayer avec un PlayerView natif et une SurfaceView**, sans transit des images vidéo par les textures de Flutter. L'interface NOVA et les données existantes sont conservées : sources M3U/Xtream, EPG, profils, favoris, historique, reprises, filtres, ordre de la source et choix de densité des catalogues.
+
+Le direct HLS/DASH démarre à la position de diffusion par défaut du moteur ; les films et épisodes gardent leur position de reprise. Les sous-titres externes restent réapplicables après reconnexion. La bibliothèque TV groupe les notifications et sauvegardes de progression normale sur cinq secondes et réutilise ses listes, catégories et filtres pour réduire le travail pendant la lecture.
+
+L'APK TV Release a été compilée ; package, signature existante, trois architectures et alignement ZIP 16 KiB ont passé les vérifications du packager. Les tests ciblés couvrent les profils, favoris, reprises, commandes, diagnostics et sous-titres. [Rapport de validation](TV-VALIDATION-0.9.2.md).
 
 ## Compilation
 

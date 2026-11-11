@@ -181,15 +181,25 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                           decoration: BoxDecoration(
                             color: category == _category
                                 ? Theme.of(context).colorScheme.primary
-                                      .withValues(alpha: .35)
                                 : Colors.white10,
+                            border: Border.all(
+                              color: category == _category
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              width: 3,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
                             child: Text(
-                              category ?? 'Toutes',
+                              '${category == _category ? '✓ ' : ''}${category ?? 'Toutes'}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: category == _category
+                                    ? FontWeight.w800
+                                    : FontWeight.normal,
+                              ),
                             ),
                           ),
                         ),
@@ -223,6 +233,7 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                                             .withValues(alpha: .3)
                                       : Colors.transparent,
                                   border: Border.all(
+                                    width: 3,
                                     color: index == _index
                                         ? Colors.white
                                         : Colors.transparent,
@@ -238,6 +249,11 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                                         channel.title,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: index == _index
+                                              ? FontWeight.w800
+                                              : FontWeight.normal,
+                                        ),
                                       ),
                                     ),
                                   ],

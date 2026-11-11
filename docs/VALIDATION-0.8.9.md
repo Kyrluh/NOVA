@@ -1,4 +1,6 @@
-# NOVA IPTV TV 0.8.9 — Fiches, catalogues et sortie Fire TV
+# NOVA IPTV TV 0.8.9 — Essai non publié
+
+La sortie directe décrite dans cet essai a ensuite montré un cadre vert et une mauvaise taille sur TF1 HD. Elle est remplacée dans le travail local 0.8.10. La release 0.8.9 reste un brouillon ; toute nouvelle publication attend une demande explicite du propriétaire.
 
 APK TV **0.8.9+27**. Les dernières distributions Windows et Android téléphone restent **0.8.8+26**. Le code partagé inclut des améliorations de cache, mais aucun nouveau ZIP Windows ni APK téléphone n'est annoncé pour cette livraison.
 

@@ -21,6 +21,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const television = bool.fromEnvironment('NOVA_TV');
   if (television && Platform.isAndroid) {
+    // TV focus must stay visible after the native keyboard or a pointer event.
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
     // Leave room for the decoder and catalogue on small Fire TV devices.
     PaintingBinding.instance.imageCache.maximumSizeBytes = 32 * 1024 * 1024;
     PaintingBinding.instance.imageCache.maximumSize = 96;
@@ -49,7 +52,7 @@ Future<void> main() async {
   }
   var nativeReady = true;
   try {
-    MediaKit.ensureInitialized();
+    if (!television || !Platform.isAndroid) MediaKit.ensureInitialized();
   } catch (_) {
     nativeReady = false;
   }

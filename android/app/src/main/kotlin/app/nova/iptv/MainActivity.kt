@@ -36,6 +36,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.security.KeyStore
+import java.io.Closeable
 import java.util.UUID
 import java.util.concurrent.Executors
 import javax.crypto.Cipher
@@ -43,8 +44,9 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Window and crypto operations only. Dart owns the one media session. */
+/** Activity capabilities; Dart owns navigation and the TV bridge owns decoding. */
 class MainActivity : FlutterActivity() {
+    private var tvMediaPlayer: Closeable? = null
     private var channel: MethodChannel? = null
     private val cryptoExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -78,6 +80,13 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // The TV-only source set owns Media3. Phone builds keep their existing
+        // engine and do not package Media3 or its platform view.
+        if (packageName == "app.nova.iptv.tv" || packageName == "app.nova.iptv.tv.debug") {
+            tvMediaPlayer = Class.forName("app.nova.iptv.TvMediaPlayer")
+                .getConstructor(Context::class.java, FlutterEngine::class.java)
+                .newInstance(this, flutterEngine) as Closeable
+        }
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "nova/android")
         channel?.setMethodCallHandler { call, result ->
             try {
@@ -442,6 +451,8 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         destroyed = true
+        tvMediaPlayer?.close()
+        tvMediaPlayer = null
         finishSourceEditor(null)
         channel?.setMethodCallHandler(null)
         channel = null

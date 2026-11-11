@@ -4,7 +4,7 @@ import 'package:nova_iptv/player/android_video_environment.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('Direct output targets Fire TV and emulators while phones and other TVs retain automatic decoding', () async {
+  test('Fire TV uses hardware copy-back while other devices keep their existing decoding', () async {
     const channel = MethodChannel('nova/android');
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -25,8 +25,23 @@ void main() {
       );
       await AndroidVideoEnvironment.initialize(television: scenario.tv);
       final config = AndroidVideoEnvironment.configuration;
-      expect(config.vo, scenario.direct ? 'mediacodec_embed' : null);
-      expect(config.hwdec, scenario.direct ? 'mediacodec' : null);
+      final fire = scenario.tv && scenario.amazon && !scenario.emulator;
+      expect(
+        config.vo,
+        fire
+            ? 'gpu'
+            : scenario.direct
+            ? 'mediacodec_embed'
+            : null,
+      );
+      expect(
+        config.hwdec,
+        fire
+            ? 'mediacodec-copy'
+            : scenario.direct
+            ? 'mediacodec'
+            : null,
+      );
       expect(config.enableHardwareAcceleration, isTrue);
     }
   });

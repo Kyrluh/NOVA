@@ -4,6 +4,64 @@ import 'package:nova_iptv/domain/models.dart';
 import 'package:nova_iptv/state/app_controller.dart';
 
 void main() {
+  testWidgets(
+    'TV playback ticks keep exact resume state without rebuilding menus every second',
+    (tester) async {
+      final store = MemoryLocalStore();
+      final controller = AppController(store: store, television: true);
+      await controller.init();
+      addTearDown(controller.dispose);
+      controller.toggleFavorite('film-orbite');
+      WatchProgress progress(int position, {bool completed = false}) =>
+          WatchProgress(
+            positionSeconds: position,
+            durationSeconds: 200,
+            lastWatched: DateTime.utc(
+              2026,
+              11,
+              11,
+            ).add(Duration(seconds: position)),
+            completed: completed,
+          );
+      controller.recordProgress('horizons-s1-e2', progress(60));
+      await controller.flush();
+      final favorites = controller.favorites;
+      final seriesId = controller.resumeItems.single.id;
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.recordProgress('horizons-s1-e2', progress(61));
+      controller.recordProgress('horizons-s1-e2', progress(62));
+      expect(notifications, 0);
+      expect(controller.progress['horizons-s1-e2']!.positionSeconds, 62);
+      expect(controller.resumeItems.single.id, seriesId);
+      expect(identical(controller.favorites, favorites), isTrue);
+      await tester.pump(const Duration(seconds: 5));
+      expect(notifications, 1);
+
+      controller.dismissResume(seriesId);
+      expect(controller.resumeItems, isEmpty);
+      controller.recordProgress('horizons-s1-e2', progress(63));
+      expect(controller.resumeItems.single.id, seriesId);
+      expect(notifications, 3);
+      controller.recordProgress(
+        'horizons-s1-e2',
+        progress(64, completed: true),
+      );
+      expect(controller.resumeItems, isEmpty);
+      expect(notifications, 4);
+      await controller.flush();
+      final restored = AppController(store: store, television: true);
+      addTearDown(restored.dispose);
+      await restored.init();
+      expect(restored.progress['horizons-s1-e2']!.positionSeconds, 64);
+      expect(restored.progress['horizons-s1-e2']!.completed, isTrue);
+      expect(restored.favorites, {'film-orbite'});
+      expect(restored.resumeItems, isEmpty);
+      await restored.flush();
+    },
+  );
+
   test(
     'Favorites, playback speed and episode progress survive a new controller',
     () async {

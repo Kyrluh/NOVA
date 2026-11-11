@@ -3,9 +3,9 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 /// Selects rendering once at application startup, never during fold/resize.
-/// Android emulator guest EGL can fail to create mpv's GL context. Direct
-/// MediaCodec Surface output also avoids GPU/decoder texture interop artifacts
-/// on Fire TV. Phones and other TVs retain automatic hardware selection.
+/// Android emulator guest EGL can fail to create mpv's GL context.
+/// Fire TV uses MediaCodec copy-back to avoid the vendor texture interop path.
+/// Phones and other TVs retain automatic hardware selection.
 class AndroidVideoEnvironment {
   static const _channel = MethodChannel('nova/android');
   static bool _emulator = false;
@@ -29,10 +29,16 @@ class AndroidVideoEnvironment {
     }
   }
 
-  static VideoControllerConfiguration get configuration => _emulator || _fireTv
+  static VideoControllerConfiguration get configuration => _emulator
       ? const VideoControllerConfiguration(
           vo: 'mediacodec_embed',
           hwdec: 'mediacodec',
+          enableHardwareAcceleration: true,
+        )
+      : _fireTv
+      ? const VideoControllerConfiguration(
+          vo: 'gpu',
+          hwdec: 'mediacodec-copy',
           enableHardwareAcceleration: true,
         )
       : const VideoControllerConfiguration(enableHardwareAcceleration: true);

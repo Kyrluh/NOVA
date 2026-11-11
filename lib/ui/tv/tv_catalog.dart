@@ -36,17 +36,25 @@ class _TvCatalogState extends State<TvCatalog> {
   String? _category;
   List<MediaItem>? _indexInput;
   List<MediaItem>? _indexCatalog;
+  bool? _indexRecentCategory;
   final _groups = <String>{};
   List<({MediaItem item, String query, Set<String> categories})> _indexed =
       const [];
+  List<MediaItem> _results = const [];
+  String? _resultsQuery;
+  String? _resultsCategory;
+  bool _resultsDirty = true;
   void _ensureIndex() {
     final visible = widget.controller.items;
     if (identical(_indexInput, widget.items) &&
-        identical(_indexCatalog, visible)) {
+        identical(_indexCatalog, visible) &&
+        _indexRecentCategory == widget.recentCategory) {
       return;
     }
     _indexInput = widget.items;
     _indexCatalog = visible;
+    _indexRecentCategory = widget.recentCategory;
+    _resultsDirty = true;
     _groups.clear();
     for (final item in widget.items) {
       _groups.addAll(
@@ -92,16 +100,24 @@ class _TvCatalogState extends State<TvCatalog> {
       _category = null;
     }
     final query = _search.text.trim().toLowerCase();
-    final items = _indexed
-        .where(
-          (i) =>
-              (_category == null ||
-                  _category == _recent ||
-                  i.categories.contains(_category)) &&
-              (query.isEmpty || i.query.contains(query)),
-        )
-        .map((entry) => entry.item)
-        .toList();
+    if (_resultsDirty ||
+        _resultsQuery != query ||
+        _resultsCategory != _category) {
+      _resultsDirty = false;
+      _resultsQuery = query;
+      _resultsCategory = _category;
+      _results = _indexed
+          .where(
+            (i) =>
+                (_category == null ||
+                    _category == _recent ||
+                    i.categories.contains(_category)) &&
+                (query.isEmpty || i.query.contains(query)),
+          )
+          .map((entry) => entry.item)
+          .toList(growable: false);
+    }
+    final items = _results;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

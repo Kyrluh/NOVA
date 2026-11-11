@@ -3,6 +3,8 @@
 .flutter-plugins*
 build/
 dist/
+*.apk
+*.apks
 coverage/
 windows/flutter/ephemeral/
 *.log
@@ -12,6 +14,7 @@ windows/flutter/ephemeral/
 android/local.properties
 android/key.properties
 android/.gradle/
+android/.kotlin/
 android/captures/
 *.jks
 *.keystore

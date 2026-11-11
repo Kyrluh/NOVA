@@ -194,6 +194,7 @@ class AppController extends ChangeNotifier {
   final Map<String, MediaItem> _itemById = {};
   final Set<String> _ids = {};
   final Map<String, String> _episodeParents = {};
+  final Map<String, Set<String>> _sharedEpisodeParents = {};
   final Map<String, List<EpgProgramme>> _guideIndex = {};
   AppSettings _settings = const AppSettings();
   CatalogPreferences _catalogPreferences = const CatalogPreferences();
@@ -204,6 +205,7 @@ class AppController extends ChangeNotifier {
   int _visibleCatalogRevision = -2;
   int _visiblePreferencesRevision = -1;
   List<MediaItem> _visibleItems = const [];
+  final Map<String, MediaItem> _visibleCardsById = {};
   VariantCatalog? _variants;
   List<MediaItem> variantsFor(MediaItem item) {
     items;
@@ -239,6 +241,8 @@ class AppController extends ChangeNotifier {
 
   List<MediaItem>? _recentCatalogInput;
   List<MediaItem> _recentCatalogItems = const [];
+  List<MediaItem>? _resumeProjection;
+  List<MediaItem>? _resumeProjectionInput;
   final Set<String> _favorites = {};
   Set<String>? _favoriteProjection;
   List<MediaItem>? _favoriteProjectionInput;
@@ -249,6 +253,7 @@ class AppController extends ChangeNotifier {
   bool _disposed = false;
   String? _storageError;
   Timer? _saveTimer;
+  Timer? _progressNotificationTimer;
   Future<void>? _initialization;
   Future<void> _writeTail = Future.value();
 
@@ -262,6 +267,9 @@ class AppController extends ChangeNotifier {
         applyCatalogPreferences(allItems, _catalogPreferences),
       );
       _visibleItems = List.unmodifiable(_variants!.cards);
+      _visibleCardsById
+        ..clear()
+        ..addEntries(_visibleItems.map((item) => MapEntry(item.id, item)));
       _visibleCatalogRevision = revision;
       _visiblePreferencesRevision = _preferencesRevision;
     }
@@ -310,12 +318,40 @@ class AppController extends ChangeNotifier {
 
   List<MediaItem> get resumeItems {
     if (_progress.isEmpty) return const [];
-    final ongoing = items.where(canResume).toList();
-    ongoing.sort(
-      (a, b) => latestProgressFor(b, unfinishedOnly: true)!.lastWatched
-          .compareTo(latestProgressFor(a, unfinishedOnly: true)!.lastWatched),
+    final visible = items;
+    if (identical(visible, _resumeProjectionInput) &&
+        _resumeProjection != null) {
+      return _resumeProjection!;
+    }
+    _ensureIndex();
+    final ongoing = <String, ({MediaItem item, DateTime lastWatched})>{};
+    // Visit watched IDs, not every film and every episode in the catalogue.
+    for (final entry in _progress.entries) {
+      if (!_unfinished(entry.value)) continue;
+      for (final parentId
+          in _sharedEpisodeParents[entry.key] ??
+              {_episodeParents[entry.key] ?? entry.key}) {
+        final group = _variants?.byId[parentId];
+        if (group == null) continue;
+        final item = _visibleCardsById[group.first.id];
+        if (item == null ||
+            item.kind == MediaKind.live ||
+            _dismissedResumeIds.contains(item.id)) {
+          continue;
+        }
+        final previous = ongoing[item.id];
+        if (previous == null ||
+            entry.value.lastWatched.isAfter(previous.lastWatched)) {
+          ongoing[item.id] = (item: item, lastWatched: entry.value.lastWatched);
+        }
+      }
+    }
+    final ordered = ongoing.values.toList()
+      ..sort((a, b) => b.lastWatched.compareTo(a.lastWatched));
+    _resumeProjectionInput = visible;
+    return _resumeProjection = List.unmodifiable(
+      ordered.map((entry) => entry.item),
     );
-    return ongoing;
   }
 
   void dismissResume(String id) {
@@ -344,10 +380,9 @@ class AppController extends ChangeNotifier {
       return _favoriteProjection!;
     }
     final result = Set<String>.of(_favorites);
-    for (final item in visible) {
-      if (variantsFor(item).any((v) => _favorites.contains(v.id))) {
-        result.add(item.id);
-      }
+    for (final id in _favorites) {
+      final group = _variants?.byId[id];
+      if (group != null) result.add(group.first.id);
     }
     _favoriteProjectionInput = visible;
     return _favoriteProjection = UnmodifiableSetView(result);
@@ -370,12 +405,17 @@ class AppController extends ChangeNotifier {
     _itemById.clear();
     _ids.clear();
     _episodeParents.clear();
+    _sharedEpisodeParents.clear();
     for (final item in allItems) {
       _itemById[item.id] = item;
       _ids.add(item.id);
       for (final season in item.seasons) {
         _ids.addAll(season.episodes.map((e) => e.id));
         for (final episode in season.episodes) {
+          final previous = _episodeParents[episode.id];
+          if (previous != null && previous != item.id) {
+            (_sharedEpisodeParents[episode.id] ??= {previous}).add(item.id);
+          }
           _episodeParents[episode.id] = item.id;
         }
       }
@@ -675,28 +715,51 @@ class AppController extends ChangeNotifier {
   }
 
   void recordProgress(String id, WatchProgress progress) {
+    if (_disposed) return;
     if (!_knownIds.contains(id)) return;
     final validated = WatchProgress.fromJson(progress.toJson());
     if (validated == null) return;
+    final previous = _progress[id];
+    var restoredResume = _dismissedResumeIds.remove(id);
+    final changedItem = _recentIds.firstOrNull != id;
     _progress[id] = validated;
-    final parent = itemById(_episodeParents[id] ?? id);
-    if (parent != null) {
-      _dismissedResumeIds.removeAll(variantsFor(parent).map((v) => v.id));
-    }
-    _dismissedResumeIds.remove(id);
-    for (final item in allItems.where(
-      (item) => _dismissedResumeIds.contains(item.id),
-    )) {
-      if (item.seasons.any(
-        (season) => season.episodes.any((episode) => episode.id == id),
-      )) {
-        _dismissedResumeIds.remove(item.id);
+    for (final parentId
+        in _sharedEpisodeParents[id] ?? {_episodeParents[id] ?? id}) {
+      final parent = _itemById[parentId];
+      if (parent == null) continue;
+      for (final variant in variantsFor(parent)) {
+        restoredResume =
+            _dismissedResumeIds.remove(variant.id) || restoredResume;
       }
     }
     _recentIds.remove(id);
     _recentIds.insert(0, id);
     if (_recentIds.length > 20) _recentIds.removeRange(20, _recentIds.length);
-    _changed();
+    // Memory stays current on every tick. TV menus and disk do not need to
+    // rebuild/rewrite each second while the same episode keeps playing.
+    final immediate =
+        !television ||
+        previous == null ||
+        changedItem ||
+        restoredResume ||
+        previous.completed != validated.completed ||
+        previous.durationSeconds != validated.durationSeconds ||
+        (previous.positionSeconds - validated.positionSeconds).abs() > 2 ||
+        validated.lastWatched.difference(previous.lastWatched).abs() >=
+            const Duration(seconds: 5);
+    if (immediate) {
+      _changed(invalidateFavorites: false);
+    } else {
+      _resumeProjection = null;
+      _progressNotificationTimer ??= Timer(const Duration(seconds: 5), () {
+        _progressNotificationTimer = null;
+        if (!_disposed) notifyListeners();
+      });
+      _saveTimer ??= Timer(const Duration(seconds: 5), () {
+        _saveTimer = null;
+        unawaited(_enqueueSave());
+      });
+    }
   }
 
   void markWatched(String id) {
@@ -737,9 +800,12 @@ class AppController extends ChangeNotifier {
     _changed();
   }
 
-  void _changed() {
+  void _changed({bool invalidateFavorites = true}) {
     if (_disposed) return;
-    _favoriteProjection = null;
+    if (invalidateFavorites) _favoriteProjection = null;
+    _resumeProjection = null;
+    _progressNotificationTimer?.cancel();
+    _progressNotificationTimer = null;
     notifyListeners();
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 180), () {
@@ -799,6 +865,11 @@ class AppController extends ChangeNotifier {
   Future<void> flush() {
     _saveTimer?.cancel();
     _saveTimer = null;
+    if (_progressNotificationTimer != null) {
+      _progressNotificationTimer!.cancel();
+      _progressNotificationTimer = null;
+      if (!_disposed) notifyListeners();
+    }
     return _enqueueSave();
   }
 
@@ -811,6 +882,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _progressNotificationTimer?.cancel();
     sources?.removeListener(_sourceChanged);
     internetCatalog?.removeListener(_internetChanged);
     if (_saveTimer != null) {

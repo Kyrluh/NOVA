@@ -38,6 +38,37 @@ class TvLiveState extends State<TvLive> {
   final _firstChannelFocus = FocusNode(debugLabel: 'TV first channel');
   late String? _selectedId = widget.initialChannelId;
   String? _category;
+  List<MediaItem>? _catalogInput;
+  List<MediaItem> _allChannels = const [];
+  final _channelsById = <String, MediaItem>{};
+  List<String> _categories = const [];
+  List<TvChannelOption> _channelChoices = const [];
+  List<MediaItem>? _filterInput;
+  String? _filterCategory;
+  String? _filterQuery;
+  List<MediaItem> _filteredChannels = const [];
+
+  void _ensureCatalog() {
+    final visible = widget.controller.items;
+    if (identical(visible, _catalogInput)) return;
+    _catalogInput = visible;
+    _allChannels = visible
+        .where((item) => item.kind == MediaKind.live)
+        .toList(growable: false);
+    _channelsById
+      ..clear()
+      ..addEntries(_allChannels.map((item) => MapEntry(item.id, item)));
+    _categories = _allChannels.map((item) => item.category).toSet().toList();
+    _channelChoices = [
+      for (final item in _allChannels)
+        TvChannelOption(
+          id: item.id,
+          title: item.title,
+          category: item.category,
+        ),
+    ];
+  }
+
   @override
   void dispose() {
     _fullscreen.dispose();
@@ -75,22 +106,31 @@ class TvLiveState extends State<TvLive> {
     listenable: widget.controller,
     builder: (context, _) {
       final app = widget.controller;
-      final all = app.items.where((i) => i.kind == MediaKind.live).toList();
-      if (_category != null && !all.any((i) => i.category == _category)) {
+      _ensureCatalog();
+      final all = _allChannels;
+      if (_category != null && !_categories.contains(_category)) {
         _category = null;
       }
-      final channels = all
-          .where(
-            (i) =>
-                (_category == null || i.category == _category) &&
-                i.title.toLowerCase().contains(
-                  _search.text.trim().toLowerCase(),
-                ),
-          )
-          .toList();
-      final selected =
-          all.where((i) => i.id == _selectedId).firstOrNull ??
-          channels.firstOrNull;
+      final query = _search.text.trim().toLowerCase();
+      if (!identical(_filterInput, all) ||
+          _filterCategory != _category ||
+          _filterQuery != query) {
+        _filterInput = all;
+        _filterCategory = _category;
+        _filterQuery = query;
+        _filteredChannels = _category == null && query.isEmpty
+            ? all
+            : all
+                  .where(
+                    (item) =>
+                        (_category == null || item.category == _category) &&
+                        (query.isEmpty ||
+                            item.title.toLowerCase().contains(query)),
+                  )
+                  .toList(growable: false);
+      }
+      final channels = _filteredChannels;
+      final selected = _channelsById[_selectedId] ?? channels.firstOrNull;
       _playerMounted =
           _watching &&
           selected?.mediaUrl?.isNotEmpty == true &&
@@ -125,7 +165,7 @@ class TvLiveState extends State<TvLive> {
                       value: null,
                       child: Text('Toutes les chaînes'),
                     ),
-                    for (final group in all.map((i) => i.category).toSet())
+                    for (final group in _categories)
                       DropdownMenuItem(
                         value: group,
                         child: Text(group, overflow: TextOverflow.ellipsis),
@@ -263,19 +303,10 @@ class TvLiveState extends State<TvLive> {
                                     _change(channels, selected, -1),
                                 onNextChannel: () =>
                                     _change(channels, selected, 1),
-                                channelChoices: [
-                                  for (final channel in all)
-                                    TvChannelOption(
-                                      id: channel.id,
-                                      title: channel.title,
-                                      category: channel.category,
-                                    ),
-                                ],
+                                channelChoices: _channelChoices,
                                 selectedChannelId: selected.id,
                                 onSelectChannel: (id) {
-                                  final channel = all
-                                      .where((c) => c.id == id)
-                                      .firstOrNull;
+                                  final channel = _channelsById[id];
                                   if (channel != null) {
                                     _category = channel.category;
                                     _search.clear();

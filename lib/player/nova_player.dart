@@ -20,6 +20,7 @@ import 'android_video_environment.dart';
 import 'android_session_player.dart';
 import 'seek_coordinator.dart';
 import 'tv_channel_panel.dart';
+import 'tv_media3_player.dart';
 
 /// Injectable media surface for deterministic interaction tests.
 class NovaPlayerBackend {
@@ -154,6 +155,7 @@ class _NovaPlayerState extends State<NovaPlayer>
       widget.fullscreenController ?? DesktopFullscreen.instance;
   Player? _player;
   VideoController? _controller;
+  TvMedia3Player? _tvMedia3;
   PlayerAdjustments? _adjustments;
   Timer? _hudTimer;
   String? _hud;
@@ -248,9 +250,14 @@ class _NovaPlayerState extends State<NovaPlayer>
     _health.addListener(_healthChanged);
     try {
       final backend = widget.backendFactory?.call();
+      if (backend == null && _isAndroid && widget.television) {
+        _tvMedia3 = TvMedia3Player(isLive: widget.isLive);
+      }
       final player =
           backend?.player ??
-          (_isAndroid
+          (_tvMedia3 != null
+              ? Player(platformPlayer: _tvMedia3)
+              : _isAndroid
               ? AndroidSessionPlayer(
                   isLive: widget.isLive,
                   configuration: const PlayerConfiguration(title: 'NOVA IPTV'),
@@ -261,7 +268,8 @@ class _NovaPlayerState extends State<NovaPlayer>
       _player = player;
       if (player is AndroidSessionPlayer) player.isLive = widget.isLive;
       _controller =
-          backend?.videoController ?? createNovaVideoController(player);
+          backend?.videoController ??
+          (_tvMedia3 == null ? createNovaVideoController(player) : null);
       _adjustments = PlayerAdjustments(
         volume: widget.initialVolume,
         applyVolume: _isAndroid ? _android.setVolume : player.setVolume,
@@ -602,6 +610,7 @@ class _NovaPlayerState extends State<NovaPlayer>
     }
     final player = _player;
     if (player is AndroidSessionPlayer) player.isLive = widget.isLive;
+    _tvMedia3?.isLive = widget.isLive;
     if (oldWidget.touchGestures != widget.touchGestures) {
       _touchGesturesOverride = null;
     }
@@ -680,11 +689,17 @@ class _NovaPlayerState extends State<NovaPlayer>
             }
           }
           if (!current()) return;
+          // Disable auto/forced subtitle selection before the first decoded
+          // frame, including when this player previously displayed subtitles.
+          await player.setSubtitleTrack(SubtitleTrack.no());
+          if (!current()) return;
           // A live stream is not seekable: do not send mpv a start=0 option.
           await player.open(
             Media(uri, start: live || start == Duration.zero ? null : start),
             play: false,
           );
+          if (!current()) return;
+          await player.setSubtitleTrack(SubtitleTrack.no());
           if (!current()) return;
           await player.setRate(rate);
           if (!current()) return;
@@ -1069,6 +1084,12 @@ class _NovaPlayerState extends State<NovaPlayer>
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     final key = event.logicalKey;
+    // Do not count Back as activity: doing so would reopen the HUD before
+    // dismissing it on every press, preventing the user from leaving playback.
+    if (widget.television && key == LogicalKeyboardKey.goBack) {
+      if (event is KeyDownEvent) _externalBack();
+      return KeyEventResult.handled;
+    }
     if (event is KeyUpEvent && key == _seekKey) {
       _seekKey = null;
       _seekRepeats = 0;
@@ -1098,11 +1119,20 @@ class _NovaPlayerState extends State<NovaPlayer>
         if (!repeat) unawaited(_togglePlayback());
         return KeyEventResult.handled;
       }
-      if (key == LogicalKeyboardKey.contextMenu ||
-          (!widget.isLive &&
-              node.hasPrimaryFocus &&
-              (key == LogicalKeyboardKey.arrowDown ||
-                  key == LogicalKeyboardKey.arrowUp))) {
+      if (key == LogicalKeyboardKey.contextMenu) {
+        if (!repeat) {
+          if (_chrome.visible) {
+            _toggleInformation();
+          } else {
+            _showTvControls();
+          }
+        }
+        return KeyEventResult.handled;
+      }
+      if (!widget.isLive &&
+          node.hasPrimaryFocus &&
+          (key == LogicalKeyboardKey.arrowDown ||
+              key == LogicalKeyboardKey.arrowUp)) {
         _showTvControls();
         return KeyEventResult.handled;
       }
@@ -1326,7 +1356,9 @@ class _NovaPlayerState extends State<NovaPlayer>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (controller != null)
+                if (_tvMedia3 case final nativeTv?)
+                  TvMedia3Surface(key: _videoKey, player: nativeTv, fit: _fit)
+                else if (controller != null)
                   LayoutBuilder(
                     builder: (context, bounds) => Video(
                       key: _videoKey,
@@ -1614,6 +1646,12 @@ class _NovaPlayerState extends State<NovaPlayer>
               Icons.lock_open_rounded,
               'Verrouiller les commandes tactiles',
               _toggleTouchLock,
+            ),
+          if (widget.television)
+            _icon(
+              Icons.info_outline_rounded,
+              'Informations du flux (Menu)',
+              _toggleInformation,
             ),
           if (widget.onClose != null)
             _icon(
@@ -1959,7 +1997,10 @@ class _NovaPlayerState extends State<NovaPlayer>
     final subtitles =
         state?.tracks.subtitle
             .where(
-              (t) => t.id != 'auto' && t.id != 'no' && !_isBitmapSubtitle(t),
+              (t) =>
+                  t.id != 'auto' &&
+                  t.id != 'no' &&
+                  (_tvMedia3 != null || !_isBitmapSubtitle(t)),
             )
             .toList() ??
         <SubtitleTrack>[];
@@ -2356,19 +2397,50 @@ class _NovaPlayerState extends State<NovaPlayer>
     ],
   );
 
+  void _toggleInformation() {
+    _showInfo = !_showInfo;
+    _chrome.activity();
+    _refresh();
+  }
+
   Widget _information(PlayerState state) {
+    final nativeTv = _tvMedia3;
+    if (nativeTv != null) {
+      return ValueListenableBuilder<TvPlaybackDiagnostics>(
+        valueListenable: nativeTv.diagnostics,
+        builder: (context, diagnostics, _) =>
+            _informationBody(state, diagnostics),
+      );
+    }
+    return _informationBody(state);
+  }
+
+  Widget _informationBody(
+    PlayerState state, [
+    TvPlaybackDiagnostics? diagnostics,
+  ]) {
     final video = state.videoParams;
     final width = video.w ?? state.width;
     final height = video.h ?? state.height;
     final audio = state.track.audio;
     final lines = <String>[
-      if (width != null && height != null) 'Définition : $width × $height',
+      if (diagnostics != null) 'Lecteur : Media3 ${diagnostics.engineVersion}',
+      if ((width ?? 0) > 0 && (height ?? 0) > 0)
+        'Définition : $width × $height',
+      if (diagnostics?.videoCodec case final codec?) 'Vidéo : $codec',
+      if (diagnostics?.videoDecoder case final decoder?)
+        'Décodeur vidéo : $decoder',
       if (video.pixelformat != null) 'Format vidéo : ${video.pixelformat}',
       if (video.hwPixelformat != null)
         'Format matériel : ${video.hwPixelformat}',
       if (video.primaries != null) 'Couleurs : ${video.primaries}',
       if (video.gamma != null) 'Transfert : ${video.gamma}',
-      if (audio.codec != null) 'Audio : ${audio.codec}',
+      if (diagnostics?.audioCodec ?? audio.codec case final codec?)
+        'Audio : $codec',
+      if (diagnostics?.audioDecoder case final decoder?)
+        'Décodeur audio : $decoder',
+      if (diagnostics != null)
+        'Première image : ${diagnostics.firstFrame ? 'reçue' : 'en attente'}',
       if (!widget.isLive) 'Vitesse : ${_rateLabel(state.rate)}×',
     ];
     return DecoratedBox(
@@ -2423,8 +2495,10 @@ class _NovaPlayerState extends State<NovaPlayer>
       _closeChannels();
     } else if (_fullscreenNavigatorKey.currentState?.canPop() == true) {
       _fullscreenNavigatorKey.currentState!.pop();
-    } else if (_chrome.visible) {
+    } else if (_showInfo || _chrome.visible) {
+      _showInfo = false;
       _chrome.hide();
+      _refresh();
       (_fullscreen ? _fullscreenFocus : _focus).requestFocus();
     } else if (widget.onClose != null) {
       unawaited(_close());
