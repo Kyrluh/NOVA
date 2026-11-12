@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**Correction TV locale 0.10.5+37** : ouvrir une chaîne depuis les favoris ou la recherche place le curseur sur cette chaîne et fait défiler la liste jusqu’à elle. L’entrée directe dans TV conserve le focus sur la première chaîne. [Détails](docs/FOCUS-CHAINES-TV-0.10.5.md).
+
 [Guide utilisateur de navigation — HTML imprimable](docs/guide-utilisateur.html) : Windows, mobile et télécommande TV, avec sommaire et bouton d’impression / export PDF.
 
 **Version compilée localement : 0.10.4+36 (Windows, téléphone et TV)** — recherches et défilements réinitialisés entre les onglets, actualisations Xtream limitées aux catégories cochées après le premier import, rechargement manuel dans les paramètres, choix Réduire/Fermer/Annuler et sélections/favoris jaunes. [Fonctionnement et limites](docs/NAVIGATION-CHARGEMENT-0.10.4.md). Les releases publiques restent celles indiquées ci-dessous.

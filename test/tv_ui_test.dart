@@ -19,6 +19,38 @@ import 'package:nova_iptv/ui/pages/details_dialog.dart';
 
 void main() {
   testWidgets(
+    'TV entry focuses and reveals the requested channel instead of the first',
+    (tester) async {
+      final app = await _start(tester);
+      final channels = app.items
+          .where((item) => item.kind == MediaKind.live)
+          .toList();
+      expect(channels.length, greaterThan(1));
+      for (final requested in [null, channels.last.id]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: novaTvTheme(app.settings.accent),
+            home: Scaffold(
+              body: TvLive(
+                key: ValueKey(requested),
+                controller: app,
+                nativeReady: false,
+                initialChannelId: requested,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final expected = requested ?? channels.first.id;
+        final row = find.byKey(ValueKey('tv-channel-$expected'));
+        expect(row.hitTestable(), findsOneWidget);
+        expect(tester.widget<TvTile>(row).focusNode?.hasFocus, isTrue);
+        expect(tester.widget<TvTile>(row).selected, isTrue);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+  testWidgets(
     'TV header utilities and grouped settings return to the current catalogue',
     (tester) async {
       await _start(tester);

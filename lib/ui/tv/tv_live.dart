@@ -40,6 +40,8 @@ class TvLiveState extends State<TvLive> {
   final _search = TextEditingController();
   final _firstChannelFocus = FocusNode(debugLabel: 'TV first channel');
   bool _initialFocusRequested = false;
+  ScrollController? _channelScroll;
+  String? _entryFocusId;
   late String? _selectedId = widget.initialChannelId;
   String? _category;
   List<MediaItem>? _catalogInput;
@@ -94,6 +96,7 @@ class TvLiveState extends State<TvLive> {
 
   @override
   void dispose() {
+    _channelScroll?.dispose();
     _fullscreen.dispose();
     _back.dispose();
     _search.dispose();
@@ -153,8 +156,23 @@ class TvLiveState extends State<TvLive> {
                   .toList(growable: false);
       }
       final channels = _filteredChannels;
+      final rowHeight =
+          80.0 +
+          (MediaQuery.textScalerOf(context).scale(16) - 16).clamp(
+                0,
+                double.infinity,
+              ) *
+              2;
       if (!_initialFocusRequested && channels.isNotEmpty) {
         _initialFocusRequested = true;
+        final requestedIndex = channels.indexWhere(
+          (item) => item.id == widget.initialChannelId,
+        );
+        final index = requestedIndex < 0 ? 0 : requestedIndex;
+        _entryFocusId = channels[index].id;
+        _channelScroll = ScrollController(
+          initialScrollOffset: index * rowHeight,
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _firstChannelFocus.requestFocus();
         });
@@ -251,35 +269,41 @@ class TvLiveState extends State<TvLive> {
                 ),
                 const SizedBox(height: 10),
                 Expanded(
-                  child: ListView.separated(
+                  child: ListView.builder(
+                    controller: _channelScroll,
+                    itemExtent: rowHeight,
                     itemCount: channels.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final item = channels[index];
-                      return TvTile(
-                        key: ValueKey('tv-channel-${item.id}'),
-                        focusNode: index == 0 ? _firstChannelFocus : null,
-                        selected: selected?.id == item.id,
-                        label: item.title,
-                        onPressed: () {
-                          if (_watching &&
-                              selected?.id == item.id &&
-                              _selectedId == item.id) {
-                            _fullscreen.value++;
-                          } else {
-                            _selectChannel(item);
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 13,
-                          ),
-                          child: Text(
-                            item.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 16),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: TvTile(
+                          key: ValueKey('tv-channel-${item.id}'),
+                          focusNode: item.id == _entryFocusId
+                              ? _firstChannelFocus
+                              : null,
+                          selected: selected?.id == item.id,
+                          label: item.title,
+                          onPressed: () {
+                            if (_watching &&
+                                selected?.id == item.id &&
+                                _selectedId == item.id) {
+                              _fullscreen.value++;
+                            } else {
+                              _selectChannel(item);
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 13,
+                            ),
+                            child: Text(
+                              item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 16),
+                            ),
                           ),
                         ),
                       );
