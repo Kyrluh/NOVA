@@ -6,4 +6,6 @@ Les préférences du profil restent appliquées à l’affichage : les contenus 
 
 Ce changement concerne le démarrage sur Windows, Android mobile et Android TV / Fire TV. Les actualisations manuelles et celles déclenchées en recochant une préférence conservent leur fonctionnement actuel.
 
-Un test ciblé vérifie que les trois listes complètes sont demandées au démarrage malgré une langue décochée, et que cette langue reste masquée dans le catalogue affiché. Les installables locaux utilisent la version 0.10.7+39 et la signature Android existante. Aucune publication de release ni installation ADB n’est incluse.
+Un test ciblé vérifie que les trois listes complètes sont demandées au démarrage malgré une langue décochée, et que cette langue reste masquée dans le catalogue affiché. Les installables utilisent la version 0.10.7+39 et la signature Android existante. Les compilations Windows, Android mobile et TV ont réussi. Aucune installation ADB n’est effectuée.
+
+La [release 0.10.7](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.7) contient le ZIP portable Windows, les APK mobile ARM64 et universelle, l’APK TV universelle, une archive du code et les empreintes SHA-256. Elle est proposée depuis les paramètres de mise à jour de NOVA. La publication réutilise les binaires déjà compilés.
