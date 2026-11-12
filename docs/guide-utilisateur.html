@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Guide de navigation NOVA IPTV : Windows, Android mobile, Android TV et Fire TV. Version imprimable.">
+  <title>NOVA IPTV — Guide de navigation</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0d12; --panel:#151a24; --text:#f4f5f8; --muted:#bac2d3; --line:#343d50; --yellow:#ffd740; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-padding-top:24px; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    a { color:var(--yellow); text-underline-offset:4px; }
+    a:focus-visible,button:focus-visible,summary:focus-visible { outline:3px solid var(--yellow); outline-offset:5px; }
+    .wrap { max-width:1080px; margin:auto; padding:32px 28px 64px; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:40px; }
+    .brand { font-size:21px; font-weight:850; letter-spacing:5px; }
+    .brand span { color:var(--yellow); }
+    button { border:0; border-radius:10px; padding:12px 20px; font:inherit; font-weight:750; color:#17180e; background:var(--yellow); cursor:pointer; }
+    .eyebrow { color:var(--yellow); font-size:12px; font-weight:800; letter-spacing:2px; text-transform:uppercase; }
+    h1 { margin:12px 0 18px; max-width:800px; font-size:clamp(36px,6vw,62px); line-height:1.1; letter-spacing:-2px; }
+    .intro { max-width:740px; color:var(--muted); font-size:19px; }
+    .tags { display:flex; flex-wrap:wrap; gap:8px; margin:24px 0 32px; }
+    .tag { border:1px solid var(--line); padding:4px 12px; border-radius:30px; font-size:13px; }
+    .toc { margin:32px 0 46px; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:16px; }
+    .toc strong { display:block; margin-bottom:12px; }
+    .toc ol { display:grid; grid-template-columns:1fr 1fr; gap:8px 32px; margin:0; padding-left:24px; }
+    .toc a { color:var(--text); text-decoration:none; }
+    .toc a:hover { color:var(--yellow); text-decoration:underline; }
+    section { margin:42px 0; }
+    h2 { display:flex; align-items:baseline; gap:14px; margin:0 0 20px; font-size:27px; line-height:1.25; }
+    h2 .num { color:var(--yellow); font-size:14px; letter-spacing:1px; }
+    h3 { margin:0 0 10px; font-size:19px; }
+    p { margin:10px 0 16px; }
+    ul,ol { padding-left:24px; }
+    li { margin:7px 0; }
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { padding:22px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+    .card p:last-child,.card ul:last-child { margin-bottom:0; }
+    .note { padding:16px 20px; margin:20px 0; border-left:4px solid var(--yellow); background:#202018; border-radius:0 10px 10px 0; }
+    .small { color:var(--muted); font-size:14px; }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:collapse; width:100%; margin:16px 0; font-size:15px; }
+    caption { text-align:left; font-weight:700; margin-bottom:10px; }
+    th,td { text-align:left; vertical-align:top; padding:13px 16px; border-bottom:1px solid var(--line); }
+    th { background:var(--panel); font-weight:750; }
+    td:first-child { width:26%; font-weight:650; }
+    kbd { display:inline-block; padding:1px 7px; border:1px solid #737d91; border-bottom-width:2px; border-radius:5px; font:600 .9em system-ui,sans-serif; white-space:nowrap; }
+    .remote { display:flex; justify-content:center; gap:9px; align-items:center; margin:16px 0; }
+    .remote kbd { padding:8px 14px; }
+    .yellow { color:var(--yellow); }
+    footer { margin-top:44px; border-top:1px solid var(--line); padding-top:20px; color:var(--muted); font-size:13px; }
+    .print-help { font-size:13px; color:var(--muted); }
+    @media (max-width:700px) {
+      .wrap { padding:22px 18px 40px; }
+      .toolbar { align-items:flex-start; margin-bottom:28px; }
+      .cards,.toc ol { grid-template-columns:1fr; }
+      h2 { font-size:23px; }
+      th,td { padding:10px; }
+      td:first-child { width:34%; }
+    }
+    @media print {
+      :root { color-scheme:light; --bg:#fff; --panel:#f4f5f7; --text:#111; --muted:#454545; --line:#ccc; --yellow:#111; }
+      @page { size:A4; margin:16mm 14mm; }
+      html { scroll-behavior:auto; }
+      body { background:white; color:#111; font-size:10pt; line-height:1.45; }
+      .wrap { max-width:none; padding:0; }
+      .toolbar { margin:0 0 16pt; }
+      .toolbar button,.print-help,.back-top { display:none !important; }
+      .brand { font-size:15pt; }
+      h1 { font-size:30pt; letter-spacing:-1px; margin:8pt 0 12pt; }
+      .intro { font-size:12pt; }
+      .tags { margin:12pt 0; }
+      .tag { font-size:9pt; }
+      .toc { padding:12pt; margin:16pt 0 22pt; }
+      .toc ol { display:grid; grid-template-columns:1fr 1fr; }
+      section { margin:22pt 0; }
+      h2 { font-size:17pt; margin-bottom:10pt; break-after:avoid; }
+      h3 { font-size:12pt; break-after:avoid; }
+      h2 .num { font-size:10pt; }
+      .cards { grid-template-columns:1fr; gap:10pt; }
+      .card { padding:12pt; break-inside:avoid; }
+      .note { background:#f4f4f4; border-left-color:#555; padding:9pt 12pt; break-inside:avoid; }
+      .small { font-size:9pt; }
+      .table-wrap { overflow:visible; }
+      table { font-size:9.5pt; }
+      thead { display:table-header-group; }
+      tr { break-inside:avoid; }
+      th,td { padding:7pt 9pt; }
+      p { orphans:3; widows:3; }
+      a { color:inherit; text-decoration:none; }
+      footer { font-size:8pt; margin-top:20pt; }
+    }
+  </style>
+</head>
+<body id="debut">
+  <main class="wrap">
+    <div class="toolbar">
+      <div class="brand" aria-label="NOVA IPTV">NOVA<span> IPTV</span></div>
+      <button id="print-button" type="button" hidden>Imprimer / Enregistrer en PDF</button>
+    </div>
+    <header>
+      <div class="eyebrow">Guide utilisateur · Version 0.10.4</div>
+      <h1>Vos programmes.<br>Vos repères.</h1>
+      <p class="intro">Retrouvez un film, reprenez un épisode et changez de chaîne facilement. Ce guide vous accompagne à la souris, au tactile et à la télécommande.</p>
+      <div class="tags"><span class="tag">Windows</span><span class="tag">Android mobile &amp; tablette</span><span class="tag">Android TV &amp; Fire TV</span></div>
+      <p class="print-help">Pour une copie papier, utilisez le bouton en haut. Dans la fenêtre d’impression, choisissez votre imprimante ou « Enregistrer au format PDF ». Le sommaire et les commandes de navigation inutiles sont adaptés automatiquement à l’impression.</p>
+      <noscript><p>Pour imprimer, utilisez le menu de votre navigateur ou le raccourci Ctrl+P sur Windows.</p></noscript>
+    </header>
+
+    <nav class="toc" aria-label="Sommaire">
+      <strong>Dans ce guide</strong>
+      <ol>
+        <li><a href="#reperes">Se repérer dans l’application</a></li>
+        <li><a href="#commandes">Souris, tactile et télécommande</a></li>
+        <li><a href="#catalogue">Trouver un film ou une série</a></li>
+        <li><a href="#reprendre">Favoris, profils et reprise</a></li>
+        <li><a href="#direct">Regarder la TV en direct</a></li>
+        <li><a href="#lecteur">Utiliser le lecteur vidéo</a></li>
+        <li><a href="#reglages">Personnaliser l’affichage</a></li>
+        <li><a href="#quitter">Réduire, fermer et mettre à jour</a></li>
+      </ol>
+    </nav>
+
+    <section id="reperes">
+      <h2><span class="num">01</span> Se repérer dans l’application</h2>
+      <p>À l’ouverture, choisissez votre profil ou créez-en un. Lors de sa première utilisation, indiquez vos genres préférés pour personnaliser les suggestions.</p>
+      <div class="table-wrap"><table>
+        <caption>Les principaux espaces</caption>
+        <thead><tr><th scope="col">Onglet ou bouton</th><th scope="col">Ce que vous y trouvez</th></tr></thead>
+        <tbody>
+          <tr><td>Accueil</td><td>Les raccourcis Reprendre, Favoris, TV, Films, Séries et Par plateforme ; des suggestions et les ajouts récents.</td></tr>
+          <tr><td>TV en direct</td><td>La liste des chaînes, leurs catégories et le lecteur TV.</td></tr>
+          <tr><td>Films / Séries</td><td>Les catalogues, la recherche et les catégories, dont Récemment ajoutés.</td></tr>
+          <tr><td>Par plateforme</td><td>Des logos à sélectionner pour explorer les titres associés à une plateforme ou à un univers.</td></tr>
+          <tr><td>Tendances</td><td>Un espace de découverte de films et de séries. Les informations disponibles peuvent varier selon la connexion.</td></tr>
+          <tr><td>Favoris</td><td>Les titres et les chaînes enregistrés dans le profil actuel.</td></tr>
+          <tr><td>Reprendre / Continuer à regarder</td><td>Les films et épisodes commencés, avec leur progression.</td></tr>
+          <tr><td>Historique</td><td>Les contenus récemment regardés.</td></tr>
+          <tr><td>Recherche</td><td>Une recherche globale dans votre bibliothèque.</td></tr>
+          <tr><td>Paramètres</td><td>Le profil, l’affichage, les options de lecture et la mise à jour de l’application.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note"><strong>Le jaune vous guide.</strong> Sur TV, le contour jaune indique l’élément sélectionné à la télécommande. Un cœur jaune indique un favori actif.</div>
+    </section>
+
+    <section id="commandes">
+      <h2><span class="num">02</span> Souris, tactile et télécommande</h2>
+      <div class="cards">
+        <article class="card"><h3>Sur Windows</h3><p>Utilisez le menu latéral pour changer d’espace. Cliquez sur une affiche pour ouvrir sa fiche.</p><p>Faites défiler les listes avec la molette. <kbd>Ctrl</kbd> + <kbd>F</kbd> ou <kbd>Ctrl</kbd> + <kbd>K</kbd> donne accès à la recherche globale.</p></article>
+        <article class="card"><h3>Sur téléphone</h3><p>Utilisez la barre inférieure : Accueil, TV, Films, Séries et Plus. Le menu <strong>Plus</strong> regroupe les autres espaces.</p><p>Touchez une affiche pour l’ouvrir et glissez pour défiler. Sur un grand écran ou un téléphone déplié, la disposition s’adapte à la place disponible.</p></article>
+        <article class="card"><h3>Sur TV / Fire TV</h3><p>Déplacez le contour jaune avec les flèches. Appuyez sur <kbd>OK</kbd> pour ouvrir ou confirmer, et sur <kbd>Retour</kbd> pour revenir.</p><p>Dans un champ de recherche, appuyez sur <kbd>OK</kbd> pour ouvrir le clavier. Après avoir fermé le clavier, les flèches permettent de naviguer à nouveau.</p></article>
+      </div>
+      <div class="note"><strong>En changeant d’onglet :</strong> la recherche est effacée et le défilement repart en haut. Vous pouvez donc revenir dans un catalogue sans rester bloqué sur une ancienne recherche.</div>
+    </section>
+
+    <section id="catalogue">
+      <h2><span class="num">03</span> Trouver un film ou une série</h2>
+      <ol>
+        <li>Ouvrez <strong>Films</strong> ou <strong>Séries</strong>.</li>
+        <li>Parcourez <strong>Récemment ajoutés</strong>, choisissez une catégorie ou saisissez un titre dans la recherche.</li>
+        <li>Ouvrez une affiche pour consulter sa fiche et les actions disponibles.</li>
+        <li>Si plusieurs versions sont regroupées, choisissez la version souhaitée selon les indications de langue ou de qualité affichées.</li>
+        <li>Pour une série, choisissez la saison puis l’épisode avant de lancer la lecture.</li>
+      </ol>
+      <p>Dans <strong>Par plateforme</strong>, choisissez un logo pour afficher le catalogue correspondant. Cette présentation sert à classer votre bibliothèque : elle ne remplace pas les applications des plateformes.</p>
+      <p>Le bouton <strong>Mettre à jour par internet</strong> actualise les informations de classement lorsqu’elles sont disponibles.</p>
+    </section>
+
+    <section id="reprendre">
+      <h2><span class="num">04</span> Favoris, profils et reprise</h2>
+      <div class="cards">
+        <article class="card"><h3><span class="yellow" aria-hidden="true">♥</span> Garder un favori</h3><p>Sur une fiche ou une chaîne, sélectionnez le cœur. Il devient jaune. Sélectionnez-le à nouveau pour retirer le favori.</p><p>Retrouvez vos choix dans <strong>Favoris</strong>.</p></article>
+        <article class="card"><h3>Reprendre un épisode</h3><p>Ouvrez <strong>Reprendre</strong> depuis l’accueil ou le menu. Choisissez un titre commencé, puis utilisez l’action de reprise proposée.</p><p>Pour une série, l’épisode à reprendre est mis en évidence et la liste défile jusqu’à lui si nécessaire.</p></article>
+        <article class="card"><h3>À chacun son profil</h3><p>Les favoris, les préférences, l’historique et la progression sont associés au profil sélectionné.</p><p>Utilisez le bouton de profil pour changer d’utilisateur. Modifiez vos genres préférés dans <strong>Paramètres → Profil et envies</strong>.</p></article>
+      </div>
+      <p>Pour retirer un titre de la reprise, utilisez l’action de retrait de sa fiche. Sur Windows, un clic droit sur un contenu en cours ouvre aussi le menu <strong>Supprimer de Continuer à regarder</strong>. Sur mobile, un appui prolongé sur la vignette donne accès à ce menu.</p>
+    </section>
+
+    <section id="direct">
+      <h2><span class="num">05</span> Regarder la TV en direct</h2>
+      <p>Ouvrez <strong>TV en direct</strong>, choisissez une catégorie si besoin, puis sélectionnez une chaîne. Sur TV, le focus se place sur la première chaîne disponible à l’entrée dans cet espace.</p>
+      <p>Affichez les commandes du lecteur pour accéder au plein écran. Le programme en cours et le suivant apparaissent avec les commandes lorsque le guide dispose de ces informations.</p>
+      <div class="table-wrap"><table>
+        <caption>Télécommande : pendant une chaîne</caption>
+        <thead><tr><th scope="col">Touche / action</th><th scope="col">Résultat</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Dans le lecteur, changer de chaîne. Si le menu des chaînes est ouvert, parcourir les chaînes de la catégorie affichée.</td></tr>
+          <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>Lorsque les commandes sont affichées, naviguer entre les options du lecteur. Dans le menu des chaînes, changer de catégorie.</td></tr>
+          <tr><td><kbd>OK</kbd>, commandes masquées</td><td>Ouvrir le menu des chaînes sur la gauche, sans quitter le plein écran. Le programme en cours est indiqué sous chaque nom lorsqu’il est disponible.</td></tr>
+          <tr><td><kbd>OK</kbd>, sur une chaîne du menu</td><td>Lancer la chaîne sélectionnée.</td></tr>
+          <tr><td><kbd>Retour</kbd></td><td>Fermer d’abord le menu ou les commandes affichées. Utiliser de nouveau Retour pour sortir du plein écran, puis quitter la lecture selon l’état du lecteur.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Les commandes TV comprennent l’actualisation de la chaîne, lecture/pause, le format de l’image et le plein écran. Si l’image se fige, essayez le bouton d’actualisation.</p>
+      <p class="small">Si le programme n’est pas connu, « Programme indisponible » est affiché. Cela n’indique pas nécessairement un problème de lecture.</p>
+    </section>
+
+    <section id="lecteur">
+      <h2><span class="num">06</span> Utiliser le lecteur vidéo</h2>
+      <p>Sur mobile, un appui simple affiche ou masque les commandes. Sur Windows, déplacez la souris sur l’image pour les afficher. Les commandes se masquent automatiquement après une période d’inactivité.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th scope="col">Commande</th><th scope="col">Utilisation</th></tr></thead>
+        <tbody>
+          <tr><td>Lecture / Pause</td><td>Utilisez le bouton du lecteur. Sur Windows, la barre d’espace permet aussi de mettre en pause ou de reprendre lorsque le lecteur est actif.</td></tr>
+          <tr><td>Barre de progression</td><td>Pour un film ou un épisode, déplacez le curseur vers le passage souhaité. Le direct n’offre pas les mêmes possibilités de déplacement.</td></tr>
+          <tr><td>Épisode précédent / suivant</td><td>Passez à l’épisode voisin lorsque ces boutons sont disponibles. L’enchaînement automatique peut être réglé dans les paramètres de lecture.</td></tr>
+          <tr><td>Sous-titres</td><td>Ils sont désactivés au lancement d’une nouvelle vidéo. Ouvrez leur menu pour activer une piste disponible.</td></tr>
+          <tr><td>Audio</td><td>Choisissez une autre piste dans le menu audio lorsqu’il est proposé et que plusieurs pistes sont disponibles.</td></tr>
+          <tr><td>Vitesse</td><td>Modifiez la vitesse pour les films et épisodes. Le direct reste à vitesse normale.</td></tr>
+          <tr><td>Format de l’image</td><td>Choisissez le rapport ou le recadrage souhaité avec le bouton de format. Un recadrage peut couper les bords de l’image.</td></tr>
+          <tr><td>Plein écran</td><td>Utilisez le bouton dédié. Sur Windows, <kbd>F</kbd> dans le lecteur et <kbd>F11</kbd> permettent de basculer le plein écran ; <kbd>Échap</kbd> permet d’en sortir.</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Gestes sur téléphone</h3>
+      <ul>
+        <li><strong>Glissement vertical à gauche :</strong> régler la luminosité.</li>
+        <li><strong>Glissement vertical à droite :</strong> régler le volume.</li>
+        <li><strong>Double appui à gauche / à droite :</strong> reculer / avancer de 10 secondes dans un film ou un épisode.</li>
+        <li><strong>Pincement à deux doigts :</strong> modifier le format de l’image.</li>
+        <li><strong>Verrouillage tactile :</strong> éviter les commandes accidentelles ; utilisez le contrôle de déverrouillage pour retrouver les commandes.</li>
+      </ul>
+      <p class="small">Les gestes dépendent de vos réglages de lecture. L’avance et le retour rapides ne s’appliquent pas au direct sans fonction de différé. Sur Windows, la molette au-dessus du lecteur règle le volume.</p>
+    </section>
+
+    <section id="reglages">
+      <h2><span class="num">07</span> Personnaliser l’affichage</h2>
+      <p>Ouvrez <strong>Paramètres → Bibliothèque et affichage</strong> sur TV, ou <strong>Bibliothèque et apparence</strong> sur Windows et mobile.</p>
+      <ul>
+        <li><strong>Affiches par ligne :</strong> augmentez le nombre pour voir davantage de films ou de séries à l’écran ; réduisez-le pour agrandir les affiches.</li>
+        <li><strong>Tri, langues et catégories :</strong> choisissez ce qui apparaît dans les listes de chaînes, films et séries. Vous pouvez recocher un élément masqué plus tard.</li>
+        <li><strong>Genres préférés :</strong> modifiez-les dans Profil et envies pour renouveler les suggestions de l’accueil.</li>
+        <li><strong>Lecture :</strong> réglez notamment l’enchaînement des épisodes, la vitesse et les gestes proposés par votre appareil.</li>
+      </ul>
+      <div class="note"><strong>Pour une lecture plus confortable sur TV :</strong> gardez peu d’affiches par ligne et suivez le contour jaune avant d’appuyer sur OK.</div>
+    </section>
+
+    <section id="quitter">
+      <h2><span class="num">08</span> Réduire, fermer et mettre à jour</h2>
+      <p>Depuis l’accueil Android ou TV, appuyez sur <strong>Retour</strong> pour afficher les choix de sortie. Sur Windows, utilisez le bouton de fermeture de la fenêtre.</p>
+      <div class="cards">
+        <article class="card"><h3>Réduire</h3><p>Quittez l’écran de l’application en conservant la session en mémoire, pour revenir plus rapidement.</p><p class="small">Android ou Fire OS peut libérer l’application si la mémoire manque. Une réouverture complète sera alors nécessaire.</p></article>
+        <article class="card"><h3>Fermer</h3><p>Terminez la session de l’application. Le prochain lancement effectuera son démarrage habituel.</p></article>
+        <article class="card"><h3>Annuler</h3><p>Fermez la boîte de dialogue et continuez à utiliser NOVA.</p></article>
+      </div>
+      <h3 style="margin-top:24px">Installer une mise à jour</h3>
+      <ol>
+        <li>Ouvrez <strong>Paramètres → Mise à jour de l’application</strong>.</li>
+        <li>Choisissez <strong>Vérifier les mises à jour</strong>.</li>
+        <li>Si une version plus récente existe, suivez les indications. NOVA choisit le fichier correspondant à votre édition.</li>
+      </ol>
+      <p>Sur Android et TV, confirmez l’installation dans l’écran système et accordez l’autorisation d’installation si elle est demandée. Sur Windows, le bouton ouvre le téléchargement du ZIP portable : fermez NOVA puis extrayez tout le dossier de la nouvelle version.</p>
+    </section>
+
+    <p class="back-top"><a href="#debut">↑ Revenir au début du guide</a></p>
+    <footer>NOVA IPTV · Guide de navigation · Version 0.10.4 · Les intitulés et les commandes disponibles peuvent varier selon l’appareil et le contenu. Ce document fonctionne hors connexion et peut être imprimé ou enregistré en PDF depuis le navigateur.</footer>
+  </main>
+  <script>
+    const printButton = document.getElementById('print-button');
+    printButton.hidden = false;
+    printButton.addEventListener('click', () => window.print());
+  </script>
+</body>
+</html>
