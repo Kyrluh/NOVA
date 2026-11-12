@@ -96,6 +96,24 @@ void main() {
       6,
     ); // Hidden entries remain configurable offline.
     expect(applyCatalogPreferences(source.items, preferences).length, 3);
+    requests.clear();
+    await source.refreshAtStartup();
+    final startupLists = requests.where(
+      (uri) => const {
+        'get_live_streams',
+        'get_vod_streams',
+        'get_series',
+      }.contains(uri.queryParameters['action']),
+    );
+    expect(startupLists.length, 3);
+    expect(
+      startupLists.every(
+        (uri) => !uri.queryParameters.containsKey('category_id'),
+      ),
+      isTrue,
+    );
+    expect(source.items.length, 6);
+    expect(applyCatalogPreferences(source.items, preferences).length, 3);
     preferences = const CatalogPreferences();
     requests.clear();
     await source.reloadSources();

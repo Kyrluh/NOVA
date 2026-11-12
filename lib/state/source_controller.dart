@@ -136,7 +136,7 @@ class SourceController extends ChangeNotifier {
           _startupFraction = 0;
           _notify();
           try {
-            await refresh(id);
+            await refresh(id, completeCatalog: true);
             if (_records[id]?.catalog.warnings.isNotEmpty == true) {
               _startupFailures++;
             }
@@ -324,18 +324,19 @@ class SourceController extends ChangeNotifier {
     return _track(_catalogJob(normalized, external: cancel));
   }
 
-  Future<void> refresh(String id) {
+  Future<void> refresh(String id, {bool completeCatalog = false}) {
     _checkOpen();
     final record = _records[id];
     if (record == null) {
       throw const SourceException('Cette source n’existe plus.');
     }
-    return _track(_catalogJob(record.config));
+    return _track(_catalogJob(record.config, completeCatalog: completeCatalog));
   }
 
   Future<void> _catalogJob(
     SourceConfig config, {
     CancellationToken? external,
+    bool completeCatalog = false,
   }) async {
     final id = config.id;
     final token = _begin(id, external);
@@ -345,7 +346,8 @@ class SourceController extends ChangeNotifier {
     _notify();
     try {
       final selection =
-          original != null &&
+          !completeCatalog &&
+              original != null &&
               original.catalog.items.isNotEmpty &&
               _sameProvider(original.config, config) &&
               config.kind == SourceKind.xtream
