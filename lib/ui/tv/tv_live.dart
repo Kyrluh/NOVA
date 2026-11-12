@@ -10,6 +10,7 @@ import '../theme.dart';
 import 'tv_widgets.dart';
 import '../widgets/search_field.dart';
 import '../widgets/live_guide_hud.dart';
+import '../widgets/channel_logo.dart';
 import '../../player/tv_channel_panel.dart';
 
 class TvLive extends StatefulWidget {
@@ -90,6 +91,7 @@ class TvLiveState extends State<TvLive> {
           id: item.id,
           title: item.title,
           category: item.category,
+          logoUrl: widget.controller.posterFor(item),
         ),
     ];
   }
@@ -157,12 +159,12 @@ class TvLiveState extends State<TvLive> {
       }
       final channels = _filteredChannels;
       final rowHeight =
-          80.0 +
+          96.0 +
           (MediaQuery.textScalerOf(context).scale(16) - 16).clamp(
                 0,
                 double.infinity,
               ) *
-              2;
+              3;
       if (!_initialFocusRequested && channels.isNotEmpty) {
         _initialFocusRequested = true;
         final requestedIndex = channels.indexWhere(
@@ -298,11 +300,22 @@ class TvLiveState extends State<TvLive> {
                               horizontal: 12,
                               vertical: 13,
                             ),
-                            child: Text(
-                              item.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 16),
+                            child: Row(
+                              children: [
+                                ChannelLogo(
+                                  title: item.title,
+                                  url: app.posterFor(item),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    item.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

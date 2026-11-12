@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../ui/theme.dart';
+import '../ui/widgets/channel_logo.dart';
 
 @immutable
 class TvChannelOption {
@@ -11,10 +12,12 @@ class TvChannelOption {
     required this.id,
     required this.title,
     required this.category,
+    this.logoUrl,
   });
   final String id;
   final String title;
   final String category;
+  final String? logoUrl;
 }
 
 /// Stays inside the video surface: switching channels never leaves fullscreen.
@@ -304,6 +307,12 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                                   children: [
                                     if (channel.id == widget.selectedId)
                                       const Icon(Icons.play_arrow, size: 20),
+                                    ChannelLogo(
+                                      title: channel.title,
+                                      url: channel.logoUrl,
+                                      size: 28,
+                                    ),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,

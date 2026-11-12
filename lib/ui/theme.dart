@@ -100,6 +100,7 @@ ThemeData novaTheme(int accent) {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFFE9EBF2),
         textStyle: const TextStyle(
           fontFamily: 'Segoe UI',
           fontWeight: FontWeight.w600,

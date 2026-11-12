@@ -8,7 +8,11 @@ ThemeData novaTvTheme(int accent) {
   final focusedButton = ButtonStyle(
     minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
     backgroundColor: WidgetStateProperty.resolveWith(
-      (states) => states.contains(WidgetState.focused) ? color : null,
+      (states) => states.contains(WidgetState.focused) ? novaHighlight : null,
+    ),
+    foregroundColor: WidgetStateProperty.resolveWith(
+      (states) =>
+          states.contains(WidgetState.focused) ? const Color(0xFF17180E) : null,
     ),
     side: WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.focused)

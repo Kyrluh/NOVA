@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**Version 0.10.6+38 — Windows, Android mobile et TV** : petits logos existants dans les listes TV et le menu contextuel TV, et contraste renforcé des boutons sélectionnés, notamment Annuler. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.6) · [Notes de version](docs/RELEASE-0.10.6.md) · [Détails](docs/LOGOS-MENUS-0.10.6.md).
+
 **Correction TV locale 0.10.5+37** : ouvrir une chaîne depuis les favoris ou la recherche place le curseur sur cette chaîne et fait défiler la liste jusqu’à elle. L’entrée directe dans TV conserve le focus sur la première chaîne. [Détails](docs/FOCUS-CHAINES-TV-0.10.5.md).
 
 [Guide utilisateur de navigation — HTML imprimable](docs/guide-utilisateur.html) : Windows, mobile et télécommande TV, avec sommaire et bouton d’impression / export PDF.

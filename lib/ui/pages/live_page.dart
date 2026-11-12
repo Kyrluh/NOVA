@@ -13,6 +13,7 @@ import '../theme.dart';
 import '../adaptive.dart';
 import '../widgets/artwork.dart';
 import '../widgets/live_guide_hud.dart';
+import '../widgets/channel_logo.dart';
 
 class LivePage extends StatefulWidget {
   const LivePage({
@@ -704,13 +705,9 @@ class LivePageState extends State<LivePage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    item.title.substring(0, 1),
-                    style: TextStyle(
-                      color: Color(item.palette),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: ChannelLogo(
+                    title: item.title,
+                    url: widget.controller.posterFor(item),
                   ),
                 ),
                 const SizedBox(width: 9),
