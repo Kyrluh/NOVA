@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets/page_widgets.dart';
 import '../adaptive.dart';
 import '../tv/tv_source_field.dart';
+import '../widgets/source_reload_button.dart';
 
 /// Personal source management. Provider addresses and credentials are only
 /// displayed inside the edit form, never in source cards or error details.
@@ -140,6 +141,8 @@ class SourcesPage extends StatelessWidget {
             },
           ),
           const SizedBox(height: 26),
+          SourceReloadButton(controller: controller),
+          const SizedBox(height: 16),
           if (controller.isInitializing) ...[
             const LinearProgressIndicator(),
             const SizedBox(height: 20),

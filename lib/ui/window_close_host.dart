@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../state/app_controller.dart';
+import 'widgets/exit_choice.dart';
 
 /// Stays mounted while the profile picker replaces the application shell.
 class WindowCloseHost extends StatefulWidget {
@@ -11,17 +12,20 @@ class WindowCloseHost extends StatefulWidget {
     super.key,
     required this.controller,
     required this.enabled,
-    required this.child,
+    this.child,
+    this.builder,
   });
   final AppController controller;
   final bool enabled;
-  final Widget child;
+  final Widget? child;
+  final Widget Function(GlobalKey<NavigatorState>)? builder;
   @override
   State<WindowCloseHost> createState() => _WindowCloseHostState();
 }
 
 class _WindowCloseHostState extends State<WindowCloseHost> with WindowListener {
   bool _closing = false;
+  final _navigatorKey = GlobalKey<NavigatorState>();
   @override
   void initState() {
     super.initState();
@@ -35,9 +39,15 @@ class _WindowCloseHostState extends State<WindowCloseHost> with WindowListener {
   void onWindowClose() async {
     if (_closing) return;
     _closing = true;
-    await widget.controller.shutdown();
-    await windowManager.setPreventClose(false);
-    await windowManager.close();
+    final dialogContext = _navigatorKey.currentState?.overlay?.context;
+    if (dialogContext != null) {
+      await showExitChoice(dialogContext, widget.controller);
+    } else {
+      await widget.controller.shutdown();
+      await windowManager.setPreventClose(false);
+      await windowManager.close();
+    }
+    _closing = false;
   }
 
   @override
@@ -47,5 +57,6 @@ class _WindowCloseHostState extends State<WindowCloseHost> with WindowListener {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) =>
+      widget.builder?.call(_navigatorKey) ?? widget.child!;
 }

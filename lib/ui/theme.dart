@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 const novaBackground = Color(0xFF0B0D12);
 const novaSurface = Color(0xFF13161E);
 const novaMuted = Color(0xFF9299AA);
+const novaHighlight = Color(0xFFFFD740);
 
 ThemeData novaTheme(int accent) {
   final accentColor = Color(accent);
@@ -21,7 +22,13 @@ ThemeData novaTheme(int accent) {
     fontFamily: 'Segoe UI',
     colorScheme: scheme,
   );
+  final focusOutline = WidgetStateProperty.resolveWith<BorderSide?>(
+    (states) => states.contains(WidgetState.focused)
+        ? const BorderSide(color: novaHighlight, width: 3)
+        : null,
+  );
   return base.copyWith(
+    focusColor: novaHighlight.withValues(alpha: .3),
     scaffoldBackgroundColor: novaBackground,
     canvasColor: novaBackground,
     dividerColor: const Color(0xFF242834),
@@ -68,7 +75,7 @@ ThemeData novaTheme(int accent) {
       border: border,
       enabledBorder: border,
       focusedBorder: border.copyWith(
-        borderSide: BorderSide(color: accentColor),
+        borderSide: const BorderSide(color: novaHighlight, width: 3),
       ),
       prefixIconColor: novaMuted,
     ),
@@ -81,7 +88,7 @@ ThemeData novaTheme(int accent) {
           fontWeight: FontWeight.w600,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+      ).copyWith(side: focusOutline),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
@@ -89,7 +96,7 @@ ThemeData novaTheme(int accent) {
         side: const BorderSide(color: Color(0xFF373C4B)),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+      ).copyWith(side: focusOutline),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
@@ -98,10 +105,11 @@ ThemeData novaTheme(int accent) {
           fontWeight: FontWeight.w600,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+      ).copyWith(side: focusOutline),
     ),
     iconButtonTheme: IconButtonThemeData(
-      style: IconButton.styleFrom(foregroundColor: const Color(0xFFBCC2D0)),
+      style: IconButton.styleFrom(foregroundColor: const Color(0xFFBCC2D0))
+          .copyWith(side: focusOutline),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: const Color(0xFF151923),

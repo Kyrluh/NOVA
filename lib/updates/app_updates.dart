@@ -142,6 +142,33 @@ class AppUpdateService {
   MethodChannel get _native =>
       MethodChannel(Platform.isAndroid ? 'nova/android' : 'nova/window');
 
+  /// Remove only our own installers whose version is already installed.
+  /// Leave newer downloads intact if installation was postponed or cancelled.
+  Future<void> cleanInstalledApks() async {
+    try {
+      final app = await installed();
+      if (app.windows) return;
+      final folder = Directory(
+        '${(await _cacheDirectory()).path}${Platform.pathSeparator}updates',
+      );
+      if (!await folder.exists()) return;
+      final pattern = RegExp(
+        app.television
+            ? r'^NOVA-IPTV-TV-(\d+\.\d+\.\d+)-universal\.apk$'
+            : r'^NOVA-IPTV-(\d+\.\d+\.\d+)-(?:universal|arm64-v8a)\.apk$',
+      );
+      await for (final entry in folder.list(followLinks: false)) {
+        if (entry is! File) continue;
+        final match = pattern.firstMatch(entry.uri.pathSegments.last);
+        if (match != null && compareAppVersions(match[1]!, app.version) <= 0) {
+          await entry.delete();
+        }
+      }
+    } catch (_) {
+      // A locked installer or unavailable cache must never block startup.
+    }
+  }
+
   Future<InstalledApp> installed() async {
     final data = await _native.invokeMapMethod<String, dynamic>(
       'getUpdateInfo',

@@ -246,6 +246,9 @@ class _TvDetailsState extends State<TvDetails> {
                                       app.favorites.contains(_item.id)
                                           ? Icons.favorite
                                           : Icons.favorite_border,
+                                      color: app.favorites.contains(_item.id)
+                                          ? novaHighlight
+                                          : null,
                                     ),
                                     label: Text(
                                       app.favorites.contains(_item.id)
@@ -535,7 +538,7 @@ class _TvSynopsisState extends State<_TvSynopsis> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: _focused ? Colors.white : Colors.white12,
+                    color: _focused ? novaHighlight : Colors.white12,
                     width: 2,
                   ),
                 ),

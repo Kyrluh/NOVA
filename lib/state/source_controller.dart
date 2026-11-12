@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../data/source_repository.dart';
 import '../domain/internet_catalog.dart';
 import '../domain/models.dart';
+import '../domain/catalog_preferences.dart';
 import '../domain/recent_catalog.dart';
 import '../domain/source_models.dart';
 import '../sources/iptv_client.dart';
@@ -29,6 +30,33 @@ class SourceController extends ChangeNotifier {
 
   final SourceRepository _repository;
   final IptvClient _client;
+  CatalogPreferences Function()? preferencesForRefresh;
+
+  /// Manual reload remains available after the once-per-launch refresh.
+  Future<void> reloadSources() async {
+    await Future.wait(
+      _pending.toList().map((operation) async {
+        try {
+          await operation;
+        } catch (_) {
+          /* Retry below. */
+        }
+      }),
+    );
+    Object? failure;
+    for (final id in _records.keys.toList()) {
+      if (_closed) return;
+      if (!_tokens.containsKey(id)) {
+        try {
+          await refresh(id);
+        } catch (error) {
+          failure = error;
+        }
+      }
+    }
+    if (failure != null) throw failure;
+  }
+
   final Map<String, SourceRecord> _records = {};
   final Map<String, CancellationToken> _tokens = {};
   final Map<String, CancellationToken> _detailTokens = {};
@@ -316,7 +344,62 @@ class SourceController extends ChangeNotifier {
     _loadProgress = null;
     _notify();
     try {
-      final imported = await _client.loadCatalog(config, cancel: token);
+      final selection =
+          original != null &&
+              original.catalog.items.isNotEmpty &&
+              _sameProvider(original.config, config) &&
+              config.kind == SourceKind.xtream
+          ? preferencesForRefresh?.call()
+          : null;
+      var imported = selection == null
+          ? await _client.loadCatalog(config, cancel: token)
+          : await _client.loadSelectedCatalog(config, selection, cancel: token);
+      if (selection != null) {
+        final importedIds = imported.items.map((item) => item.id).toSet();
+        final visibleIds = applyCatalogPreferences(
+          original!.catalog.items,
+          selection,
+        ).map((item) => item.id).toSet();
+        final merged = [
+          ...imported.items,
+          ...original.catalog.items.where(
+            (item) =>
+                !visibleIds.contains(item.id) && !importedIds.contains(item.id),
+          ),
+        ];
+        // Category requests must not scramble the provider's known TV order.
+        final positions = {
+          for (var i = 0; i < original.catalog.items.length; i++)
+            original.catalog.items[i].id: i,
+        };
+        final live = merged
+            .where((item) => item.kind == MediaKind.live)
+            .toList();
+        final incomingPositions = {
+          for (var i = 0; i < live.length; i++) live[i].id: i,
+        };
+        live.sort(
+          (a, b) =>
+              (positions[a.id] ?? positions.length + incomingPositions[a.id]!)
+                  .compareTo(
+                    positions[b.id] ??
+                        positions.length + incomingPositions[b.id]!,
+                  ),
+        );
+        final orderedLive = live.iterator;
+        imported = SourceCatalog(
+          items: [
+            for (final item in merged)
+              if (item.kind == MediaKind.live && orderedLive.moveNext())
+                orderedLive.current
+              else
+                item,
+          ],
+          suggestedEpgUrl: imported.suggestedEpgUrl,
+          warnings: imported.warnings,
+          failedKinds: imported.failedKinds,
+        );
+      }
       _ensureActive(id, token);
       final catalog = _datedCatalog(
         _retainKnownDetails(imported, original, config),

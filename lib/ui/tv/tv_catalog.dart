@@ -69,9 +69,7 @@ class _TvCatalogState extends State<TvCatalog> {
     _storageScope = _scopeFor(widget);
     final saved = PageStorage.maybeOf(context)
         ?.readState(context, identifier: ('tv-catalog-filters', _storageScope));
-    _search.text = saved is Map && saved['query'] is String
-        ? saved['query'] as String
-        : '';
+    _search.clear();
     _category =
         saved is Map &&
             saved.containsKey('category') &&

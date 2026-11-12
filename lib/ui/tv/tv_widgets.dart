@@ -12,7 +12,7 @@ ThemeData novaTvTheme(int accent) {
     ),
     side: WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.focused)
-          ? const BorderSide(color: Colors.white, width: 2)
+          ? const BorderSide(color: novaHighlight, width: 3)
           : null,
     ),
   );
@@ -21,7 +21,7 @@ ThemeData novaTvTheme(int accent) {
     inputDecorationTheme: base.inputDecorationTheme.copyWith(
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.white, width: 3),
+        borderSide: const BorderSide(color: novaHighlight, width: 3),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -84,9 +84,9 @@ class _TvTileState extends State<TvTile> {
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
             color: _focused
-                ? Colors.white
+                ? novaHighlight
                 : widget.selected
-                ? accent
+                ? novaHighlight
                 : Colors.transparent,
             width: 3,
           ),

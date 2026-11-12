@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ui/theme.dart';
+
 @immutable
 class TvChannelOption {
   const TvChannelOption({
@@ -238,7 +240,7 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                                 : Colors.white10,
                             border: Border.all(
                               color: category == _category
-                                  ? Colors.white
+                                  ? novaHighlight
                                   : Colors.transparent,
                               width: 3,
                             ),
@@ -293,7 +295,7 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                                   border: Border.all(
                                     width: 3,
                                     color: index == _index
-                                        ? Colors.white
+                                        ? novaHighlight
                                         : Colors.transparent,
                                   ),
                                   borderRadius: BorderRadius.circular(8),

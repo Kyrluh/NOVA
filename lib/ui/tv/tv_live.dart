@@ -39,6 +39,7 @@ class TvLiveState extends State<TvLive> {
   final _back = ValueNotifier<int>(0);
   final _search = TextEditingController();
   final _firstChannelFocus = FocusNode(debugLabel: 'TV first channel');
+  bool _initialFocusRequested = false;
   late String? _selectedId = widget.initialChannelId;
   String? _category;
   List<MediaItem>? _catalogInput;
@@ -152,6 +153,12 @@ class TvLiveState extends State<TvLive> {
                   .toList(growable: false);
       }
       final channels = _filteredChannels;
+      if (!_initialFocusRequested && channels.isNotEmpty) {
+        _initialFocusRequested = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _firstChannelFocus.requestFocus();
+        });
+      }
       final selected = _channelsById[_selectedId] ?? channels.firstOrNull;
       _playerMounted =
           _watching &&
@@ -384,6 +391,9 @@ class TvLiveState extends State<TvLive> {
                               app.favorites.contains(selected.id)
                                   ? Icons.favorite
                                   : Icons.favorite_border,
+                              color: app.favorites.contains(selected.id)
+                                  ? novaHighlight
+                                  : null,
                             ),
                           ),
                         ],

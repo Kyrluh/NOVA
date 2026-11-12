@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**Version compilée localement : 0.10.4+36 (Windows, téléphone et TV)** — recherches et défilements réinitialisés entre les onglets, actualisations Xtream limitées aux catégories cochées après le premier import, rechargement manuel dans les paramètres, choix Réduire/Fermer/Annuler et sélections/favoris jaunes. [Fonctionnement et limites](docs/NAVIGATION-CHARGEMENT-0.10.4.md). Les releases publiques restent celles indiquées ci-dessous.
+
 Lecteur IPTV natif pour **Windows et Android**, développé avec Flutter. NOVA réunit la TV en direct, les films, les séries et la reprise de lecture dans une interface sombre adaptée à la souris, au tactile et à la télécommande. Windows et le téléphone utilisent libmpv ; l'application TV utilise Media3 avec un rendu vidéo Android natif.
 
 **TV : 0.10.3+35** · **Android téléphone : 0.10.2+34** · **Windows x64 : 0.10.2+34** · **GPL-3.0-or-later**

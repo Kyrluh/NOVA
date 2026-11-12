@@ -14,6 +14,7 @@ import '../pages/catalog_organization_page.dart';
 import '../pages/sources_page.dart';
 import '../widgets/media_artwork.dart';
 import '../widgets/source_startup_progress.dart';
+import '../widgets/exit_choice.dart';
 import '../theme.dart';
 import 'tv_catalog.dart';
 import 'tv_details.dart';
@@ -53,6 +54,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
       section: FocusNode(debugLabel: 'TV navigation $section'),
   };
   String _section = 'home';
+  PageStorageBucket _pageStorage = PageStorageBucket();
   CatalogPlatform? _platform;
   final _utilityTrail = <({String section, CatalogPlatform? platform})>[];
   final _platformFocus = {
@@ -122,6 +124,8 @@ class _NovaTvShellState extends State<NovaTvShell> {
         _utilityTrail.clear();
       }
       _section = section;
+      _requestedChannel = null;
+      _pageStorage = PageStorageBucket();
       _platform = null;
     });
   }
@@ -135,6 +139,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
       final previous = _utilityTrail.removeLast();
       setState(() {
         _section = previous.section;
+        _pageStorage = PageStorageBucket();
         _platform = previous.platform;
       });
       _navigation[_section]?.requestFocus();
@@ -153,27 +158,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
       _navigation['home']!.requestFocus();
       return;
     }
-    final quit = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Quitter NOVA IPTV TV ?'),
-        actions: [
-          TextButton(
-            autofocus: true,
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Rester'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Quitter'),
-          ),
-        ],
-      ),
-    );
-    if (quit == true) {
-      await app.shutdown();
-      await SystemNavigator.pop();
-    }
+    await showExitChoice(context, app);
   }
 
   void _details(MediaItem item) {
@@ -361,7 +346,12 @@ class _NovaTvShellState extends State<NovaTvShell> {
                               app.storageError!,
                               style: const TextStyle(color: novaMuted),
                             ),
-                          Expanded(child: _body()),
+                          Expanded(
+                            child: PageStorage(
+                              bucket: _pageStorage,
+                              child: _body(),
+                            ),
+                          ),
                         ],
                       ),
                     ),

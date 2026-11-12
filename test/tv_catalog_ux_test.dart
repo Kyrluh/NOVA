@@ -156,7 +156,7 @@ void main() {
   );
 
   testWidgets(
-    'TV catalog restores its query and category after leaving for settings',
+    'TV catalog clears its previous query and preserves category after leaving for settings',
     (tester) async {
       final app = await start(tester);
       final items = app.items.where((i) => i.kind == MediaKind.movie).toList();
@@ -221,7 +221,7 @@ void main() {
             .widget<NovaSearchField>(find.byType(NovaSearchField))
             .controller
             .text,
-        selected.title,
+        isEmpty,
       );
       expect(
         tester

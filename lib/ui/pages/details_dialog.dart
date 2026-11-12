@@ -328,6 +328,9 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                                 app.favorites.contains(item.id)
                                     ? Icons.favorite_rounded
                                     : Icons.favorite_border_rounded,
+                                color: app.favorites.contains(item.id)
+                                    ? novaHighlight
+                                    : null,
                               ),
                               label: Text(
                                 app.favorites.contains(item.id)

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'profiles_page.dart';
 import 'app_updates_page.dart';
 import '../widgets/catalog_columns_setting.dart';
+import '../widgets/source_reload_button.dart';
 
 import '../../domain/models.dart';
 import '../../state/app_controller.dart';
@@ -744,6 +745,9 @@ class _SettingsPageState extends State<SettingsPage> {
               _desktopContinuity(settings),
           ],
           if (_selected == _SettingsCategory.sources) ...[
+            if (widget.controller.sources != null)
+              SourceReloadButton(controller: widget.controller.sources!),
+            const SizedBox(height: 16),
             if (widget.onManageSources != null) ...[
               _SettingsSection(
                 icon: Icons.playlist_add_rounded,

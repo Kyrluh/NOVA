@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../domain/models.dart';
+import '../domain/catalog_preferences.dart';
 import '../domain/recent_catalog.dart';
 import '../domain/source_models.dart';
 import 'm3u_parser.dart';
@@ -58,6 +59,20 @@ class IptvClient {
   Future<SourceCatalog> loadCatalog(
     SourceConfig config, {
     CancellationToken? cancel,
+  }) => _loadCatalog(config, cancel: cancel);
+
+  Future<SourceCatalog> loadSelectedCatalog(
+    SourceConfig config,
+    CatalogPreferences preferences, {
+    CancellationToken? cancel,
+  }) => config.kind == SourceKind.xtream
+      ? _loadCatalog(config, cancel: cancel, preferences: preferences)
+      : loadCatalog(config, cancel: cancel);
+
+  Future<SourceCatalog> _loadCatalog(
+    SourceConfig config, {
+    CancellationToken? cancel,
+    CatalogPreferences? preferences,
   }) => _guard(() async {
     _validate(config);
     cancel?.throwIfCancelled();
@@ -134,28 +149,67 @@ class IptvClient {
           categories = Uint8List.fromList(utf8.encode('[]'));
         }
         try {
-          final response = await session.read(
-            _apiUri(config, section.$3),
-            onProgress: (received, total) {
-              _progress(
-                config,
-                total != null && total > 0
-                    ? base + .22 * (received / total).clamp(0, 1)
-                    : null,
-                'Chargement des ${section.$4}',
+          final selectedCategories = <String>[];
+          var selective = false;
+          if (preferences != null) {
+            final rows = _rows(await _jsonDocument(categories)).toList();
+            for (final row in rows) {
+              final probe = MediaItem(
+                id: '',
+                title: '',
+                kind: section.$1,
+                category: _text(row['category_name']),
+                sourceId: config.id,
+                description: '',
+                year: 0,
+                durationMinutes: 0,
+                palette: 0,
+                subtitle: '',
+                art: 0,
               );
-            },
-          );
-          _progress(config, base + .24, 'Classement des ${section.$4}');
-          final parsed = await compute(_parseXtreamList, (
-            response,
-            categories,
-            config,
-            section.$1,
-            liveExtension,
-          ));
-          cancel?.throwIfCancelled();
-          items.addAll(parsed);
+              final rule = preferences.ruleFor(section.$1);
+              final language = inferCatalogLanguage(
+                probe,
+                overrides: rule.languageOverrides,
+              );
+              final hidden =
+                  rule.hiddenCategories.contains(catalogCategoryKey(probe)) ||
+                  (language != 'unknown' &&
+                      rule.hiddenLanguages.contains(language));
+              if (hidden) {
+                selective = true;
+              } else {
+                selectedCategories.add(_text(row['category_id']));
+              }
+            }
+          }
+          final requests = selective ? selectedCategories : <String?>[null];
+          final parsedItems = <MediaItem>[];
+          for (final categoryId in requests) {
+            final response = await session.read(
+              _apiUri(config, section.$3, {'category_id': ?categoryId}),
+              onProgress: (received, total) {
+                _progress(
+                  config,
+                  total != null && total > 0
+                      ? base + .22 * (received / total).clamp(0, 1)
+                      : null,
+                  'Chargement des ${section.$4}',
+                );
+              },
+            );
+            _progress(config, base + .24, 'Classement des ${section.$4}');
+            final parsed = await compute(_parseXtreamList, (
+              response,
+              categories,
+              config,
+              section.$1,
+              liveExtension,
+            ));
+            cancel?.throwIfCancelled();
+            parsedItems.addAll(parsed);
+          }
+          items.addAll(parsedItems);
           successfulLists++;
         } on SourceCancelled {
           rethrow;

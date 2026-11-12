@@ -685,7 +685,8 @@ class LivePageState extends State<LivePage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(
-            color: selected ? accent.withAlpha(100) : Colors.transparent,
+            color: selected ? novaHighlight : Colors.transparent,
+            width: selected ? 2 : 1,
           ),
         ),
         child: InkWell(
@@ -758,7 +759,7 @@ class LivePageState extends State<LivePage> {
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
                     size: 15,
-                    color: favorite ? accent : novaMuted,
+                    color: favorite ? novaHighlight : novaMuted,
                   ),
                 ),
               ],
@@ -793,7 +794,6 @@ class LivePageState extends State<LivePage> {
     }
     final favorite =
         selected != null && widget.controller.favorites.contains(selected.id);
-    final accent = Theme.of(context).colorScheme.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -874,7 +874,7 @@ class LivePageState extends State<LivePage> {
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
                   size: 21,
-                  color: favorite ? accent : novaMuted,
+                  color: favorite ? novaHighlight : novaMuted,
                 ),
               ),
           ],
@@ -1107,6 +1107,9 @@ class LivePageState extends State<LivePage> {
                 widget.controller.favorites.contains(item.id)
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
+                color: widget.controller.favorites.contains(item.id)
+                    ? novaHighlight
+                    : null,
               ),
             ),
             if (compact)

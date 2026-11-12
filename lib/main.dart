@@ -16,9 +16,14 @@ import 'state/app_controller.dart';
 import 'state/source_controller.dart';
 import 'state/internet_catalog_controller.dart';
 import 'player/android_video_environment.dart';
+import 'updates/app_updates.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isAndroid) {
+    final updates = AppUpdateService();
+    unawaited(updates.cleanInstalledApks().whenComplete(updates.close));
+  }
   const television = bool.fromEnvironment('NOVA_TV');
   if (television && Platform.isAndroid) {
     // TV focus must stay visible after the native keyboard or a pointer event.

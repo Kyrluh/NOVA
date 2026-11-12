@@ -33,10 +33,12 @@ class AppController extends ChangeNotifier {
     : _store = store,
        _android = android ?? Platform.isAndroid {
     sources?.addListener(_sourceChanged);
+    sources?.preferencesForRefresh = () => _catalogPreferences;
     internetCatalog?.addListener(_internetChanged);
   }
 
   final LocalStore _store;
+  Timer? _selectionRefreshTimer;
   final Map<String, Map<String, dynamic>> _profiles = {};
   String _activeProfileId = 'main';
   bool _profileChosen = false;
@@ -704,9 +706,32 @@ class AppController extends ChangeNotifier {
   }
 
   void updateCatalogPreferences(CatalogPreferences preferences) {
+    final previous = _catalogPreferences;
     _catalogPreferences = CatalogPreferences.fromJson(preferences.toJson());
     _preferencesRevision++;
     _changed();
+    final expanded = MediaKind.values.any((kind) {
+      final before = previous.ruleFor(kind), after = preferences.ruleFor(kind);
+      return before.hiddenLanguages
+              .difference(after.hiddenLanguages)
+              .isNotEmpty ||
+          before.hiddenCategories.difference(after.hiddenCategories).isNotEmpty;
+    });
+    if (expanded && sources != null) {
+      _selectionRefreshTimer?.cancel();
+      _selectionRefreshTimer = Timer(
+        const Duration(milliseconds: 800),
+        () => unawaited(_refreshSelectedSources()),
+      );
+    }
+  }
+
+  Future<void> _refreshSelectedSources() async {
+    try {
+      await sources?.reloadSources();
+    } catch (_) {
+      /* Source errors are exposed by the controller. */
+    }
   }
 
   void updatePlatformPreferences(PlatformPreferences preferences) {
@@ -874,6 +899,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> shutdown() async {
+    _selectionRefreshTimer?.cancel();
     await internetCatalog?.close();
     await flush();
     await sources?.close();
@@ -881,6 +907,7 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _selectionRefreshTimer?.cancel();
     _disposed = true;
     _progressNotificationTimer?.cancel();
     sources?.removeListener(_sourceChanged);

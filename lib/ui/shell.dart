@@ -22,6 +22,7 @@ import 'theme.dart';
 import 'widgets/artwork.dart';
 import 'widgets/page_widgets.dart';
 import 'widgets/source_startup_progress.dart';
+import 'widgets/exit_choice.dart';
 import 'adaptive.dart';
 import 'pages/playback_page.dart';
 
@@ -99,6 +100,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
   NovaSection _section = NovaSection.home;
   bool _collapsed = false;
   bool _closing = false;
+  PageStorageBucket _pageStorage = PageStorageBucket();
   String _query = '';
   final _search = TextEditingController();
   final _searchFocus = FocusNode(debugLabel: 'NOVA global search');
@@ -132,11 +134,8 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
   void onWindowClose() async {
     if (_closing) return;
     _closing = true;
-    await app.shutdown();
-    // Send a normal WM_CLOSE so the native window releases the Flutter engine
-    // before the Windows message loop exits (destroy() only posts WM_QUIT).
-    await windowManager.setPreventClose(false);
-    await windowManager.close();
+    await showExitChoice(context, app);
+    _closing = false;
   }
 
   @override
@@ -155,6 +154,8 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
 
   void _navigate(NovaSection section) {
     if (_section == section && !_mobileMore) return;
+    _search.clear();
+    _query = '';
     setState(() {
       if (_mobileMore ||
           const {
@@ -167,13 +168,17 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
         _navigationTrail.clear();
       }
       _section = section;
+      _pageStorage = PageStorageBucket();
       _mobileMore = false;
     });
   }
 
   void _backToLibrary() {
+    _search.clear();
+    _query = '';
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
+      _pageStorage = PageStorageBucket();
       if (_mobileMore) {
         _mobileMore = false;
       } else if (_navigationTrail.isNotEmpty) {
@@ -475,12 +480,17 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
             (_mobileMore ||
                 (_section != NovaSection.home && _section != NovaSection.live));
         return PopScope(
-          canPop: !handlesBack,
+          canPop: !_android,
           onPopInvokedWithResult: (didPop, _) {
             if (!didPop &&
                 handlesBack &&
                 (ModalRoute.of(context)?.isCurrent ?? true)) {
               _backToLibrary();
+            } else if (!didPop &&
+                _android &&
+                _section == NovaSection.home &&
+                (ModalRoute.of(context)?.isCurrent ?? true)) {
+              showExitChoice(context, app);
             }
           },
           child: Scaffold(
@@ -554,7 +564,10 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
                           ),
                         Expanded(
                           key: const ValueKey('section-body'),
-                          child: _mobileMore ? _morePage() : _sectionPage(),
+                          child: PageStorage(
+                            bucket: _pageStorage,
+                            child: _mobileMore ? _morePage() : _sectionPage(),
+                          ),
                         ),
                       ],
                     ),

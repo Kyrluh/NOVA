@@ -48,9 +48,7 @@ class _MediaCatalogPageState extends State<MediaCatalogPage> {
     _storageScope = _scopeFor(widget);
     final saved = PageStorage.maybeOf(context)
         ?.readState(context, identifier: _storageScope);
-    _search.text = saved is Map && saved['query'] is String
-        ? saved['query'] as String
-        : '';
+    _search.clear();
     _category =
         saved is Map &&
             saved.containsKey('category') &&
@@ -830,6 +828,7 @@ class MediaPoster extends StatefulWidget {
 
 class _MediaPosterState extends State<MediaPoster> {
   bool _hover = false;
+  bool _focused = false;
 
   void _removeFromResume() {
     final app = widget.controller;
@@ -908,9 +907,10 @@ class _MediaPosterState extends State<MediaPoster> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _hover
-                            ? accent.withAlpha(180)
+                        color: _hover || _focused
+                            ? novaHighlight
                             : const Color(0xFF242936),
+                        width: _focused ? 3 : 1,
                       ),
                       boxShadow: _hover
                           ? [
@@ -930,8 +930,10 @@ class _MediaPosterState extends State<MediaPoster> {
                         Material(
                           type: MaterialType.transparency,
                           child: InkWell(
+                            onFocusChange: (value) =>
+                                setState(() => _focused = value),
                             onTap: widget.onTap,
-                            focusColor: accent.withAlpha(65),
+                            focusColor: novaHighlight.withAlpha(35),
                             hoverColor: Colors.white.withAlpha(8),
                             child: Semantics(
                               button: true,
@@ -978,7 +980,7 @@ class _MediaPosterState extends State<MediaPoster> {
                             style: IconButton.styleFrom(
                               backgroundColor: Colors.black.withAlpha(135),
                               foregroundColor: favorite
-                                  ? const Color(0xFFF88BAB)
+                                  ? novaHighlight
                                   : Colors.white,
                               minimumSize: const Size(36, 36),
                               padding: const EdgeInsets.all(8),

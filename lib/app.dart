@@ -34,9 +34,10 @@ class NovaApp extends StatelessWidget {
   Widget build(BuildContext context) => WindowCloseHost(
     controller: controller,
     enabled: manageWindow,
-    child: ListenableBuilder(
+    builder: (navigatorKey) => ListenableBuilder(
       listenable: controller,
       builder: (context, _) => MaterialApp(
+        navigatorKey: navigatorKey,
         title: television ? 'NOVA IPTV TV' : 'NOVA IPTV',
         debugShowCheckedModeBanner: false,
         locale: const Locale('fr'),

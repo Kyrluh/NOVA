@@ -91,6 +91,7 @@ class MainActivity : FlutterActivity() {
         channel?.setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
+                    "minimizeApp" -> { moveTaskToBack(true); result.success(null) }
                     "getUpdateInfo", "installUpdate", "openUpdateSettings" -> AppUpdates(this, cryptoExecutor).handle(call, result)
                     "isAmazonDevice" -> result.success(Build.MANUFACTURER.equals("Amazon", ignoreCase = true))
                     "editSourceText" -> editSourceText(call, result)
