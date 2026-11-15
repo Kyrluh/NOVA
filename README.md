@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**Correctif TV local 0.10.8+40** : lecture compatible des certificats et messages de mise à jour plus précis, sans désactiver le contrôle de signature. [Détails et installation manuelle](docs/MISE-A-JOUR-FIRE-TV-0.10.8.md).
+
 **Version 0.10.7+39 — Windows, Android mobile et TV** : retour au chargement complet du catalogue au démarrage ; les langues et catégories décochées restent masquées à l’affichage. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.7) · [Détails](docs/CHARGEMENT-COMPLET-0.10.7.md).
 
 **Version 0.10.6+38 — Windows, Android mobile et TV** : petits logos existants dans les listes TV et le menu contextuel TV, et contraste renforcé des boutons sélectionnés, notamment Annuler. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.6) · [Notes de version](docs/RELEASE-0.10.6.md) · [Détails](docs/LOGOS-MENUS-0.10.6.md).
