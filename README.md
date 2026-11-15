@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**Version 0.11.2+43 — Windows, Android mobile et TV** : logo N et popcorn plus imposant, marque agrandie dans les en-têtes et version plus lisible. Sur PC, les barres de défilement du menu des chaînes sont plus faciles à saisir à la souris. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.11.2) · [Notes de version](docs/RELEASE-0.11.2.md).
+
 **Version 0.11.1+42 — Windows, Android mobile et TV** : logo cinéma validé, N lumineux et popcorn rouge/blanc, guide dans les listes de chaînes, 30 avatars illustrés et commandes PC améliorées. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.11.1) · [Notes de version](docs/RELEASE-0.11.1.md).
 
 **Fonctionnalités préparées en 0.11.0, intégrées à la 0.11.1** : guide sous les chaînes, 30 avatars illustrés de profils, clic droit TV sur PC, touche Lecture/Pause Windows en arrière-plan, logo popcorn et version près de la marque. [Fonctionnement et validation](docs/PROFILS-GUIDE-COMMANDES-0.11.0.md).

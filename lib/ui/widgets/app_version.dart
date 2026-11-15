@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme.dart';
 
 class AppVersion extends StatefulWidget {
   const AppVersion({super.key});
@@ -32,7 +31,12 @@ class _AppVersionState extends State<AppVersion> {
       snapshot.data ?? '',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(fontSize: 10, height: 1.2, color: novaMuted),
+      style: const TextStyle(
+        fontSize: 11,
+        height: 1.2,
+        fontWeight: FontWeight.w500,
+        color: Color(0xFFBAC2D3),
+      ),
     ),
   );
 }

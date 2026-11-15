@@ -2,9 +2,9 @@
 
 `nova-popcorn.png` est le nouveau logo original NOVA, généré avec l’outil imagegen intégré. Les icônes de lancement sont exportées avec `scripts/update-branding.ps1`.
 
-## Logo validé — 0.11.1
+## Logo validé — 0.11.2
 
-Le propriétaire a validé le 15 novembre 2026 le N en filaments lumineux verticaux, légèrement agrandi, derrière un pot de popcorn rouge et blanc plus grand et incliné à droite. `nova-popcorn.png` est la copie exacte de cet aperçu validé. L’outil imagegen intégré a été utilisé pour les éditions successives ; le dernier prompt est conservé dans [logo-approved-prompt.txt](logo-approved-prompt.txt).
+Le propriétaire a validé le 15 novembre 2026 le N en filaments lumineux verticaux, plus imposant et recentré dans le carré, derrière un pot de popcorn rouge et blanc plus grand et incliné à droite. `nova-popcorn.png` est la copie exacte de cet aperçu validé. L’outil imagegen intégré a été utilisé pour les éditions successives ; le dernier prompt est conservé dans [logo-approved-prompt.txt](logo-approved-prompt.txt).
 
 Ce logo remplace le précédent dans l’interface, les icônes Windows et Android et la bannière TV. Les exports conservent la transparence de l’image d’origine.
 

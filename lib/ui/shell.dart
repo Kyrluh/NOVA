@@ -733,7 +733,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
             else
               const Padding(
                 padding: EdgeInsets.only(left: 4, right: 10),
-                child: NovaMark(size: 27),
+                child: NovaMark(size: 42),
               ),
             Expanded(
               child: searching
@@ -852,11 +852,20 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
             height: 92,
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: expanded ? 23 : (_android ? 12 : 20),
+                horizontal: expanded ? 18 : (_android ? 6 : 12),
               ),
               child: Row(
                 children: [
-                  const NovaMark(size: 38),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      NovaMark(size: expanded ? 60 : (_android ? 50 : 56)),
+                      if (!expanded) ...[
+                        const SizedBox(height: 4),
+                        const AppVersion(),
+                      ],
+                    ],
+                  ),
                   if (expanded) ...[
                     const SizedBox(width: 12),
                     const Column(

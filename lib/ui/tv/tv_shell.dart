@@ -218,8 +218,8 @@ class _NovaTvShellState extends State<NovaTvShell> {
                             padding: EdgeInsets.fromLTRB(8, 5, 4, 18),
                             child: Row(
                               children: [
-                                NovaMark(size: 30),
-                                SizedBox(width: 8),
+                                NovaMark(size: 64),
+                                SizedBox(width: 10),
                                 Flexible(
                                   child: Column(
                                     crossAxisAlignment:
@@ -236,16 +236,15 @@ class _NovaTvShellState extends State<NovaTvShell> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       AppVersion(),
+                                      Text(
+                                        'TV',
+                                        style: TextStyle(
+                                          color: novaMuted,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                                     ],
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'TV',
-                                  style: TextStyle(
-                                    color: novaMuted,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
