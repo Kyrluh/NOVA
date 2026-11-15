@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 
@@ -17,6 +18,18 @@ class DesktopMediaControls {
           Future<void> Function(MediaPlaybackCommand) command,
         })
       >{};
+  bool _globalKey = false;
+  Future<void> _setActive(bool active) async {
+    if (!Platform.isWindows) return;
+    try {
+      _globalKey =
+          await _channel.invokeMethod<bool>('setActive', active) ?? false;
+    } on PlatformException {
+      _globalKey = false;
+    } on MissingPluginException {
+      _globalKey = false;
+    }
+  }
 
   void register(
     Object owner, {
@@ -37,11 +50,13 @@ class DesktopMediaControls {
       });
     }
     _players[owner] = (visible: visible, command: command);
+    unawaited(_setActive(true));
   }
 
   void unregister(Object owner) {
     _players.remove(owner);
     if (_players.isEmpty) {
+      unawaited(_setActive(false));
       HardwareKeyboard.instance.removeHandler(_handleKey);
       _channel.setMethodCallHandler(null);
     }
@@ -57,6 +72,7 @@ class DesktopMediaControls {
     if (command == null || !_players.values.any((p) => p.visible())) {
       return false;
     }
+    if (_globalKey && command == MediaPlaybackCommand.toggle) return true;
     if (event is KeyDownEvent) unawaited(_dispatch(command));
     return true;
   }

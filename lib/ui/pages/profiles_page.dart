@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/profile_avatar.dart';
+import '../theme.dart';
+
 import '../../domain/user_profile.dart';
 import '../../state/app_controller.dart';
 
@@ -85,7 +88,7 @@ class ProfilesPage extends StatelessWidget {
                         onPressed: () => controller.selectProfile(profile.id),
                         child: Column(
                           children: [
-                            const Icon(Icons.account_circle, size: 64),
+                            ProfileAvatar(avatar: profile.avatar),
                             const SizedBox(height: 12),
                             Text(
                               profile.name,
@@ -141,6 +144,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
     text: widget.controller.activeProfile.name,
   );
   late final _genres = Set<String>.of(widget.controller.activeProfile.genres);
+  late String _avatar = widget.controller.activeProfile.avatar;
   @override
   void dispose() {
     _name.dispose();
@@ -149,7 +153,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
 
   void _save() {
     if (_name.text.trim().isEmpty) return;
-    widget.controller.updateProfile(_name.text, _genres);
+    widget.controller.updateProfile(_name.text, _genres, avatar: _avatar);
     if (!widget.onboarding) Navigator.pop(context);
   }
 
@@ -167,6 +171,28 @@ class _ProfileEditorState extends State<ProfileEditor> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              Center(
+                child: Column(
+                  children: [
+                    ProfileAvatar(avatar: _avatar, size: 96),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.face),
+                      label: const Text('Choisir mon personnage'),
+                      onPressed: () async {
+                        final avatar = await showDialog<String>(
+                          context: context,
+                          builder: (_) => _AvatarPicker(selected: _avatar),
+                        );
+                        if (mounted && avatar != null) {
+                          setState(() => _avatar = avatar);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               TextField(
                 controller: _name,
                 maxLength: 32,
@@ -218,6 +244,96 @@ class _ProfileEditorState extends State<ProfileEditor> {
   );
 }
 
+class _AvatarPicker extends StatefulWidget {
+  const _AvatarPicker({required this.selected});
+  final String selected;
+  @override
+  State<_AvatarPicker> createState() => _AvatarPickerState();
+}
+
+class _AvatarPickerState extends State<_AvatarPicker> {
+  String? _group;
+  @override
+  Widget build(BuildContext context) {
+    final avatars = profileAvatars
+        .where((a) => _group == null || a.$3 == _group)
+        .toList();
+    return AlertDialog(
+      title: const Text('Votre personnage'),
+      content: SizedBox(
+        width: 650,
+        height: MediaQuery.sizeOf(context).height * .62,
+        child: Column(
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _group,
+              decoration: const InputDecoration(labelText: 'Univers'),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('Tous les personnages'),
+                ),
+                for (final group in profileAvatars.map((a) => a.$3).toSet())
+                  DropdownMenuItem(value: group, child: Text(group)),
+              ],
+              onChanged: (value) => setState(() => _group = value),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, bounds) => GridView.builder(
+                  key: ValueKey(_group),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: bounds.maxWidth < 400 ? 2 : 4,
+                    mainAxisExtent: 128,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                  ),
+                  itemCount: avatars.length,
+                  itemBuilder: (context, index) {
+                    final a = avatars[index];
+                    return OutlinedButton(
+                      autofocus:
+                          a.$1 == widget.selected ||
+                          (widget.selected.isEmpty && index == 0),
+                      onPressed: () => Navigator.pop(context, a.$1),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.all(7),
+                        side: a.$1 == widget.selected
+                            ? BorderSide(color: novaHighlight, width: 2)
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ProfileAvatar(avatar: a.$1, size: 64),
+                          const SizedBox(height: 6),
+                          Text(
+                            a.$2,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler'),
+        ),
+      ],
+    );
+  }
+}
+
 class ProfileSettingsTile extends StatelessWidget {
   const ProfileSettingsTile({super.key, required this.controller});
   final AppController controller;
@@ -225,7 +341,10 @@ class ProfileSettingsTile extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     children: [
       ListTile(
-        leading: const Icon(Icons.person_outline),
+        leading: ProfileAvatar(
+          avatar: controller.activeProfile.avatar,
+          size: 40,
+        ),
         title: Text('Profil : ${controller.activeProfile.name}'),
         subtitle: Text(
           controller.activeProfile.genres.isEmpty

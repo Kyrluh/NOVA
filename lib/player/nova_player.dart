@@ -1079,9 +1079,7 @@ class _NovaPlayerState extends State<NovaPlayer>
   }
 
   void _openChannels() {
-    if (!_fullscreen ||
-        widget.channelChoices.isEmpty ||
-        widget.onSelectChannel == null) {
+    if (widget.channelChoices.isEmpty || widget.onSelectChannel == null) {
       _showTvControls();
       return;
     }
@@ -1344,6 +1342,16 @@ class _NovaPlayerState extends State<NovaPlayer>
         onExit: (_) => _chrome.pointerExit(),
         child: Listener(
           onPointerDown: (event) {
+            if (!_isAndroid && (event.buttons & kSecondaryMouseButton) != 0) {
+              if (_tvChannelsOpen) {
+                _closeChannels();
+              } else if (widget.isLive) {
+                _openChannels();
+              } else {
+                _toggleInformation();
+              }
+              return;
+            }
             if (!_isAndroid) _chrome.activity();
             if (_touchPointers.isEmpty) {
               _scalingWithTwoFingers = false;

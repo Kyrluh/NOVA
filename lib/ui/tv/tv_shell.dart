@@ -15,6 +15,9 @@ import '../pages/sources_page.dart';
 import '../widgets/media_artwork.dart';
 import '../widgets/source_startup_progress.dart';
 import '../widgets/exit_choice.dart';
+import '../widgets/app_version.dart';
+import '../widgets/artwork.dart';
+import '../widgets/profile_avatar.dart';
 import '../theme.dart';
 import 'tv_catalog.dart';
 import 'tv_details.dart';
@@ -215,16 +218,25 @@ class _NovaTvShellState extends State<NovaTvShell> {
                             padding: EdgeInsets.fromLTRB(8, 5, 4, 18),
                             child: Row(
                               children: [
+                                NovaMark(size: 30),
+                                SizedBox(width: 8),
                                 Flexible(
-                                  child: Text(
-                                    'NOVA',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 2,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'NOVA',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 2,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      AppVersion(),
+                                    ],
                                   ),
                                 ),
                                 SizedBox(width: 8),
@@ -326,8 +338,9 @@ class _NovaTvShellState extends State<NovaTvShell> {
                                   key: const ValueKey('tv-header-profile'),
                                   tooltip: 'Changer de profil',
                                   onPressed: app.showProfilePicker,
-                                  icon: const Icon(
-                                    Icons.account_circle_outlined,
+                                  icon: ProfileAvatar(
+                                    avatar: app.activeProfile.avatar,
+                                    size: 28,
                                   ),
                                 ),
                                 IconButton(

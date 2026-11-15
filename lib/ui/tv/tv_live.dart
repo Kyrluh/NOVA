@@ -11,6 +11,7 @@ import 'tv_widgets.dart';
 import '../widgets/search_field.dart';
 import '../widgets/live_guide_hud.dart';
 import '../widgets/channel_logo.dart';
+import '../widgets/channel_programme.dart';
 import '../../player/tv_channel_panel.dart';
 
 class TvLive extends StatefulWidget {
@@ -159,12 +160,12 @@ class TvLiveState extends State<TvLive> {
       }
       final channels = _filteredChannels;
       final rowHeight =
-          96.0 +
+          104.0 +
           (MediaQuery.textScalerOf(context).scale(16) - 16).clamp(
                 0,
                 double.infinity,
               ) *
-              3;
+              4;
       if (!_initialFocusRequested && channels.isNotEmpty) {
         _initialFocusRequested = true;
         final requestedIndex = channels.indexWhere(
@@ -308,11 +309,23 @@ class TvLiveState extends State<TvLive> {
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  child: Text(
-                                    item.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 16),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      ChannelProgramme(
+                                        controller: app,
+                                        channel: item,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

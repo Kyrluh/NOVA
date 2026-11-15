@@ -412,7 +412,12 @@ class NovaMark extends StatelessWidget {
       image: true,
       child: SizedBox.square(
         dimension: size,
-        child: CustomPaint(painter: const _MarkPainter()),
+        child: Image.asset(
+          'assets/branding/nova-popcorn.png',
+          cacheWidth: (size * 3).ceil().clamp(64, 512),
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, _, _) => CustomPaint(painter: const _MarkPainter()),
+        ),
       ),
     );
   }

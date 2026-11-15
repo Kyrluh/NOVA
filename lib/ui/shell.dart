@@ -23,6 +23,8 @@ import 'widgets/artwork.dart';
 import 'widgets/page_widgets.dart';
 import 'widgets/source_startup_progress.dart';
 import 'widgets/exit_choice.dart';
+import 'widgets/app_version.dart';
+import 'widgets/profile_avatar.dart';
 import 'adaptive.dart';
 import 'pages/playback_page.dart';
 
@@ -667,7 +669,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
       _moreDestination(NovaSection.organize),
       _moreDestination(NovaSection.settings),
       ListTile(
-        leading: const Icon(Icons.switch_account_outlined),
+        leading: ProfileAvatar(avatar: app.activeProfile.avatar, size: 32),
         title: const Text('Changer de profil'),
         subtitle: Text(app.activeProfile.name),
         onTap: app.showProfilePicker,
@@ -755,14 +757,23 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
                               ),
                       ),
                     )
-                  : Text(
-                      _mobileMore ? 'Votre espace' : _labels[_section.index],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _mobileMore
+                              ? 'Votre espace'
+                              : _labels[_section.index],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const AppVersion(),
+                      ],
                     ),
             ),
             if (!searching) ...[
@@ -774,7 +785,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
               IconButton(
                 tooltip: 'Changer de profil',
                 onPressed: app.showProfilePicker,
-                icon: const Icon(Icons.switch_account_outlined),
+                icon: ProfileAvatar(avatar: app.activeProfile.avatar, size: 28),
               ),
               IconButton(
                 tooltip: 'Paramètres',
@@ -868,6 +879,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
                             letterSpacing: 3,
                           ),
                         ),
+                        AppVersion(),
                       ],
                     ),
                   ],
@@ -1133,7 +1145,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
         IconButton(
           tooltip: 'Changer de profil',
           onPressed: app.showProfilePicker,
-          icon: const Icon(Icons.switch_account_outlined),
+          icon: ProfileAvatar(avatar: app.activeProfile.avatar, size: 28),
         ),
         IconButton(
           tooltip: 'Paramètres',

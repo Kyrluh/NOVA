@@ -55,6 +55,7 @@ class AppController extends ChangeNotifier {
               .whereType<String>()
               .toSet(),
           genresConfigured: entry.value['genresConfigured'] == true,
+          avatar: entry.value['avatar'] as String? ?? '',
         ),
       )
       .toList(growable: false);
@@ -93,13 +94,14 @@ class AppController extends ChangeNotifier {
     _changed();
   }
 
-  void updateProfile(String name, Set<String> genres) {
+  void updateProfile(String name, Set<String> genres, {String? avatar}) {
     if (name.trim().isEmpty) return;
     _profiles[_activeProfileId] = {
       ...?_profiles[_activeProfileId],
       'name': name.trim().substring(0, min(name.trim().length, 32)),
       'genres': genres.where(preferredGenres.containsKey).toList(),
       'genresConfigured': true,
+      'avatar': ?avatar,
     };
     _recommendationInput = null;
     _changed();

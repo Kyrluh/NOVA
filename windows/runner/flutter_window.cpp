@@ -32,6 +32,21 @@ bool FlutterWindow::OnCreate() {
   media_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
       flutter_controller_->engine()->messenger(), "nova/media_keys",
       &flutter::StandardMethodCodec::GetInstance());
+  media_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() != "setActive") { result->NotImplemented(); return; }
+        const auto* active = call.arguments() ? std::get_if<bool>(call.arguments()) : nullptr;
+        if (!active) { result->Error("invalid_argument", "Expected playback activity."); return; }
+        if (*active && !media_hotkey_registered_) {
+          media_hotkey_registered_ = ::RegisterHotKey(GetHandle(), 0x4E10,
+              MOD_NOREPEAT, VK_MEDIA_PLAY_PAUSE) != FALSE;
+        } else if (!*active && media_hotkey_registered_) {
+          ::UnregisterHotKey(GetHandle(), 0x4E10);
+          media_hotkey_registered_ = false;
+        }
+        result->Success(flutter::EncodableValue(media_hotkey_registered_));
+      });
   window_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
       flutter_controller_->engine()->messenger(), "nova/window",
       &flutter::StandardMethodCodec::GetInstance());
@@ -88,6 +103,10 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  if (media_hotkey_registered_) {
+    ::UnregisterHotKey(GetHandle(), 0x4E10);
+    media_hotkey_registered_ = false;
+  }
   media_channel_.reset();
   window_channel_.reset();
   if (flutter_controller_) {
@@ -147,6 +166,11 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (message == WM_HOTKEY && wparam == 0x4E10 && media_channel_) {
+    media_channel_->InvokeMethod("mediaCommand",
+        std::make_unique<flutter::EncodableValue>(std::string("playPause")));
+    return 0;
+  }
   // Standard multimedia buttons (including Corsair keyboards) may arrive as
   // WM_APPCOMMAND instead of Flutter keyboard events. Consume the command here
   // so DefWindowProc cannot dispatch it a second time.
@@ -157,6 +181,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     if (command == APPCOMMAND_MEDIA_PLAY) action = "play";
     if (command == APPCOMMAND_MEDIA_PAUSE) action = "pause";
     if (action) {
+      if (media_hotkey_registered_ && command == APPCOMMAND_MEDIA_PLAY_PAUSE) return TRUE;
       media_channel_->InvokeMethod("mediaCommand",
           std::make_unique<flutter::EncodableValue>(std::string(action)));
       return TRUE;

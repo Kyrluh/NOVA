@@ -10,6 +10,7 @@ import 'package:nova_iptv/sources/iptv_client.dart';
 import 'package:nova_iptv/state/app_controller.dart';
 import 'package:nova_iptv/state/source_controller.dart';
 import 'package:nova_iptv/ui/widgets/live_guide_hud.dart';
+import 'package:nova_iptv/ui/widgets/channel_programme.dart';
 
 void main() {
   testWidgets(
@@ -56,7 +57,12 @@ void main() {
       await app.init();
       Widget hud(int index) => MaterialApp(
         home: Scaffold(
-          body: LiveGuideHud(controller: app, channel: channels[index]),
+          body: Column(
+            children: [
+              LiveGuideHud(controller: app, channel: channels[index]),
+              ChannelProgramme(controller: app, channel: channels[0]),
+            ],
+          ),
         ),
       );
       await tester.pumpWidget(hud(0));
@@ -86,7 +92,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Current two'), findsOneWidget);
       expect(find.textContaining('Next two'), findsOneWidget);
-      expect(find.textContaining('Current one'), findsNothing);
+      expect(find.textContaining('Current one'), findsOneWidget);
       expect(client.calls, 1);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

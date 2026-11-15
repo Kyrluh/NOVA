@@ -4,11 +4,13 @@ class UserProfile {
     required this.name,
     required this.genres,
     required this.genresConfigured,
+    this.avatar = '',
   });
   final String id;
   final String name;
   final Set<String> genres;
   final bool genresConfigured;
+  final String avatar;
 }
 
 const preferredGenres = <String, List<String>>{

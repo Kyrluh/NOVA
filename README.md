@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**Version locale 0.11.0+41** : guide sous les chaînes, 30 avatars illustrés de profils, clic droit TV sur PC, touche Lecture/Pause Windows en arrière-plan, logo popcorn et version près de la marque. [Fonctionnement et validation](docs/PROFILS-GUIDE-COMMANDES-0.11.0.md). Travail conservé localement, sans publication.
+
 **Correctif TV local 0.10.8+40** : lecture compatible des certificats et messages de mise à jour plus précis, sans désactiver le contrôle de signature. [Détails et installation manuelle](docs/MISE-A-JOUR-FIRE-TV-0.10.8.md).
 
 **Version 0.10.7+39 — Windows, Android mobile et TV** : retour au chargement complet du catalogue au démarrage ; les langues et catégories décochées restent masquées à l’affichage. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.10.7) · [Détails](docs/CHARGEMENT-COMPLET-0.10.7.md).

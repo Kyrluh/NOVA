@@ -1,5 +1,6 @@
 // User interaction checks with a fake media backend and no native GPU surface.
 // Native subtitle decoding is covered by tool/subtitle_smoke_test.dart.
+import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,10 +9,85 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:nova_iptv/player/nova_player.dart';
 import 'package:nova_iptv/player/desktop_fullscreen.dart';
+import 'package:nova_iptv/player/tv_channel_panel.dart';
 
 import 'desktop_fullscreen_test.dart' show FakeFullscreenWindow;
 
 void main() {
+  testWidgets(
+    'Windows global media registration avoids duplicate toggles and releases the key',
+    (tester) async {
+      const channel = MethodChannel('nova/media_keys');
+      final registrations = <bool>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        if (call.method == 'setActive') {
+          final active = call.arguments as bool;
+          registrations.add(active);
+          return active;
+        }
+        return null;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      final f = await _mount(tester);
+      expect(registrations, contains(true));
+      tester.binding.focusManager.rootScope.requestFocus();
+      await tester.pump();
+      tester.binding.channelBuffers.push(
+        'nova/media_keys',
+        const StandardMethodCodec().encodeMethodCall(
+          const MethodCall('mediaCommand', 'playPause'),
+        ),
+        (_) {},
+      );
+      await tester.pumpAndSettle();
+      expect(f.platform.state.playing, isFalse);
+      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+      await tester.pumpAndSettle();
+      expect(f.platform.state.playing, isFalse);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      expect(registrations.last, isFalse);
+    },
+    skip: !Platform.isWindows,
+  );
+  testWidgets(
+    'Windows right click opens TV channels without restarting playback',
+    (tester) async {
+      String? selected;
+      final f = await _mount(
+        tester,
+        live: true,
+        channelChoices: const [
+          TvChannelOption(id: 'one', title: 'Une chaîne', category: 'France'),
+          TvChannelOption(id: 'two', title: 'Autre chaîne', category: 'France'),
+        ],
+        onSelectChannel: (id) => selected = id,
+      );
+      final mouse = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+        buttons: kSecondaryMouseButton,
+      );
+      await mouse.down(
+        tester.getTopLeft(find.byType(Video)) + const Offset(90, 80),
+      );
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(find.byType(TvChannelPanel), findsOneWidget);
+      expect(f.platform.openCount, 1);
+      await tester.tap(find.byKey(const ValueKey('panel-channel-two')));
+      await tester.pumpAndSettle();
+      expect(selected, 'two');
+      expect(find.byType(TvChannelPanel), findsNothing);
+      expect(f.platform.openCount, 1);
+    },
+  );
   for (final television in [false, true]) {
     testWidgets(
       'Live guide follows HUD and fullscreen without reopening ($television)',
@@ -510,6 +586,8 @@ Future<_Fixture> _mount(
   bool compact = false,
   bool live = false,
   bool television = false,
+  List<TvChannelOption> channelChoices = const [],
+  ValueChanged<String>? onSelectChannel,
   Widget Function(bool)? liveGuideBuilder,
   double initialVolume = 80,
   ScrollController? parentScroll,
@@ -529,6 +607,8 @@ Future<_Fixture> _mount(
       title: 'Test NOVA',
       isLive: live,
       television: television,
+      channelChoices: channelChoices,
+      onSelectChannel: onSelectChannel,
       liveGuideBuilder: liveGuideBuilder,
       initialVolume: initialVolume,
       episodeNavigation: episodeNavigation,

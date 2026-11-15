@@ -1,7 +1,7 @@
 name: nova_iptv
 description: "NOVA IPTV — lecteur multimédia natif pour Windows et Android."
 publish_to: 'none'
-version: 0.10.8+40
+version: 0.11.0+41
 
 environment:
   sdk: ^3.13.7
@@ -35,3 +35,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/platforms/
+    - assets/branding/

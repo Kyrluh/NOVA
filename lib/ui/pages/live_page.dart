@@ -14,6 +14,8 @@ import '../adaptive.dart';
 import '../widgets/artwork.dart';
 import '../widgets/live_guide_hud.dart';
 import '../widgets/channel_logo.dart';
+import '../widgets/channel_programme.dart';
+import '../../player/tv_channel_panel.dart';
 
 class LivePage extends StatefulWidget {
   const LivePage({
@@ -93,9 +95,32 @@ class LivePageState extends State<LivePage> {
     super.dispose();
   }
 
-  List<MediaItem> get _channels => widget.controller.items
-      .where((item) => item.kind == MediaKind.live)
-      .toList();
+  List<MediaItem>? _channelCatalogInput;
+  List<MediaItem> _cachedChannels = const [];
+  List<TvChannelOption> _cachedChoices = const [];
+  final _channelsById = <String, MediaItem>{};
+  List<MediaItem> get _channels {
+    final visible = widget.controller.items;
+    if (!identical(visible, _channelCatalogInput)) {
+      _channelCatalogInput = visible;
+      _cachedChannels = visible
+          .where((item) => item.kind == MediaKind.live)
+          .toList(growable: false);
+      _channelsById
+        ..clear()
+        ..addEntries(_cachedChannels.map((item) => MapEntry(item.id, item)));
+      _cachedChoices = [
+        for (final channel in _cachedChannels)
+          TvChannelOption(
+            id: channel.id,
+            title: channel.title,
+            category: channel.category,
+            logoUrl: widget.controller.posterFor(channel),
+          ),
+      ];
+    }
+    return _cachedChannels;
+  }
 
   List<MediaItem> _filter(List<MediaItem> channels) {
     final query = _search.text.trim().toLowerCase();
@@ -731,6 +756,10 @@ class LivePageState extends State<LivePage> {
                         ),
                       ),
                       const SizedBox(height: 5),
+                      ChannelProgramme(
+                        controller: widget.controller,
+                        channel: item,
+                      ),
                       Text(
                         '${(index + 1).toString().padLeft(2, '0')} · ${item.category}',
                         maxLines: 1,
@@ -1004,6 +1033,36 @@ class LivePageState extends State<LivePage> {
                           uri: item.mediaUrl!,
                           title: item.title,
                           isLive: true,
+                          selectedChannelId: item.id,
+                          channelChoices: _cachedChoices,
+                          onSelectChannel: (id) {
+                            final next = _channelsById[id];
+                            if (next != null) _select(next);
+                          },
+                          channelProgrammeFor: (id) {
+                            final channel = _channelsById[id];
+                            if (channel == null) return null;
+                            final now = DateTime.now();
+                            return widget.controller
+                                .guideFor(channel)
+                                .where(
+                                  (p) =>
+                                      !p.start.isAfter(now) &&
+                                      p.end.isAfter(now),
+                                )
+                                .firstOrNull
+                                ?.title;
+                          },
+                          channelGuideChanges: widget.controller,
+                          onChannelGuideRequested: (id) {
+                            final channel = _channelsById[id];
+                            final source = channel?.sourceId;
+                            if (source != null) {
+                              unawaited(
+                                widget.controller.sources?.ensureEpg(source),
+                              );
+                            }
+                          },
                           liveGuideBuilder: (compact) => LiveGuideHud(
                             controller: widget.controller,
                             channel: item,

@@ -27,6 +27,7 @@ class FlutterWindow : public Win32Window {
  private:
   bool SetFullscreen(bool enabled);
   bool fullscreen_ = false;
+  bool media_hotkey_registered_ = false;
   LONG_PTR saved_style_ = 0;
   LONG_PTR saved_ex_style_ = 0;
   WINDOWPLACEMENT saved_placement_{};
