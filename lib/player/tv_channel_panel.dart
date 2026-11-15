@@ -186,9 +186,54 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
     super.dispose();
   }
 
+  Widget _mouseScrollArea({
+    required ScrollController controller,
+    required Widget child,
+    required bool desktop,
+    bool horizontal = false,
+  }) {
+    if (!desktop) return child;
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: RawScrollbar(
+        key: ValueKey(
+          horizontal
+              ? 'channel-categories-scrollbar'
+              : 'channel-list-scrollbar',
+        ),
+        controller: controller,
+        scrollbarOrientation: horizontal
+            ? ScrollbarOrientation.bottom
+            : ScrollbarOrientation.right,
+        thumbVisibility: true,
+        trackVisibility: true,
+        interactive: true,
+        thickness: horizontal ? 12 : 18,
+        minThumbLength: 48,
+        radius: const Radius.circular(8),
+        crossAxisMargin: 4,
+        mainAxisMargin: 2,
+        thumbColor: novaHighlight,
+        trackColor: const Color(0xFF303644),
+        trackBorderColor: Colors.transparent,
+        child: Padding(
+          padding: horizontal
+              ? const EdgeInsets.only(bottom: 22)
+              : const EdgeInsets.only(right: 28),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final channels = _channels;
+    final desktop = const {
+      TargetPlatform.windows,
+      TargetPlatform.linux,
+      TargetPlatform.macOS,
+    }.contains(Theme.of(context).platform);
     return Focus(
       focusNode: _focus,
       autofocus: true,
@@ -221,147 +266,159 @@ class _TvChannelPanelState extends State<TvChannelPanel> {
                 ],
               ),
               SizedBox(
-                height: 48,
-                child: ListView.builder(
+                height: desktop ? 70 : 48,
+                child: _mouseScrollArea(
                   controller: _tabs,
-                  scrollDirection: Axis.horizontal,
-                  itemExtent: 160,
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    final category = _categories[index];
-                    return Semantics(
-                      button: true,
-                      selected: category == _category,
-                      child: GestureDetector(
-                        onTap: () => _changeCategory(category),
-                        child: Container(
-                          margin: const EdgeInsets.all(3),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: category == _category
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.white10,
-                            border: Border.all(
+                  desktop: desktop,
+                  horizontal: true,
+                  child: ListView.builder(
+                    controller: _tabs,
+                    scrollDirection: Axis.horizontal,
+                    itemExtent: 160,
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      final category = _categories[index];
+                      return Semantics(
+                        button: true,
+                        selected: category == _category,
+                        child: GestureDetector(
+                          onTap: () => _changeCategory(category),
+                          child: Container(
+                            margin: const EdgeInsets.all(3),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
                               color: category == _category
-                                  ? novaHighlight
-                                  : Colors.transparent,
-                              width: 3,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.white10,
+                              border: Border.all(
+                                color: category == _category
+                                    ? novaHighlight
+                                    : Colors.transparent,
+                                width: 3,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${category == _category ? '✓ ' : ''}${category ?? 'Toutes'}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: category == _category
-                                    ? FontWeight.w800
-                                    : FontWeight.normal,
+                            child: Center(
+                              child: Text(
+                                '${category == _category ? '✓ ' : ''}${category ?? 'Toutes'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: category == _category
+                                      ? FontWeight.w800
+                                      : FontWeight.normal,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
               Expanded(
                 child: channels.isEmpty
                     ? const Center(child: Text('Aucune chaîne'))
-                    : ListView.builder(
+                    : _mouseScrollArea(
                         controller: _rows,
-                        itemExtent: _rowHeight,
-                        itemCount: channels.length,
-                        itemBuilder: (context, index) {
-                          final channel = channels[index];
-                          _requestGuide(channel.id);
-                          final programme = widget.programmeFor
-                              ?.call(channel.id)
-                              ?.trim();
-                          return Semantics(
-                            button: true,
-                            selected: index == _index,
-                            child: GestureDetector(
-                              onTap: () => widget.onSelected(channel.id),
-                              child: Container(
-                                key: ValueKey('panel-channel-${channel.id}'),
-                                margin: const EdgeInsets.symmetric(vertical: 3),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: index == _index
-                                      ? Theme.of(context).colorScheme.primary
-                                            .withValues(alpha: .3)
-                                      : Colors.transparent,
-                                  border: Border.all(
-                                    width: 3,
-                                    color: index == _index
-                                        ? novaHighlight
-                                        : Colors.transparent,
+                        desktop: desktop,
+                        child: ListView.builder(
+                          controller: _rows,
+                          itemExtent: _rowHeight,
+                          itemCount: channels.length,
+                          itemBuilder: (context, index) {
+                            final channel = channels[index];
+                            _requestGuide(channel.id);
+                            final programme = widget.programmeFor
+                                ?.call(channel.id)
+                                ?.trim();
+                            return Semantics(
+                              button: true,
+                              selected: index == _index,
+                              child: GestureDetector(
+                                onTap: () => widget.onSelected(channel.id),
+                                child: Container(
+                                  key: ValueKey('panel-channel-${channel.id}'),
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 3,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    if (channel.id == widget.selectedId)
-                                      const Icon(Icons.play_arrow, size: 20),
-                                    ChannelLogo(
-                                      title: channel.title,
-                                      url: channel.logoUrl,
-                                      size: 28,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: index == _index
+                                        ? Theme.of(context).colorScheme.primary
+                                              .withValues(alpha: .3)
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      width: 3,
+                                      color: index == _index
+                                          ? novaHighlight
+                                          : Colors.transparent,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            channel.title,
-                                            maxLines:
-                                                widget.programmeFor == null
-                                                ? 2
-                                                : 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              height: 1.1,
-                                              fontWeight: index == _index
-                                                  ? FontWeight.w800
-                                                  : FontWeight.normal,
-                                            ),
-                                          ),
-                                          if (widget.programmeFor != null) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              programme == null ||
-                                                      programme.isEmpty
-                                                  ? 'Programme indisponible'
-                                                  : programme,
-                                              key: ValueKey(
-                                                'panel-programme-${channel.id}',
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                height: 1.1,
-                                                color: Colors.white70,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      if (channel.id == widget.selectedId)
+                                        const Icon(Icons.play_arrow, size: 20),
+                                      ChannelLogo(
+                                        title: channel.title,
+                                        url: channel.logoUrl,
+                                        size: 28,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              channel.title,
+                                              maxLines:
+                                                  widget.programmeFor == null
+                                                  ? 2
+                                                  : 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                height: 1.1,
+                                                fontWeight: index == _index
+                                                    ? FontWeight.w800
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                            if (widget.programmeFor !=
+                                                null) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                programme == null ||
+                                                        programme.isEmpty
+                                                    ? 'Programme indisponible'
+                                                    : programme,
+                                                key: ValueKey(
+                                                  'panel-programme-${channel.id}',
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  height: 1.1,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
               ),
               const Text(

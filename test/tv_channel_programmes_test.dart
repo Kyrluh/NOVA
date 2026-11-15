@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nova_iptv/player/tv_channel_panel.dart';
@@ -10,6 +11,55 @@ const channels = [
 ];
 
 void main() {
+  testWidgets(
+    'Desktop scrollbar is wide, draggable and never tunes a channel',
+    (tester) async {
+      String? tuned;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.windows),
+          home: Scaffold(
+            body: SizedBox(
+              width: 420,
+              height: 440,
+              child: TvChannelPanel(
+                channels: [
+                  for (var i = 0; i < 60; i++)
+                    TvChannelOption(
+                      id: '$i',
+                      title: 'Chaîne $i',
+                      category: 'France',
+                    ),
+                ],
+                selectedId: '0',
+                onSelected: (id) => tuned = id,
+                onClose: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final rail = find.byKey(const ValueKey('channel-list-scrollbar'));
+      final scrollbar = tester.widget<RawScrollbar>(rail);
+      expect(scrollbar.thickness, 18);
+      expect(scrollbar.minThumbLength, 48);
+      final bounds = tester.getRect(rail);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.down(Offset(bounds.right - 13, bounds.top + 22));
+      await tester.pump();
+      await mouse.moveBy(const Offset(0, 12));
+      await tester.pump();
+      await mouse.moveBy(const Offset(0, 80));
+      await tester.pump();
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(scrollbar.controller!.offset, greaterThan(0));
+      expect(tuned, isNull);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('Programme updates keep the browsed channel and do not tune it', (
     tester,
   ) async {
