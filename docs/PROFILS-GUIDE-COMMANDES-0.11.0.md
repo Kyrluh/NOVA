@@ -28,6 +28,6 @@ La version affichée près de la marque est lue dans les métadonnées de l’ap
 
 ## Livraison locale et vérifications
 
-Versions Windows, Android mobile et TV compilées en Release 0.11.0+41, signature Android conservée. Le packaging vérifie les packages Android, le code 41 et l’alignement APK 16 KiB. Le correctif natif de vérification des mises à jour 0.10.8 est conservé dans ces builds. Aucun push, aucune release ni installation ADB : le travail reste local à la demande du propriétaire.
+Versions Windows, Android mobile et TV compilées en Release 0.11.0+41, signature Android conservée. Le packaging vérifie les packages Android, le code 41 et l’alignement APK 16 KiB. Le correctif natif de vérification des mises à jour 0.10.8 est conservé dans ces builds. Cette préparation avait d’abord été conservée localement ; ses fonctionnalités sont désormais intégrées à la [release 0.11.1](RELEASE-0.11.1.md), publiée à la demande du propriétaire avec le logo final validé. Aucune installation ADB n’est effectuée.
 
 Sept tests ciblés passent : partage et affichage du guide entre lecteur et liste, persistance et isolation des avatars et favoris, clic droit sans réouverture vidéo, commandes Windows de pause et de recadrage, commandes multimédias sans focus du lecteur, réservation et libération de la touche globale sans double bascule. L’analyse statique ne signale aucun problème. Un aperçu des portraits et du logo est exporté pour vérification visuelle. Les tests utilisent un moteur vidéo simulé et ne remplacent pas les essais sur Fire Stick et clavier physique.
