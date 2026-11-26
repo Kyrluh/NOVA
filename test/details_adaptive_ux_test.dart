@@ -103,12 +103,14 @@ void main() {
               ),
           ],
         );
-    await _mount(
+    String? played;
+    final app = await _mount(
       tester,
       series,
       size: const Size(673, 800),
       android: true,
       resumeId: 'detail-s2-e9',
+      onPlay: (uri, _, _) => played = uri,
     );
     final dialogElement = tester.element(find.byType(Dialog));
     final primary = find.byKey(const ValueKey('details-primary'));
@@ -157,6 +159,21 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     }
+    final otherEpisode = find.byKey(const ValueKey('episode-detail-s2-e10'));
+    final markWatched = find.descendant(
+      of: otherEpisode,
+      matching: find.byTooltip('Marquer comme vu'),
+    );
+    await tester.ensureVisible(markWatched);
+    await tester.tap(markWatched);
+    await tester.pumpAndSettle();
+    expect(app.progress['detail-s2-e10']?.completed, isTrue);
+    expect(played, isNull);
+    final synopsis = find.text('Résumé S2 E9');
+    await tester.ensureVisible(synopsis);
+    await tester.tap(synopsis);
+    await tester.pumpAndSettle();
+    expect(played, 'https://example.test/s2-e8.mp4');
   });
 
   testWidgets('Windows details stay centered and close with Escape', (

@@ -445,10 +445,29 @@ class _TvDetailsState extends State<TvDetails> {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          Icon(
-                                            episode.mediaUrl?.isNotEmpty == true
-                                                ? Icons.play_arrow
-                                                : Icons.block,
+                                          IconButton(
+                                            tooltip: progress?.completed == true
+                                                ? 'Épisode vu'
+                                                : 'Marquer comme vu',
+                                            constraints:
+                                                const BoxConstraints.tightFor(
+                                                  width: 40,
+                                                  height: 36,
+                                                ),
+                                            padding: EdgeInsets.zero,
+                                            focusColor: novaHighlight
+                                                .withValues(alpha: .45),
+                                            onPressed:
+                                                progress?.completed == true
+                                                ? null
+                                                : () => app.markWatched(
+                                                    episode.id,
+                                                  ),
+                                            icon: Icon(
+                                              progress?.completed == true
+                                                  ? Icons.check_circle
+                                                  : Icons.check_circle_outline,
+                                            ),
                                           ),
                                         ],
                                       ),

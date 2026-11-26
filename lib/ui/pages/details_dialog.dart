@@ -542,95 +542,81 @@ class _DetailsDialogState extends State<_DetailsDialog> {
     bool resume,
   ) {
     final progress = app.progress[episode.id];
+    final watched = progress?.completed == true;
+    final accent = Theme.of(context).colorScheme.primary;
+    final url = episode.mediaUrl;
     return Padding(
       key: resume ? _resumeKey : ValueKey('episode-${episode.id}'),
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Column(
-        children: [
-          ListTile(
-            selected: resume,
-            selectedTileColor: Theme.of(context).colorScheme.primary
-                .withValues(alpha: .16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(
-                color: resume
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
+      child: Material(
+        color: resume ? accent.withValues(alpha: .16) : novaSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: resume ? accent : Colors.white24),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          selected: resume,
+          onTap: url == null || url.isEmpty
+              ? null
+              : () =>
+                    _play(url, '${_item.title} · ${episode.title}', episode.id),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          minVerticalPadding: 10,
+          leading: Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .05),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Text('${episode.number}'.padLeft(2, '0')),
+          ),
+          title: Text(
+            episode.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                [
+                  if (episode.durationMinutes > 0)
+                    '${episode.durationMinutes} min',
+                  if (demo) 'Épisode fictif',
+                  if (resume) 'À reprendre',
+                  if (watched) 'Vu',
+                ].join(' • '),
               ),
-            ),
-            contentPadding: EdgeInsets.zero,
-            leading: Container(
-              width: 42,
-              height: 42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .05),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Text('${episode.number}'.padLeft(2, '0')),
-            ),
-            title: Text(
-              episode.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              [
-                if (episode.durationMinutes > 0)
-                  '${episode.durationMinutes} min',
-                if (demo) 'Épisode fictif',
-                if (resume) 'À reprendre',
-                if (progress?.completed == true) 'Vu',
-              ].join(' • '),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (episode.mediaUrl?.isNotEmpty == true)
-                  IconButton.filledTonal(
-                    tooltip:
-                        (progress?.positionSeconds ?? 0) > 0 &&
-                            progress?.completed != true
-                        ? 'Reprendre cet épisode'
-                        : 'Lire cet épisode',
-                    onPressed: () => _play(
-                      episode.mediaUrl!,
-                      '${_item.title} · ${episode.title}',
-                      episode.id,
-                    ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                  ),
-                IconButton(
-                  tooltip: progress?.completed == true
-                      ? 'Épisode vu'
-                      : 'Marquer comme vu',
-                  onPressed: progress?.completed == true
-                      ? null
-                      : () => app.markWatched(episode.id),
-                  icon: Icon(
-                    progress?.completed == true
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
+              if (episode.description.trim().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    episode.description.trim(),
+                    style: const TextStyle(color: novaMuted),
                   ),
                 ),
-              ],
+              if (progress != null && progress.fraction > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: LinearProgressIndicator(
+                    value: progress.fraction,
+                    minHeight: 2,
+                  ),
+                ),
+            ],
+          ),
+          trailing: IconButton(
+            tooltip: watched ? 'Épisode vu' : 'Marquer comme vu',
+            onPressed: watched ? null : () => app.markWatched(episode.id),
+            icon: Icon(
+              watched ? Icons.check_circle : Icons.check_circle_outline,
             ),
           ),
-          if (episode.description.trim().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 4, 0, 10),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  episode.description.trim(),
-                  style: const TextStyle(color: novaMuted),
-                ),
-              ),
-            ),
-          if (progress != null && progress.fraction > 0)
-            LinearProgressIndicator(value: progress.fraction, minHeight: 2),
-        ],
+        ),
       ),
     );
   }
