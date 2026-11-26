@@ -50,7 +50,6 @@ class _NovaTvShellState extends State<NovaTvShell> {
     'trends': ('Tendances', Icons.trending_up),
     'resume': ('Reprendre', Icons.history_rounded),
     'favorites': ('Favoris', Icons.favorite_border),
-    'watchlist': ('Ma liste', Icons.bookmark_border),
     'history': ('Historique', Icons.history),
     'search': ('Recherche', Icons.search),
     'sources': ('Sources', Icons.cloud_outlined),
@@ -402,7 +401,6 @@ class _NovaTvShellState extends State<NovaTvShell> {
     'favorites' => _catalog(
       app.items.where((i) => app.favorites.contains(i.id)).toList(),
     ),
-    'watchlist' => _catalog(app.watchlistItems),
     'history' => _catalog(_history()),
     'search' => TvCatalog(
       key: const ValueKey('tv-search'),

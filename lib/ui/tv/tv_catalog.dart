@@ -5,6 +5,7 @@ import '../../domain/recent_catalog.dart';
 import '../../domain/catalog_layout.dart';
 import '../../state/app_controller.dart';
 import '../widgets/media_artwork.dart';
+import '../widgets/platform_logo.dart';
 import '../theme.dart';
 import 'tv_widgets.dart';
 import '../widgets/search_field.dart';
@@ -387,14 +388,34 @@ class _TvCatalogState extends State<TvCatalog> {
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8),
-                                child: Text(
-                                  item.title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (item.kind != MediaKind.live &&
+                                        item.category.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      PlatformCategoryLine(
+                                        platforms: widget
+                                            .controller
+                                            .platformPreferences
+                                            .platformsFor(item),
+                                        label: item.category,
+                                        style: const TextStyle(
+                                          color: novaMuted,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ],

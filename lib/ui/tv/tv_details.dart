@@ -8,6 +8,7 @@ import '../../domain/episode_resume.dart';
 import '../../state/app_controller.dart';
 import '../pages/playback_page.dart';
 import '../widgets/media_artwork.dart';
+import '../widgets/platform_logo.dart';
 import '../theme.dart';
 import 'tv_widgets.dart';
 import '../widgets/variant_picker.dart';
@@ -226,14 +227,18 @@ class _TvDetailsState extends State<TvDetails> {
                                   }
                                 },
                               ),
-                              Text(
-                                [
+                              PlatformCategoryLine(
+                                platforms: app.platformPreferences.platformsFor(
+                                  _item,
+                                ),
+                                label: [
                                   if (_item.year > 0) '${_item.year}',
                                   _item.category,
                                   if (_item.durationMinutes > 0)
                                     '${_item.durationMinutes} min',
                                 ].join(' · '),
                                 style: const TextStyle(color: novaMuted),
+                                details: true,
                               ),
                               const SizedBox(height: 10),
                               Wrap(
@@ -273,19 +278,6 @@ class _TvDetailsState extends State<TvDetails> {
                                       app.favorites.contains(_item.id)
                                           ? 'Dans les favoris'
                                           : 'Ajouter aux favoris',
-                                    ),
-                                  ),
-                                  OutlinedButton.icon(
-                                    onPressed: () => app.toggleWatchlist(_item),
-                                    icon: Icon(
-                                      app.isWatchlisted(_item)
-                                          ? Icons.bookmark
-                                          : Icons.bookmark_border,
-                                    ),
-                                    label: Text(
-                                      app.isWatchlisted(_item)
-                                          ? 'Retirer de Ma liste'
-                                          : 'Ajouter à Ma liste',
                                     ),
                                   ),
                                   if (app.canResume(_item))
