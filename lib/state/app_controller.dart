@@ -159,6 +159,9 @@ class AppController extends ChangeNotifier {
     _platformPreferences = PlatformPreferences.fromJson(
       data['platformPreferences'],
     );
+    _watchlist
+      ..clear()
+      ..addAll((data['watchlist'] as List? ?? []).whereType<String>());
     _favorites
       ..clear()
       ..addAll((data['favorites'] as List? ?? []).whereType<String>());
@@ -248,6 +251,9 @@ class AppController extends ChangeNotifier {
   List<MediaItem>? _resumeProjection;
   List<MediaItem>? _resumeProjectionInput;
   final Set<String> _favorites = {};
+  final Set<String> _watchlist = {};
+  bool _prefetchingDetails = false;
+  final _failedPrefetches = <String>{};
   Set<String>? _favoriteProjection;
   List<MediaItem>? _favoriteProjectionInput;
   final Map<String, WatchProgress> _progress = {};
@@ -440,7 +446,7 @@ class AppController extends ChangeNotifier {
 
   bool _migrateEpisodeReferences() {
     var changed = false;
-    for (final set in [_favorites, _dismissedResumeIds]) {
+    for (final set in [_favorites, _watchlist, _dismissedResumeIds]) {
       for (final id in set.toList()) {
         final parent = _episodeParents[id];
         if (parent != null) {
@@ -690,6 +696,45 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  bool isWatchlisted(MediaItem item) =>
+      variantsFor(item).any((variant) => _watchlist.contains(variant.id));
+
+  List<MediaItem> get watchlistItems => items.where(isWatchlisted).toList();
+
+  void toggleWatchlist(MediaItem item) {
+    final group = variantsFor(item).map((variant) => variant.id).toSet();
+    if (group.any(_watchlist.contains)) {
+      _watchlist.removeAll(group);
+    } else {
+      _watchlist.addAll(group);
+    }
+    _changed();
+  }
+
+  Future<void> prefetchDetails(MediaItem item) async {
+    item = itemById(item.id) ?? item;
+    final manager = sources;
+    if (_disposed ||
+        manager == null ||
+        _prefetchingDetails ||
+        item.isDemo ||
+        item.detailsLoaded ||
+        item.kind == MediaKind.live ||
+        item.description.trim().isNotEmpty ||
+        _failedPrefetches.contains(item.id)) {
+      return;
+    }
+    _prefetchingDetails = true;
+    try {
+      await manager.details(item, background: true);
+    } catch (_) {
+      if (_failedPrefetches.length >= 100) _failedPrefetches.clear();
+      _failedPrefetches.add(item.id);
+    } finally {
+      _prefetchingDetails = false;
+    }
+  }
+
   void toggleFavorite(String id) {
     final item = itemById(id);
     if (item == null) return;
@@ -821,6 +866,7 @@ class AppController extends ChangeNotifier {
     _dismissedResumeIds.clear();
     _preferencesRevision++;
     _favorites.clear();
+    _watchlist.clear();
     _progress.clear();
     _recentIds.clear();
     _storageError = null;
@@ -849,6 +895,7 @@ class AppController extends ChangeNotifier {
     'platformPreferences': _platformPreferences.toJson(),
     'dismissedResumeIds': _dismissedResumeIds.toList(),
     'favorites': _favorites.toList(),
+    'watchlist': _watchlist.toList(),
     'progress': {
       for (final entry in _progress.entries) entry.key: entry.value.toJson(),
     },

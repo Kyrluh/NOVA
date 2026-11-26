@@ -338,6 +338,19 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                                     : 'Ajouter aux favoris',
                               ),
                             ),
+                            OutlinedButton.icon(
+                              onPressed: () => app.toggleWatchlist(item),
+                              icon: Icon(
+                                app.isWatchlisted(item)
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                              ),
+                              label: Text(
+                                app.isWatchlisted(item)
+                                    ? 'Retirer de Ma liste'
+                                    : 'Ajouter à Ma liste',
+                              ),
+                            ),
                             if (_error != null)
                               TextButton.icon(
                                 onPressed: _loading ? null : _load,
@@ -471,11 +484,12 @@ class _DetailsDialogState extends State<_DetailsDialog> {
         fontSize: tablet ? 13 : 15,
         height: tablet ? 1.45 : 1.7,
       );
+      final previewLines = MediaQuery.sizeOf(context).height >= 600 ? 8 : 5;
       final painter = TextPainter(
         text: TextSpan(text: description, style: style),
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
-        maxLines: 3,
+        maxLines: previewLines,
       )..layout(maxWidth: bounds.maxWidth);
       final canExpand = painter.didExceedMaxLines;
       painter.dispose();
@@ -486,13 +500,14 @@ class _DetailsDialogState extends State<_DetailsDialog> {
           Text(
             description,
             style: style,
-            maxLines: _expandedSynopsis ? null : 3,
+            maxLines: _expandedSynopsis ? null : previewLines,
             overflow: _expandedSynopsis
                 ? TextOverflow.visible
                 : TextOverflow.ellipsis,
           ),
           if (canExpand)
             TextButton.icon(
+              style: TextButton.styleFrom(foregroundColor: novaHighlight),
               onPressed: () =>
                   setState(() => _expandedSynopsis = !_expandedSynopsis),
               icon: Icon(

@@ -256,6 +256,19 @@ class _TvDetailsState extends State<TvDetails> {
                                           : 'Ajouter aux favoris',
                                     ),
                                   ),
+                                  OutlinedButton.icon(
+                                    onPressed: () => app.toggleWatchlist(_item),
+                                    icon: Icon(
+                                      app.isWatchlisted(_item)
+                                          ? Icons.bookmark
+                                          : Icons.bookmark_border,
+                                    ),
+                                    label: Text(
+                                      app.isWatchlisted(_item)
+                                          ? 'Retirer de Ma liste'
+                                          : 'Ajouter à Ma liste',
+                                    ),
+                                  ),
                                   if (app.canResume(_item))
                                     TextButton(
                                       onPressed: () =>
@@ -465,7 +478,7 @@ class _TvDetailsState extends State<TvDetails> {
   Widget _synopsis(double availableHeight) => _TvSynopsis(
     key: ValueKey('tv-synopsis-${_item.id}'),
     description: _item.description,
-    expandedHeight: (availableHeight * .12).clamp(24.0, 64.0).toDouble(),
+    expandedHeight: (availableHeight * .24).clamp(72.0, 180.0).toDouble(),
   );
 }
 
@@ -516,11 +529,12 @@ class _TvSynopsisState extends State<_TvSynopsis> {
       final text = widget.description.isEmpty
           ? 'Aucun synopsis fourni par cette source.'
           : widget.description;
+      final previewLines = widget.expandedHeight >= 120 ? 4 : 3;
       final painter = TextPainter(
         text: TextSpan(text: text, style: DefaultTextStyle.of(context).style),
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
-        maxLines: 2,
+        maxLines: previewLines,
       )..layout(maxWidth: bounds.maxWidth);
       final canExpand = painter.didExceedMaxLines;
       painter.dispose();
@@ -554,10 +568,11 @@ class _TvSynopsisState extends State<_TvSynopsis> {
               ),
             )
           else
-            Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(text, maxLines: previewLines, overflow: TextOverflow.ellipsis),
           if (canExpand)
             TextButton.icon(
               key: const ValueKey('tv-synopsis-toggle'),
+              style: TextButton.styleFrom(foregroundColor: novaHighlight),
               onPressed: () => setState(() => _expanded = !_expanded),
               icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
               label: Text(_expanded ? 'Voir moins' : 'Lire la suite'),

@@ -57,6 +57,7 @@ class TvTile extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.selected = false,
+    this.onFocused,
     this.label,
   });
   final Widget child;
@@ -64,6 +65,7 @@ class TvTile extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final bool selected;
+  final VoidCallback? onFocused;
   final String? label;
   @override
   State<TvTile> createState() => _TvTileState();
@@ -102,6 +104,7 @@ class _TvTileState extends State<TvTile> {
           onFocusChange: (value) {
             setState(() => _focused = value);
             if (value) {
+              widget.onFocused?.call();
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   Scrollable.ensureVisible(

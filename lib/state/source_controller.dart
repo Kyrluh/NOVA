@@ -574,7 +574,7 @@ class SourceController extends ChangeNotifier {
 
   /// Deduplicate requests for the same film/series and merge details into the
   /// latest catalogue instead of overwriting a concurrent catalogue refresh.
-  Future<MediaItem> details(MediaItem item) {
+  Future<MediaItem> details(MediaItem item, {bool background = false}) {
     if (item.isDemo || item.detailsLoaded) return Future.value(item);
     final existing = _details[item.id];
     if (existing != null) return existing;
@@ -584,7 +584,12 @@ class SourceController extends ChangeNotifier {
     }
     final token = CancellationToken();
     _detailTokens[item.id] = token;
-    final result = _detailJob(record.config, item, token);
+    final result = _detailJob(
+      record.config,
+      item,
+      token,
+      background: background,
+    );
     _details[item.id] = result;
     result.then<void>(
       (_) => _finishDetails(item.id, token),
@@ -596,8 +601,9 @@ class SourceController extends ChangeNotifier {
   Future<MediaItem> _detailJob(
     SourceConfig config,
     MediaItem item,
-    CancellationToken token,
-  ) async {
+    CancellationToken token, {
+    required bool background,
+  }) async {
     try {
       final detail = await _client.loadDetails(config, item, cancel: token);
       token.throwIfCancelled();
@@ -641,9 +647,11 @@ class SourceController extends ChangeNotifier {
         throw const SourceCancelled();
       }
       final safe = _friendly(exception);
-      _error = safe.message;
-      _sourceErrors[config.id] = safe.message;
-      _notify();
+      if (!background) {
+        _error = safe.message;
+        _sourceErrors[config.id] = safe.message;
+        _notify();
+      }
       throw safe;
     }
   }

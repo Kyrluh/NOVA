@@ -366,6 +366,8 @@ class _TvCatalogState extends State<TvCatalog> {
                         return TvTile(
                           key: ValueKey('tv-card-${item.id}'),
                           focusNode: index == 0 ? _gridFocus : null,
+                          onFocused: () =>
+                              widget.controller.prefetchDetails(item),
                           label: 'Ouvrir ${item.title}',
                           onPressed: () => widget.onDetails(item),
                           child: Column(

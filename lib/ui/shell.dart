@@ -36,6 +36,7 @@ enum NovaSection {
   platforms,
   trends,
   favorites,
+  watchlist,
   resume,
   search,
   organize,
@@ -51,6 +52,7 @@ const _labels = [
   'Par plateforme',
   'Tendances',
   'Favoris',
+  'Ma liste',
   'Continuer à regarder',
   'Recherche',
   'Tri et affichage',
@@ -65,6 +67,7 @@ const _icons = [
   Icons.dashboard_customize_outlined,
   Icons.trending_up,
   Icons.favorite_border_rounded,
+  Icons.bookmark_border_rounded,
   Icons.history_rounded,
   Icons.search_rounded,
   Icons.sort_rounded,
@@ -624,6 +627,12 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
       resume: false,
       onDetails: _details,
     ),
+    NovaSection.watchlist => CollectionPage(
+      controller: app,
+      resume: false,
+      watchlist: true,
+      onDetails: _details,
+    ),
     NovaSection.platforms => PlatformsPage(
       controller: app,
       onDetails: _details,
@@ -655,6 +664,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
       for (final section in [
         NovaSection.resume,
         NovaSection.favorites,
+        NovaSection.watchlist,
         NovaSection.history,
       ])
         _moreDestination(section),

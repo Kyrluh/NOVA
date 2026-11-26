@@ -477,11 +477,13 @@ class CollectionPage extends StatelessWidget {
     super.key,
     required this.controller,
     required this.resume,
+    this.watchlist = false,
     required this.onDetails,
   });
 
   final AppController controller;
   final bool resume;
+  final bool watchlist;
   final void Function(MediaItem) onDetails;
 
   @override
@@ -489,6 +491,18 @@ class CollectionPage extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
+        if (watchlist) {
+          return CatalogGrid(
+            controller: controller,
+            items: controller.watchlistItems,
+            onDetails: onDetails,
+            title: 'Ma liste',
+            subtitle: 'Tes films et séries à regarder plus tard.',
+            emptyIcon: Icons.bookmark_border_rounded,
+            emptyTitle: 'Ta liste est vide',
+            emptyMessage: 'Ajoute un titre à Ma liste depuis sa fiche.',
+          );
+        }
         final items = resume
             ? controller.resumeItems
             : controller.items
@@ -795,12 +809,20 @@ class CatalogGrid extends StatelessWidget {
                           mainAxisSpacing: 24,
                         ),
                   itemCount: items.length,
-                  itemBuilder: (context, index) => MediaPoster(
-                    key: ValueKey(items[index].id),
-                    controller: controller,
-                    item: items[index],
-                    onTap: () => onDetails(items[index]),
-                  ),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    if (index == 0 && android) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (context.mounted) controller.prefetchDetails(item);
+                      });
+                    }
+                    return MediaPoster(
+                      key: ValueKey(item.id),
+                      controller: controller,
+                      item: item,
+                      onTap: () => onDetails(item),
+                    );
+                  },
                 );
               },
             ),
@@ -884,7 +906,10 @@ class _MediaPosterState extends State<MediaPoster> {
         final ongoing = widget.controller.canResume(item);
         final accent = Theme.of(context).colorScheme.primary;
         return MouseRegion(
-          onEnter: (_) => setState(() => _hover = true),
+          onEnter: (_) {
+            setState(() => _hover = true);
+            widget.controller.prefetchDetails(item);
+          },
           onExit: (_) => setState(() => _hover = false),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -930,8 +955,13 @@ class _MediaPosterState extends State<MediaPoster> {
                         Material(
                           type: MaterialType.transparency,
                           child: InkWell(
-                            onFocusChange: (value) =>
-                                setState(() => _focused = value),
+                            onFocusChange: (value) {
+                              setState(() => _focused = value);
+                              if (value)
+                                widget.controller.prefetchDetails(item);
+                            },
+                            onTapDown: (_) =>
+                                widget.controller.prefetchDetails(item),
                             onTap: widget.onTap,
                             focusColor: novaHighlight.withAlpha(35),
                             hoverColor: Colors.white.withAlpha(8),
