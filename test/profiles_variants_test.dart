@@ -79,6 +79,22 @@ Future<AppController> fixture({
 }
 
 void main() {
+  test('Provider VOF and SUBT AR suffixes keep films on the same card', () {
+    final catalog = VariantCatalog([
+      film('lawyer-vof', 'Un bon avocat (2026) VOF', year: 0),
+      film('lawyer-hd', 'Un bon avocat (2026) HD', year: 0),
+      film('lawyer-4k', 'Un bon avocat (2026) 4K', year: 0),
+      film('beast-ar', 'The Beast (2026) SUBT AR', year: 2026),
+      film('beast-hd', 'The Beast (2026) FHD MULTI', year: 2026),
+      film('beast-4k', 'The Beast (2026) 4K MULTI', year: 0),
+      film('beast-older', 'The Beast (2023) HD', year: 0),
+    ]);
+    expect(catalog.cards.length, 3);
+    expect(catalog.byId['lawyer-vof'], hasLength(3));
+    expect(catalog.byId['beast-ar'], hasLength(3));
+    expect(catalog.byId['beast-older'], hasLength(1));
+  });
+
   test('Legacy profile migrates and favorites/progress/settings/genres stay isolated after restart', () async {
     final store = MemoryLocalStore({
       'favorites': ['old'],

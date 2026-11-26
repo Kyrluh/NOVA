@@ -44,3 +44,52 @@ class MediaArtwork extends StatelessWidget {
     );
   }
 }
+
+/// Mounted by lazy catalogue grids for visible cards and their nearby rows.
+class CataloguePreviewArtwork extends StatefulWidget {
+  const CataloguePreviewArtwork({
+    super.key,
+    required this.item,
+    required this.controller,
+  });
+
+  final MediaItem item;
+  final AppController controller;
+
+  @override
+  State<CataloguePreviewArtwork> createState() =>
+      _CataloguePreviewArtworkState();
+}
+
+class _CataloguePreviewArtworkState extends State<CataloguePreviewArtwork> {
+  @override
+  void initState() {
+    super.initState();
+    _requestPreview();
+  }
+
+  @override
+  void didUpdateWidget(CataloguePreviewArtwork oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.id != oldWidget.item.id ||
+        widget.controller != oldWidget.controller) {
+      _requestPreview();
+    }
+  }
+
+  void _requestPreview() {
+    final id = widget.item.id;
+    final controller = widget.controller;
+    bool relevant() =>
+        mounted && widget.item.id == id && widget.controller == controller;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (relevant()) {
+        controller.prefetchDetails(widget.item, relevant: relevant);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      MediaArtwork(item: widget.item, controller: widget.controller);
+}

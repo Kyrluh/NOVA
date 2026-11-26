@@ -366,8 +366,11 @@ class _TvCatalogState extends State<TvCatalog> {
                         return TvTile(
                           key: ValueKey('tv-card-${item.id}'),
                           focusNode: index == 0 ? _gridFocus : null,
-                          onFocused: () =>
-                              widget.controller.prefetchDetails(item),
+                          onFocused: () => widget.controller.prefetchDetails(
+                            item,
+                            priority: true,
+                            relevant: () => context.mounted,
+                          ),
                           label: 'Ouvrir ${item.title}',
                           onPressed: () => widget.onDetails(item),
                           child: Column(
@@ -376,7 +379,7 @@ class _TvCatalogState extends State<TvCatalog> {
                               Expanded(
                                 child: SizedBox(
                                   width: double.infinity,
-                                  child: MediaArtwork(
+                                  child: CataloguePreviewArtwork(
                                     item: item,
                                     controller: widget.controller,
                                   ),

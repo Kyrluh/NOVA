@@ -253,7 +253,11 @@ class AppController extends ChangeNotifier {
   final Set<String> _favorites = {};
   final Set<String> _watchlist = {};
   bool _prefetchingDetails = false;
-  final _failedPrefetches = <String>{};
+  Timer? _detailPrefetchTimer;
+  String? _priorityDetail;
+  final _detailQueue =
+      <String, ({MediaItem item, bool Function()? relevant})>{};
+  final _failedPrefetches = <String, DateTime>{};
   Set<String>? _favoriteProjection;
   List<MediaItem>? _favoriteProjectionInput;
   final Map<String, WatchProgress> _progress = {};
@@ -434,6 +438,7 @@ class AppController extends ChangeNotifier {
 
   void _sourceChanged() {
     if (_disposed) return;
+    _scheduleDetailPrefetch();
     _ensureIndex();
     final referencesChanged = _migrateEpisodeReferences();
     final defaultsChanged = _isReady && _applyInitialCategoryFilters();
@@ -478,8 +483,17 @@ class AppController extends ChangeNotifier {
 
   void cancelDetails(MediaItem item) => sources?.cancelDetails(item.id);
 
-  Future<MediaItem> loadDetails(MediaItem item) async =>
-      item.isDemo || sources == null ? item : await sources!.details(item);
+  Future<MediaItem> loadDetails(MediaItem item) async {
+    item = itemById(item.id) ?? item;
+    return item.isDemo || sources == null ? item : await sources!.details(item);
+  }
+
+  String descriptionFor(MediaItem item) {
+    if (item.description.trim().isNotEmpty) return item.description;
+    return sources?.prefetchedDetails(item)?.description ??
+        itemById(item.id)?.description ??
+        '';
+  }
 
   List<EpgProgramme> guideFor(MediaItem item) {
     final manager = sources;
@@ -711,27 +725,81 @@ class AppController extends ChangeNotifier {
     _changed();
   }
 
-  Future<void> prefetchDetails(MediaItem item) async {
-    item = itemById(item.id) ?? item;
+  void prefetchDetails(
+    MediaItem item, {
+    bool priority = false,
+    bool Function()? relevant,
+  }) {
+    if (_disposed ||
+        sources == null ||
+        item.isDemo ||
+        item.kind == MediaKind.live ||
+        item.providerId == null) {
+      return;
+    }
+    _detailQueue[item.id] = (item: item, relevant: relevant);
+    if (priority) _priorityDetail = item.id;
+    if (_detailQueue.length > 24) {
+      _detailQueue.remove(_detailQueue.keys.first);
+    }
+    _scheduleDetailPrefetch();
+  }
+
+  void _scheduleDetailPrefetch() {
+    if (_disposed ||
+        _prefetchingDetails ||
+        _detailPrefetchTimer != null ||
+        _detailQueue.isEmpty ||
+        sources?.catalogLoading == true ||
+        sources?.startupRefreshing == true) {
+      return;
+    }
+    _detailPrefetchTimer = Timer(const Duration(milliseconds: 120), () {
+      _detailPrefetchTimer = null;
+      unawaited(_prefetchNextDetail());
+    });
+  }
+
+  Future<void> _prefetchNextDetail() async {
     final manager = sources;
     if (_disposed ||
         manager == null ||
-        _prefetchingDetails ||
-        item.isDemo ||
-        item.detailsLoaded ||
-        item.kind == MediaKind.live ||
-        item.description.trim().isNotEmpty ||
-        _failedPrefetches.contains(item.id)) {
+        manager.catalogLoading ||
+        manager.startupRefreshing) {
       return;
     }
-    _prefetchingDetails = true;
-    try {
-      await manager.details(item, background: true);
-    } catch (_) {
-      if (_failedPrefetches.length >= 100) _failedPrefetches.clear();
-      _failedPrefetches.add(item.id);
-    } finally {
-      _prefetchingDetails = false;
+    while (_detailQueue.isNotEmpty) {
+      final request =
+          _detailQueue.remove(_priorityDetail) ??
+          _detailQueue.remove(_detailQueue.keys.first)!;
+      _priorityDetail = null;
+      if (request.relevant?.call() == false) continue;
+      final variant = preferredVariant(request.item);
+      final item = itemById(variant.id);
+      if (item == null ||
+          item.detailsLoaded ||
+          item.description.trim().isNotEmpty ||
+          manager.prefetchedDetails(item) != null ||
+          (_failedPrefetches[item.id]?.isAfter(DateTime.now()) ?? false)) {
+        continue;
+      }
+      _prefetchingDetails = true;
+      try {
+        await manager.details(item, background: true);
+      } on SourceCancelled {
+        // A catalogue refresh or closing the detail can cancel this request.
+      } catch (_) {
+        if (_failedPrefetches.length >= 48) {
+          _failedPrefetches.remove(_failedPrefetches.keys.first);
+        }
+        _failedPrefetches[item.id] = DateTime.now().add(
+          const Duration(minutes: 1),
+        );
+      } finally {
+        _prefetchingDetails = false;
+        _scheduleDetailPrefetch();
+      }
+      return;
     }
   }
 
@@ -957,6 +1025,8 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _selectionRefreshTimer?.cancel();
+    _detailPrefetchTimer?.cancel();
+    _detailQueue.clear();
     _disposed = true;
     _progressNotificationTimer?.cancel();
     sources?.removeListener(_sourceChanged);

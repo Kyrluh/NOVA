@@ -16,6 +16,7 @@ void main() {
   Future<AppController> start(
     WidgetTester tester, {
     bool mobile = false,
+    IptvClient? previewClient,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = mobile
@@ -30,16 +31,20 @@ void main() {
         'title': 'Film $index',
         'category': 'Genre $index',
         'sourceId': 'adaptive-fixture',
-        'detailsLoaded': true,
+        'detailsLoaded': previewClient == null,
+        if (previewClient != null) ...{
+          'providerId': '$index',
+          'description': '',
+        },
       }),
     );
     final sources = SourceController(
       repository: MemorySourceRepository([
         SourceRecord(
-          config: const SourceConfig(
+          config: SourceConfig(
             id: 'adaptive-fixture',
             name: 'Démonstration',
-            kind: SourceKind.m3uUrl,
+            kind: previewClient == null ? SourceKind.m3uUrl : SourceKind.xtream,
             address: 'https://example.test/list.m3u',
           ),
           catalog: SourceCatalog(items: items),
@@ -47,7 +52,7 @@ void main() {
           updatedAt: DateTime.utc(2026),
         ),
       ]),
-      client: IptvClient(),
+      client: previewClient ?? IptvClient(),
     );
     final app = AppController(store: MemoryLocalStore(), sources: sources);
     await app.init();
@@ -68,6 +73,43 @@ void main() {
     kind: MediaKind.movie,
     onDetails: (_) {},
   );
+
+  testWidgets('Scrolling preloads new synopses before a card is opened', (
+    tester,
+  ) async {
+    final client = _PreviewClient();
+    final app = await start(tester, previewClient: client);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: novaTheme(app.settings.accent),
+        home: Scaffold(body: catalog(app)),
+      ),
+    );
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 150));
+    }
+    expect(client.requested.length, greaterThan(1));
+    expect(app.sources!.items.every((item) => !item.detailsLoaded), isTrue);
+    final beforeScroll = client.requested.toSet();
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1400));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 150));
+    }
+    final newIds = client.requested.toSet().difference(beforeScroll);
+    expect(newIds, isNotEmpty);
+    final item = app.itemById(newIds.first)!;
+    expect(app.descriptionFor(item), 'Synopsis de ${item.title}');
+    final count = client.requested.where((id) => id == item.id).length;
+    expect(
+      (await app.loadDetails(item)).description,
+      'Synopsis de ${item.title}',
+    );
+    expect(client.requested.where((id) => id == item.id), hasLength(count));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 150));
+  });
 
   testWidgets(
     'Desktop categories stay bounded and searchable for a large source',
@@ -219,4 +261,21 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+class _PreviewClient extends IptvClient {
+  final requested = <String>[];
+
+  @override
+  Future<MediaItem> loadDetails(
+    SourceConfig config,
+    MediaItem item, {
+    CancellationToken? cancel,
+  }) async {
+    requested.add(item.id);
+    return item.copyWith(
+      description: 'Synopsis de ${item.title}',
+      detailsLoaded: true,
+    );
+  }
 }

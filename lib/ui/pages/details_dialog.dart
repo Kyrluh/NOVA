@@ -477,9 +477,10 @@ class _DetailsDialogState extends State<_DetailsDialog> {
 
   Widget _synopsis(bool tablet) => LayoutBuilder(
     builder: (context, bounds) {
-      final description = _item.description.isEmpty
+      final synopsis = widget.controller.descriptionFor(_item);
+      final description = synopsis.isEmpty
           ? 'Aucun synopsis fourni par cette source.'
-          : _item.description;
+          : synopsis;
       final style = TextStyle(
         fontSize: tablet ? 13 : 15,
         height: tablet ? 1.45 : 1.7,

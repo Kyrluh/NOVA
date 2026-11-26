@@ -293,6 +293,34 @@ void main() {
     },
   );
 
+  test(
+    'Opening a card joins its running prefetch and saves the result once',
+    () async {
+      final client = _Client()..detailWaiter = Completer<MediaItem>();
+      final repository = MemorySourceRepository([_record()]);
+      final controller = SourceController(
+        repository: repository,
+        client: client,
+      );
+      addTearDown(controller.close);
+      await controller.init();
+      final item = controller.items.single;
+      final background = controller.details(item, background: true);
+      final opened = controller.details(item);
+      expect(client.detailCalls, 1);
+      client.detailWaiter!.complete(
+        item.copyWith(detailsLoaded: true, description: 'Synopsis préchargé'),
+      );
+      expect((await background).description, 'Synopsis préchargé');
+      expect((await opened).description, 'Synopsis préchargé');
+      expect(client.detailCalls, 1);
+      expect(
+        (await repository.readAll()).single.catalog.items.single.detailsLoaded,
+        isTrue,
+      );
+    },
+  );
+
   test('Refreshing summaries preserves known episode IDs and retries details lazily', () async {
     final series = _series(detailsLoaded: true);
     final original = SourceRecord(

@@ -811,11 +811,6 @@ class CatalogGrid extends StatelessWidget {
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    if (index == 0 && android) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (context.mounted) controller.prefetchDetails(item);
-                      });
-                    }
                     return MediaPoster(
                       key: ValueKey(item.id),
                       controller: controller,
@@ -908,7 +903,11 @@ class _MediaPosterState extends State<MediaPoster> {
         return MouseRegion(
           onEnter: (_) {
             setState(() => _hover = true);
-            widget.controller.prefetchDetails(item);
+            widget.controller.prefetchDetails(
+              item,
+              priority: true,
+              relevant: () => mounted && _hover && widget.item.id == item.id,
+            );
           },
           onExit: (_) => setState(() => _hover = false),
           child: GestureDetector(
@@ -951,17 +950,26 @@ class _MediaPosterState extends State<MediaPoster> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        MediaArtwork(item: item, controller: widget.controller),
+                        CataloguePreviewArtwork(
+                          item: item,
+                          controller: widget.controller,
+                        ),
                         Material(
                           type: MaterialType.transparency,
                           child: InkWell(
                             onFocusChange: (value) {
                               setState(() => _focused = value);
-                              if (value)
-                                widget.controller.prefetchDetails(item);
+                              if (value) {
+                                widget.controller.prefetchDetails(
+                                  item,
+                                  priority: true,
+                                  relevant: () =>
+                                      mounted &&
+                                      _focused &&
+                                      widget.item.id == item.id,
+                                );
+                              }
                             },
-                            onTapDown: (_) =>
-                                widget.controller.prefetchDetails(item),
                             onTap: widget.onTap,
                             focusColor: novaHighlight.withAlpha(35),
                             hoverColor: Colors.white.withAlpha(8),

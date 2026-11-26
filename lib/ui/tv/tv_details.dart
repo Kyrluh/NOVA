@@ -477,7 +477,7 @@ class _TvDetailsState extends State<TvDetails> {
 
   Widget _synopsis(double availableHeight) => _TvSynopsis(
     key: ValueKey('tv-synopsis-${_item.id}'),
-    description: _item.description,
+    description: widget.controller.descriptionFor(_item),
     expandedHeight: (availableHeight * .24).clamp(72.0, 180.0).toDouble(),
   );
 }

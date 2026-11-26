@@ -61,6 +61,8 @@ class SourceController extends ChangeNotifier {
   final Map<String, CancellationToken> _tokens = {};
   final Map<String, CancellationToken> _detailTokens = {};
   final Map<String, Future<MediaItem>> _details = {};
+  final _backgroundDetails = <String>{};
+  final _prefetchedDetails = <String, ({DateTime revision, MediaItem item})>{};
   final Set<CancellationToken> _testTokens = {};
   final Map<String, String> _sourceErrors = {};
   final Map<String, DateTime> _epgAttempts = {};
@@ -574,21 +576,45 @@ class SourceController extends ChangeNotifier {
 
   /// Deduplicate requests for the same film/series and merge details into the
   /// latest catalogue instead of overwriting a concurrent catalogue refresh.
+  MediaItem? prefetchedDetails(MediaItem item) {
+    final cached = _prefetchedDetails[item.id];
+    if (cached == null) return null;
+    if (cached.revision != _records[item.sourceId]?.updatedAt) {
+      _prefetchedDetails.remove(item.id);
+      return null;
+    }
+    return cached.item;
+  }
+
   Future<MediaItem> details(MediaItem item, {bool background = false}) {
     if (item.isDemo || item.detailsLoaded) return Future.value(item);
     final existing = _details[item.id];
-    if (existing != null) return existing;
+    if (existing != null) {
+      // Opening a card during its background request reuses the response and
+      // then saves the opened detail through the normal foreground path.
+      return !background && _backgroundDetails.contains(item.id)
+          ? existing.then((_) => details(item))
+          : existing;
+    }
     final record = _records[item.sourceId];
     if (record == null) {
       return Future.error(const SourceException('Cette source n’existe plus.'));
     }
+    if (background &&
+        (record.config.kind != SourceKind.xtream || item.providerId == null)) {
+      return Future.value(item);
+    }
+    final cached = prefetchedDetails(item);
+    if (background && cached != null) return Future.value(cached);
     final token = CancellationToken();
     _detailTokens[item.id] = token;
+    if (background) _backgroundDetails.add(item.id);
     final result = _detailJob(
-      record.config,
+      record,
       item,
       token,
       background: background,
+      cached: cached,
     );
     _details[item.id] = result;
     result.then<void>(
@@ -599,14 +625,37 @@ class SourceController extends ChangeNotifier {
   }
 
   Future<MediaItem> _detailJob(
-    SourceConfig config,
+    SourceRecord record,
     MediaItem item,
     CancellationToken token, {
     required bool background,
+    required MediaItem? cached,
   }) async {
+    final config = record.config;
     try {
-      final detail = await _client.loadDetails(config, item, cancel: token);
+      final detail =
+          cached ?? await _client.loadDetails(config, item, cancel: token);
       token.throwIfCancelled();
+      if (identical(item, detail)) return detail;
+      if (background) {
+        final current = _records[config.id];
+        if (_closed ||
+            current == null ||
+            current.updatedAt != record.updatedAt ||
+            !_sameProvider(config, current.config)) {
+          throw const SourceCancelled();
+        }
+        // Browsing a grid should never rewrite the disk catalogue or rebuild
+        // the screen for every title fetched. Only opened details are saved.
+        if (_prefetchedDetails.length >= 32) {
+          _prefetchedDetails.remove(_prefetchedDetails.keys.first);
+        }
+        _prefetchedDetails[item.id] = (
+          revision: record.updatedAt,
+          item: detail,
+        );
+        return detail;
+      }
       await _commit(() async {
         final latest = _records[config.id];
         if (_closed ||
@@ -638,6 +687,7 @@ class SourceController extends ChangeNotifier {
           throw const SourceCancelled();
         }
         _records[config.id] = next;
+        _prefetchedDetails.remove(item.id);
         _rebuild(catalog: true, epg: false);
         _notify();
       });
@@ -660,12 +710,14 @@ class SourceController extends ChangeNotifier {
     if (identical(_detailTokens[id], token)) {
       _detailTokens.remove(id);
       _details.remove(id);
+      _backgroundDetails.remove(id);
     }
   }
 
   void cancelDetails(String id) {
     _detailTokens.remove(id)?.cancel();
     _details.remove(id);
+    _backgroundDetails.remove(id);
   }
 
   void cancel(String id) {
@@ -673,9 +725,7 @@ class SourceController extends ChangeNotifier {
     for (final entry in _detailTokens.entries.toList()) {
       if (_records[id]?.catalog.items.any((item) => item.id == entry.key) ??
           false) {
-        entry.value.cancel();
-        _detailTokens.remove(entry.key);
-        _details.remove(entry.key);
+        cancelDetails(entry.key);
       }
     }
     _notify();
