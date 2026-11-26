@@ -37,9 +37,11 @@ class PlatformCategoryLine extends StatelessWidget {
             padding: const EdgeInsets.only(right: 5),
             child: PlatformLogo(
               platform: platform,
-              width: platform == CatalogPlatform.netflix
-                  ? (details ? 38 : 30)
-                  : (details ? 64 : 49),
+              width: switch (platform) {
+                CatalogPlatform.netflix => details ? 38 : 30,
+                CatalogPlatform.frenchTv => details ? 75 : 60,
+                _ => details ? 64 : 49,
+              },
               height: height,
               categoryBadge: true,
             ),
@@ -71,6 +73,30 @@ class PlatformLogo extends StatelessWidget {
   final bool categoryBadge;
   @override
   Widget build(BuildContext context) {
+    if (categoryBadge && platform == CatalogPlatform.frenchTv) {
+      return Container(
+        width: width,
+        height: height,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF224A9E),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'TF1+ · M6+\nFrance TV',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: height > 23 ? 12 : 10,
+              height: 1.05,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      );
+    }
     final path = switch (platform) {
       CatalogPlatform.canalPlus when categoryBadge =>
         'assets/platforms/canal-plus.png',
