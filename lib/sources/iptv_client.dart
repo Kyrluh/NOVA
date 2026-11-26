@@ -746,6 +746,12 @@ Future<MediaItem> _parseXtreamDetails(
       }
       final episodeInfo = _object(episode['info']);
       final title = _text(episode['title']);
+      final description = [
+        _text(episodeInfo['plot']),
+        _text(episodeInfo['description']),
+        _text(episode['plot']),
+        _text(episode['description']),
+      ].firstWhere((text) => text.isNotEmpty, orElse: () => '');
       final number = _number(episode['episode_num']);
       list.add(
         DemoEpisode(
@@ -762,7 +768,7 @@ Future<MediaItem> _parseXtreamDetails(
                 _extension(episode['container_extension']),
               ),
           posterUrl: _url(episodeInfo['movie_image'], config),
-          description: _text(episodeInfo['plot']),
+          description: description,
         ),
       );
     }

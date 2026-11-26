@@ -64,6 +64,7 @@ void main() {
                     title: 'Épisode de test $index',
                     number: index + 1,
                     durationMinutes: 24,
+                    description: index == 60 ? 'Synopsis de cet épisode' : '',
                     mediaUrl: 'https://example.test/$index.mp4',
                   ),
                 ),
@@ -83,6 +84,7 @@ void main() {
         const ValueKey('tv-episode-details-episode-60'),
       );
       expect(tester.widget<TvTile>(episode).selected, isTrue);
+      expect(find.text('Synopsis de cet épisode'), findsOneWidget);
       expect(
         tester.getBottomRight(find.text('Épisode de test 60')).dy,
         lessThanOrEqualTo(540),

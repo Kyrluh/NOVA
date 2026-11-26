@@ -44,6 +44,7 @@ class _DetailsDialogState extends State<_DetailsDialog> {
   late MediaItem _item;
   int _season = 0;
   bool _loading = false;
+  String _movieSynopsis = '';
   String? _error;
   int _request = 0;
   final _resumeKey = GlobalKey(debugLabel: 'current-resume-episode');
@@ -279,16 +280,26 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                           controller: app,
                           item: item,
                           onChanged: (version) {
+                            final keepSynopsis = _item.kind == MediaKind.movie;
                             widget.controller.cancelDetails(_item);
+                            _request++;
                             setState(() {
+                              if (keepSynopsis && _movieSynopsis.isEmpty) {
+                                _movieSynopsis = app
+                                    .descriptionFor(_item)
+                                    .trim();
+                              }
                               _item = version;
                               _season = 0;
                               _lastResumeId = null;
                               _error = null;
                               _loading = false;
-                              _expandedSynopsis = false;
+                              if (!keepSynopsis) _expandedSynopsis = false;
                             });
-                            _load();
+                            if (_movieSynopsis.isEmpty ||
+                                version.mediaUrl?.isNotEmpty != true) {
+                              _load();
+                            }
                           },
                         ),
                         Text(
@@ -478,7 +489,9 @@ class _DetailsDialogState extends State<_DetailsDialog> {
 
   Widget _synopsis(bool tablet) => LayoutBuilder(
     builder: (context, bounds) {
-      final synopsis = widget.controller.descriptionFor(_item);
+      final synopsis = _movieSynopsis.isNotEmpty
+          ? _movieSynopsis
+          : widget.controller.descriptionFor(_item);
       final description = synopsis.isEmpty
           ? 'Aucun synopsis fourni par cette source.'
           : synopsis;
@@ -604,6 +617,17 @@ class _DetailsDialogState extends State<_DetailsDialog> {
               ],
             ),
           ),
+          if (episode.description.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  episode.description.trim(),
+                  style: const TextStyle(color: novaMuted),
+                ),
+              ),
+            ),
           if (progress != null && progress.fraction > 0)
             LinearProgressIndicator(value: progress.fraction, minHeight: 2),
         ],

@@ -81,6 +81,7 @@ class _TvDetailsState extends State<TvDetails> {
   }
 
   bool _loading = false;
+  String _movieSynopsis = '';
   String? _error;
   int _request = 0;
   @override
@@ -144,8 +145,13 @@ class _TvDetailsState extends State<TvDetails> {
     listenable: widget.controller,
     builder: (context, _) {
       final app = widget.controller;
+      final hasEpisodeDescriptions = _item.seasons.any(
+        (season) => season.episodes.any(
+          (episode) => episode.description.trim().isNotEmpty,
+        ),
+      );
       final extent =
-          96.0 *
+          (hasEpisodeDescriptions ? 156.0 : 96.0) *
           (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1.0, 3.0);
       final resume = _syncResume(extent);
       final episodes = _item.seasons.isEmpty
@@ -197,14 +203,24 @@ class _TvDetailsState extends State<TvDetails> {
                                 item: _item,
                                 onChanged: (version) {
                                   widget.controller.cancelDetails(_item);
+                                  _request++;
                                   setState(() {
+                                    if (_item.kind == MediaKind.movie &&
+                                        _movieSynopsis.isEmpty) {
+                                      _movieSynopsis = app
+                                          .descriptionFor(_item)
+                                          .trim();
+                                    }
                                     _item = version;
                                     _season = 0;
                                     _error = null;
                                     _loading = false;
                                     _lastResumeId = null;
                                   });
-                                  _load();
+                                  if (_movieSynopsis.isEmpty ||
+                                      version.mediaUrl?.isNotEmpty != true) {
+                                    _load();
+                                  }
                                 },
                               ),
                               Text(
@@ -444,6 +460,21 @@ class _TvDetailsState extends State<TvDetails> {
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
+                                      if (episode.description.trim().isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 4,
+                                          ),
+                                          child: Text(
+                                            episode.description.trim(),
+                                            style: const TextStyle(
+                                              color: novaMuted,
+                                              fontSize: 13,
+                                            ),
+                                            maxLines: 3,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
                                       if (progress != null &&
                                           progress.fraction > 0)
                                         Padding(
@@ -478,8 +509,12 @@ class _TvDetailsState extends State<TvDetails> {
   );
 
   Widget _synopsis(double availableHeight) => _TvSynopsis(
-    key: ValueKey('tv-synopsis-${_item.id}'),
-    description: widget.controller.descriptionFor(_item),
+    key: ValueKey(
+      'tv-synopsis-${_item.kind == MediaKind.movie ? widget.item.id : _item.id}',
+    ),
+    description: _movieSynopsis.isNotEmpty
+        ? _movieSynopsis
+        : widget.controller.descriptionFor(_item),
     expandedHeight: (availableHeight * .24).clamp(72.0, 180.0).toDouble(),
   );
 }

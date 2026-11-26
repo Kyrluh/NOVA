@@ -278,7 +278,15 @@ void main() {
   testWidgets(
     'Shared and TV details expose language/quality variants; chosen movie launches the matching URI',
     (tester) async {
-      final app = await fixture();
+      final app = await fixture(
+        items: [
+          film(
+            'old',
+            'Film [VF] [HD]',
+          ).copyWith(description: 'Synopsis commun'),
+          film('new', 'Film [VOSTFR] [4K]').copyWith(detailsLoaded: false),
+        ],
+      );
       tester.view.physicalSize = const Size(1200, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -307,6 +315,7 @@ void main() {
           .widget<VariantPicker>(find.byType(VariantPicker))
           .onChanged(app.itemById('new')!);
       await tester.pumpAndSettle();
+      expect(find.text('Synopsis commun'), findsOneWidget);
       await tester.ensureVisible(find.text('Lecture'));
       await tester.tap(find.text('Lecture'));
       await tester.pumpAndSettle();
@@ -318,6 +327,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(VariantPicker), findsOneWidget);
+      tester
+          .widget<VariantPicker>(find.byType(VariantPicker))
+          .onChanged(app.itemById('new')!);
+      await tester.pumpAndSettle();
+      expect(find.text('Synopsis commun'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },

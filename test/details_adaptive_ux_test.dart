@@ -96,6 +96,7 @@ void main() {
                     title: 'Épisode ${index + 1} saison $season',
                     number: index + 1,
                     durationMinutes: 24,
+                    description: 'Résumé S$season E${index + 1}',
                     mediaUrl: 'https://example.test/s$season-e$index.mp4',
                   ),
                 ),
@@ -113,6 +114,7 @@ void main() {
     final primary = find.byKey(const ValueKey('details-primary'));
     expect(find.text('Reprendre l’épisode'), findsOneWidget);
     expect(find.text('S02 · E09'), findsOneWidget);
+    expect(find.text('Résumé S2 E9'), findsOneWidget);
     expect(find.textContaining('À reprendre'), findsOneWidget);
     expect(
       tester.getBottomRight(primary).dy,
