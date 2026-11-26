@@ -192,12 +192,13 @@ void main() {
     expect(app.preferredVariant(card).mediaUrl, 'https://example.test/new.mp4');
     app.dismissResume(card.id);
     expect(app.resumeItems, isEmpty);
+    expect(app.progress['new'], isNull);
     app.recordProgress(
       'new',
       WatchProgress(
         positionSeconds: 120,
         durationSeconds: 5400,
-        lastWatched: DateTime.utc(2026),
+        lastWatched: DateTime.now().add(const Duration(seconds: 1)),
       ),
     );
     expect(app.resumeItems.length, 1);

@@ -31,6 +31,8 @@ En mode Testing, les jetons d’actualisation Google expirent généralement apr
 
 La synchronisation se lance après une lecture, une fois par minute avec un profil associé et à la demande. Le dernier changement gagne pour un même film ou épisode. Les sources M3U et le direct restent locaux durant cet essai.
 
+À partir de la 0.11.11, **Retirer de Continuer à regarder** efface la progression du titre sur le profil actif, y compris celle des épisodes pour une série. Pour synchroniser ce retrait, installez la 0.11.11 ou une version ultérieure sur les appareils associés.
+
 NOVA demande l’autorisation Drive limitée à son dossier privé `appDataFolder`. Le fichier envoyé contient des clés pseudonymes, des positions, des durées et des dates, ainsi que l’état « vu ». Les mots de passe IPTV, noms d’utilisateur et URLs de lecture ne sont pas transmis. Sur le PC, la connexion utilise le navigateur système, un retour sur une adresse locale aléatoire et PKCE. Les jetons sont protégés par DPAPI sur Windows et par Android Keystore sur TV. **Déconnecter cet appareil** efface la connexion locale. Les autres appareils gardent la leur.
 
 Liens Google : [Stockage privé Drive](https://developers.google.com/workspace/drive/api/guides/appdata), [connexion sur TV](https://developers.google.com/identity/protocols/oauth2/limited-input-device) et [connexion sur ordinateur](https://developers.google.com/identity/protocols/oauth2/native-app).

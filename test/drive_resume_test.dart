@@ -8,7 +8,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nova_iptv/data/local_store.dart';
 import 'package:nova_iptv/data/secret_store.dart';
+import 'package:nova_iptv/data/source_repository.dart';
+import 'package:nova_iptv/domain/source_models.dart';
 import 'package:nova_iptv/domain/models.dart';
+import 'package:nova_iptv/sources/iptv_client.dart';
+import 'package:nova_iptv/state/app_controller.dart';
+import 'package:nova_iptv/state/source_controller.dart';
 import 'package:nova_iptv/sync/drive_resume.dart';
 
 const _scope = 'https://www.googleapis.com/auth/drive.appdata';
@@ -16,6 +21,95 @@ const _clientId = 'fixture-client.apps.googleusercontent.com';
 const _secret = 'fixture-secret';
 
 void main() {
+  test('A synced series reset erases older episode progress but allows a new viewing', () async {
+    final resetAt = DateTime.now().subtract(const Duration(minutes: 1));
+    final drive = _FixtureDrive();
+    const source = SourceConfig(
+      id: 'local-source',
+      name: 'Test',
+      kind: SourceKind.xtream,
+      address: 'https://example.test',
+      username: 'local-user',
+    );
+    const episode = DemoEpisode(
+      id: 'local-source:episode:31',
+      title: 'Episode',
+      number: 1,
+      durationMinutes: 20,
+    );
+    const series = MediaItem(
+      id: 'local-source:series:8',
+      title: 'Series',
+      sourceId: 'local-source',
+      providerId: '8',
+      kind: MediaKind.series,
+      category: 'Series',
+      description: '',
+      year: 2026,
+      durationMinutes: 20,
+      palette: 0,
+      subtitle: '',
+      art: 0,
+      detailsLoaded: true,
+      seasons: [
+        DemoSeason(number: 1, episodes: [episode]),
+      ],
+    );
+    final manager = SourceController(
+      repository: MemorySourceRepository([
+        SourceRecord(
+          config: source,
+          catalog: const SourceCatalog(items: [series]),
+          programmes: const [],
+          updatedAt: resetAt,
+        ),
+      ]),
+      client: IptvClient(),
+    );
+    final app = AppController(
+      store: MemoryLocalStore(),
+      sources: manager,
+      driveResume: drive,
+    );
+    addTearDown(manager.close);
+    addTearDown(app.dispose);
+    await app.init();
+    app.selectProfile('main');
+    const namespace = ['example.test', '', 'local-user'];
+    final seriesKey = driveMediaKey(drive.code, [...namespace, 'series', '8']);
+    final episodeKey = driveMediaKey(drive.code, [
+      ...namespace,
+      'episode',
+      '31',
+    ]);
+
+    WatchProgress at(DateTime time) => WatchProgress(
+      positionSeconds: 120,
+      durationSeconds: 1200,
+      lastWatched: time,
+    );
+    final old = at(resetAt.subtract(const Duration(seconds: 1)));
+    app.recordProgress(episode.id, old);
+    expect(app.resumeItems.single.id, series.id);
+    drive.enabled = true;
+    drive.remote[seriesKey] = DriveResumeEntry.reset(resetAt);
+    drive.remote[episodeKey] = DriveResumeEntry(old, seriesKey: seriesKey);
+    await app.syncDriveResume(force: true);
+    expect(app.progress[episode.id], isNull);
+    expect(app.resumeItems, isEmpty);
+    expect(drive.uploaded[seriesKey]?.reset, isTrue);
+    expect(drive.uploaded.containsKey(episodeKey), isFalse);
+
+    final newViewing = at(resetAt.add(const Duration(seconds: 1)));
+    drive.remote[episodeKey] = DriveResumeEntry(
+      newViewing,
+      seriesKey: seriesKey,
+    );
+    await app.syncDriveResume(force: true);
+    expect(app.progress[episode.id]?.positionSeconds, 120);
+    expect(app.resumeItems.single.id, series.id);
+  });
+
   test('Desktop OAuth rejects wrong state, exchanges via PKCE and stores only a protected envelope', () async {
     String? challenge;
     String? redirect;
@@ -201,4 +295,37 @@ class _TestSecretStore implements SecretStore {
 
   @override
   Future<String> unprotect(Uint8List value) async => utf8.decode(value);
+}
+
+class _FixtureDrive extends DriveResumeSync {
+  _FixtureDrive()
+    : super(
+        store: MemoryLocalStore(),
+        secrets: _TestSecretStore(),
+        television: false,
+        openBrowser: (_) async {},
+      );
+
+  final code = newDriveProfileCode();
+  final remote = <String, DriveResumeEntry>{};
+  Map<String, DriveResumeEntry> uploaded = {};
+  bool enabled = false;
+
+  @override
+  bool get connected => enabled;
+
+  @override
+  String? codeFor(String profile) => code;
+
+  @override
+  Future<void> sync(
+    String profile,
+    Future<Map<String, DriveResumeEntry>?> Function(
+      String code,
+      Map<String, DriveResumeEntry> remote,
+    )
+    merge,
+  ) async {
+    uploaded = await merge(code, remote) ?? {};
+  }
 }

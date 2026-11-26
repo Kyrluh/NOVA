@@ -84,39 +84,55 @@ void main() {
     );
   });
 
-  test('Dismissal persists, preserves progress and favorites, and watching restores a series', () async {
-    final store = MemoryLocalStore();
-    final app = AppController(store: store);
-    await app.init();
-    app.recordProgress('film-orbite', _progress(1));
-    app.recordProgress('horizons-s1-e2', _progress(2));
-    final series = app.resumeItems.first;
-    app.toggleFavorite(series.id);
-    app.dismissResume(series.id);
-    expect(app.resumeItems.map((i) => i.id), ['film-orbite']);
-    expect(app.progress['horizons-s1-e2']!.positionSeconds, 120);
-    app.updatePlatformPreferences(
-      app.platformPreferences.withGroup(MediaKind.movie, 'Science-fiction', {
-        CatalogPlatform.netflix,
-      }),
-    );
-    await app.flush();
-    app.dispose();
-    final restored = AppController(store: store);
-    await restored.init();
-    addTearDown(restored.dispose);
-    expect(restored.canResume(series), isFalse);
-    expect(restored.favorites, contains(series.id));
-    expect(
-      restored.platformPreferences.platformsFor(
-        restored.itemById('film-orbite')!,
-      ),
-      {CatalogPlatform.netflix},
-    );
-    restored.recordProgress('horizons-s1-e2', _progress(3));
-    expect(restored.canResume(series), isTrue);
-    restored.dismissResume('film-orbite');
-    restored.restoreResume('film-orbite');
-    expect(restored.canResume(restored.itemById('film-orbite')!), isTrue);
-  });
+  test(
+    'Dismissal resets playback on restart and preserves favorites',
+    () async {
+      final store = MemoryLocalStore();
+      final app = AppController(store: store);
+      await app.init();
+      app.recordProgress('film-orbite', _progress(1));
+      app.recordProgress('horizons-s1-e2', _progress(2));
+      app.recordProgress('horizons-s1-e1', _progress(2, complete: true));
+      final series = app.resumeItems.first;
+      app.toggleFavorite(series.id);
+      app.dismissResume(series.id);
+      expect(app.resumeItems.map((i) => i.id), ['film-orbite']);
+      expect(app.progress['horizons-s1-e2'], isNull);
+      expect(app.progress['horizons-s1-e1'], isNull);
+      expect(app.recentIds, isNot(contains('horizons-s1-e2')));
+      app.updatePlatformPreferences(
+        app.platformPreferences.withGroup(MediaKind.movie, 'Science-fiction', {
+          CatalogPlatform.netflix,
+        }),
+      );
+      await app.flush();
+      app.dispose();
+      final restored = AppController(store: store);
+      await restored.init();
+      addTearDown(restored.dispose);
+      expect(restored.canResume(series), isFalse);
+      expect(restored.progress['horizons-s1-e2'], isNull);
+      expect(restored.favorites, contains(series.id));
+      expect(
+        restored.platformPreferences.platformsFor(
+          restored.itemById('film-orbite')!,
+        ),
+        {CatalogPlatform.netflix},
+      );
+      restored.recordProgress(
+        'horizons-s1-e2',
+        WatchProgress(
+          positionSeconds: 20,
+          durationSeconds: 600,
+          lastWatched: DateTime.now().add(const Duration(seconds: 1)),
+        ),
+      );
+      expect(restored.canResume(series), isTrue);
+      final undo = restored.dismissResume('film-orbite');
+      expect(restored.progress['film-orbite'], isNull);
+      undo!();
+      expect(restored.progress['film-orbite']!.positionSeconds, 120);
+      expect(restored.canResume(restored.itemById('film-orbite')!), isTrue);
+    },
+  );
 }

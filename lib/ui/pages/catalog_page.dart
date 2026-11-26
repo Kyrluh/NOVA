@@ -850,7 +850,8 @@ class _MediaPosterState extends State<MediaPoster> {
   void _removeFromResume() {
     final app = widget.controller;
     final id = widget.item.id;
-    app.dismissResume(id);
+    final undo = app.dismissResume(id);
+    if (undo == null) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -859,10 +860,7 @@ class _MediaPosterState extends State<MediaPoster> {
         duration: const Duration(seconds: 4),
         showCloseIcon: true,
         content: const Text('Retiré de Continuer à regarder'),
-        action: SnackBarAction(
-          label: 'Annuler',
-          onPressed: () => app.restoreResume(id),
-        ),
+        action: SnackBarAction(label: 'Annuler', onPressed: undo),
       ),
     );
   }

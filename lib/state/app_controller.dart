@@ -173,9 +173,6 @@ class AppController extends ChangeNotifier {
     _favorites
       ..clear()
       ..addAll((data['favorites'] as List? ?? []).whereType<String>());
-    _dismissedResumeIds
-      ..clear()
-      ..addAll((data['dismissedResumeIds'] as List? ?? []).whereType<String>());
     _recentIds
       ..clear()
       ..addAll((data['recentIds'] as List? ?? []).whereType<String>().take(20));
@@ -186,6 +183,7 @@ class AppController extends ChangeNotifier {
         _progress[entry.key as String] = progress;
       }
     }
+    _restoreResumeResets(data);
   }
 
   final bool _android;
@@ -214,7 +212,7 @@ class AppController extends ChangeNotifier {
   AppSettings _settings = const AppSettings();
   CatalogPreferences _catalogPreferences = const CatalogPreferences();
   PlatformPreferences _platformPreferences = const PlatformPreferences();
-  final Set<String> _dismissedResumeIds = {};
+  final _resumeResetAt = <String, DateTime>{};
   int _preferencesRevision = 0;
   int _defaultsCatalogRevision = -2;
   int _visibleCatalogRevision = -2;
@@ -326,7 +324,6 @@ class AppController extends ChangeNotifier {
 
   bool canResume(MediaItem item) =>
       item.kind != MediaKind.live &&
-      !_dismissedResumeIds.contains(item.id) &&
       latestProgressFor(item, unfinishedOnly: true) != null;
 
   List<MediaItem> get recentlyAddedItems {
@@ -356,9 +353,7 @@ class AppController extends ChangeNotifier {
         final group = _variants?.byId[parentId];
         if (group == null) continue;
         final item = _visibleCardsById[group.first.id];
-        if (item == null ||
-            item.kind == MediaKind.live ||
-            _dismissedResumeIds.contains(item.id)) {
+        if (item == null || item.kind == MediaKind.live) {
           continue;
         }
         final previous = ongoing[item.id];
@@ -376,18 +371,126 @@ class AppController extends ChangeNotifier {
     );
   }
 
-  void dismissResume(String id) {
+  VoidCallback? dismissResume(String id) {
     final item = itemById(id);
-    if (item == null || !canResume(item)) return;
-    _dismissedResumeIds.addAll(variantsFor(item).map((i) => i.id));
-    _changed();
+    if (item == null || item.kind == MediaKind.live || !canResume(item)) {
+      return null;
+    }
+    final profile = _activeProfileId;
+    final identity = variantIdentity(item);
+    final variants = allItems
+        .where(
+          (entry) =>
+              entry.id == id ||
+              (entry.kind == item.kind &&
+                  entry.sourceId == item.sourceId &&
+                  variantIdentity(entry) == identity),
+        )
+        .toList();
+    final ids = {
+      for (final variant in variants) ...[
+        variant.id,
+        for (final season in variant.seasons)
+          ...season.episodes.map((episode) => episode.id),
+      ],
+    };
+    final previous = {
+      for (final entry in _progress.entries)
+        if (ids.contains(entry.key)) entry.key: entry.value,
+    };
+    final previousRecent = _recentIds.where(ids.contains).toList();
+    var now = DateTime.now();
+    for (final date in [
+      ...previous.values.map((entry) => entry.lastWatched),
+      ...variants.map((variant) => _resumeResetAt[variant.id]).nonNulls,
+    ]) {
+      if (!now.isAfter(date)) now = date.add(const Duration(microseconds: 1));
+    }
+    for (final variant in variants) {
+      _resumeResetAt[variant.id] = now;
+    }
+    _forgetResetProgress();
+    _changed(invalidateFavorites: false);
+    unawaited(syncDriveResume(force: true));
+
+    return () {
+      if (_disposed || _activeProfileId != profile) return;
+      final undoAt = DateTime.now();
+      final restoredAt = undoAt.isAfter(now)
+          ? undoAt
+          : now.add(const Duration(microseconds: 1));
+      final restoredIds = <String>{};
+      for (final entry in previous.entries) {
+        if (_progress.containsKey(entry.key) ||
+            _resetFor(entry.key)?.isAtSameMomentAs(now) != true) {
+          continue;
+        }
+        final value = entry.value;
+        _progress[entry.key] = WatchProgress(
+          positionSeconds: value.positionSeconds,
+          durationSeconds: value.durationSeconds,
+          lastWatched: restoredAt,
+          completed: value.completed,
+        );
+        restoredIds.add(entry.key);
+      }
+      if (restoredIds.isEmpty) return;
+      _recentIds.insertAll(0, previousRecent.where(restoredIds.contains));
+      if (_recentIds.length > 20) _recentIds.removeRange(20, _recentIds.length);
+      _changed(invalidateFavorites: false);
+      unawaited(syncDriveResume(force: true));
+    };
   }
 
-  void restoreResume(String id) {
-    final item = itemById(id);
-    if (item == null) return;
-    _dismissedResumeIds.removeAll(variantsFor(item).map((v) => v.id));
-    _changed();
+  DateTime? _resetFor(String id) {
+    var reset = _resumeResetAt[id];
+    final parents = _sharedEpisodeParents[id];
+    if (parents == null) return reset ?? _resumeResetAt[_episodeParents[id]];
+    for (final parent in parents) {
+      final candidate = _resumeResetAt[parent];
+      if (candidate != null && (reset == null || candidate.isAfter(reset))) {
+        reset = candidate;
+      }
+    }
+    return reset;
+  }
+
+  bool _forgetResetProgress() {
+    if (_resumeResetAt.isEmpty) return false;
+    _ensureIndex();
+    final removed = <String>{};
+    _progress.removeWhere((id, progress) {
+      final reset = _resetFor(id);
+      if (reset == null || progress.lastWatched.isAfter(reset)) return false;
+      removed.add(id);
+      return true;
+    });
+    _recentIds.removeWhere(removed.contains);
+    return removed.isNotEmpty;
+  }
+
+  bool _restoreResumeResets(Map<String, dynamic> data) {
+    _resumeResetAt.clear();
+    final stored = data['resumeResetAt'];
+    if (stored is Map) {
+      for (final entry in stored.entries) {
+        if (entry.key is! String || entry.value is! String) continue;
+        final time = DateTime.tryParse(entry.value as String);
+        if (time != null) _resumeResetAt[entry.key as String] = time;
+      }
+    }
+    // Older releases only hid these titles from the row. Apply the reset to
+    // those titles too, so their old positions cannot still be opened.
+    final legacy = data.remove('dismissedResumeIds');
+    if (legacy is List && legacy.isNotEmpty) {
+      _ensureIndex();
+      final now = DateTime.now();
+      for (final id in legacy.whereType<String>()) {
+        _resumeResetAt[_episodeParents[id] ?? id] = now;
+      }
+    }
+    final removed = _forgetResetProgress();
+    return removed || (legacy is List && legacy.isNotEmpty);
   }
 
   static bool _unfinished(WatchProgress value) =>
@@ -449,8 +552,10 @@ class AppController extends ChangeNotifier {
     _scheduleDetailPrefetch();
     _ensureIndex();
     final referencesChanged = _migrateEpisodeReferences();
+    final resetProgressRemoved = _forgetResetProgress();
     final defaultsChanged = _isReady && _applyInitialCategoryFilters();
-    if ((referencesChanged || defaultsChanged) && _isReady) {
+    if ((referencesChanged || defaultsChanged || resetProgressRemoved) &&
+        _isReady) {
       _changed();
       return;
     }
@@ -459,7 +564,7 @@ class AppController extends ChangeNotifier {
 
   bool _migrateEpisodeReferences() {
     var changed = false;
-    for (final set in [_favorites, _watchlist, _dismissedResumeIds]) {
+    for (final set in [_favorites, _watchlist]) {
       for (final id in set.toList()) {
         final parent = _episodeParents[id];
         if (parent != null) {
@@ -685,16 +790,6 @@ class AppController extends ChangeNotifier {
       _platformPreferences = PlatformPreferences.fromJson(
         data['platformPreferences'],
       );
-      final dismissed = data['dismissedResumeIds'];
-      if (dismissed is List) {
-        _ensureIndex();
-        _dismissedResumeIds.addAll(
-          dismissed
-              .whereType<String>()
-              .map((id) => _episodeParents[id] ?? id)
-              .where(_itemById.containsKey),
-        );
-      }
       final favorites = data['favorites'];
       if (favorites is List) {
         _ensureIndex();
@@ -722,6 +817,7 @@ class AppController extends ChangeNotifier {
           recent.whereType<String>().where(ids.contains).toSet().take(20),
         );
       }
+      if (_restoreResumeResets(data)) saveSourceOrder = true;
       if (saveSourceOrder) await _enqueueSave();
     } catch (_) {
       _storageError =
@@ -890,18 +986,10 @@ class AppController extends ChangeNotifier {
     final validated = WatchProgress.fromJson(progress.toJson());
     if (validated == null) return;
     final previous = _progress[id];
-    var restoredResume = _dismissedResumeIds.remove(id);
     final changedItem = _recentIds.firstOrNull != id;
+    final reset = _resetFor(id);
+    if (reset != null && !validated.lastWatched.isAfter(reset)) return;
     _progress[id] = validated;
-    for (final parentId
-        in _sharedEpisodeParents[id] ?? {_episodeParents[id] ?? id}) {
-      final parent = _itemById[parentId];
-      if (parent == null) continue;
-      for (final variant in variantsFor(parent)) {
-        restoredResume =
-            _dismissedResumeIds.remove(variant.id) || restoredResume;
-      }
-    }
     _recentIds.remove(id);
     _recentIds.insert(0, id);
     if (_recentIds.length > 20) _recentIds.removeRange(20, _recentIds.length);
@@ -911,7 +999,6 @@ class AppController extends ChangeNotifier {
         !television ||
         previous == null ||
         changedItem ||
-        restoredResume ||
         previous.completed != validated.completed ||
         previous.durationSeconds != validated.durationSeconds ||
         (previous.positionSeconds - validated.positionSeconds).abs() > 2 ||
@@ -963,7 +1050,9 @@ class AppController extends ChangeNotifier {
         generation == _driveProfileGeneration;
     await drive.sync(profile, (code, remote) async {
       if (!stillActive()) return null;
-      if (remote.isEmpty && _progress.isEmpty) return {};
+      if (remote.isEmpty && _progress.isEmpty && _resumeResetAt.isEmpty) {
+        return {};
+      }
       final namespaces = <String, List<String>>{};
       for (final source in manager.sources) {
         final draft = manager.draftFor(source.id);
@@ -996,6 +1085,11 @@ class AppController extends ChangeNotifier {
         final key = entry.seriesKey;
         if (key == null || entry.progress.completed) continue;
         final date = entry.progress.lastWatched;
+        final cutoff = remote[key];
+        if (cutoff?.reset == true &&
+            !date.isAfter(cutoff!.progress.lastWatched)) {
+          continue;
+        }
         if (unresolved[key]?.isAfter(date) != true) unresolved[key] = date;
       }
       if (unresolved.isNotEmpty && !manager.catalogLoading) {
@@ -1025,11 +1119,28 @@ class AppController extends ChangeNotifier {
       }
       if (!stillActive()) return null;
       var changed = false;
+      for (final item in allItems) {
+        final key = itemKey(item);
+        final marker = remote[key];
+        if (marker?.reset != true) continue;
+        final time = marker!.progress.lastWatched;
+        final current = _resumeResetAt[item.id];
+        if (current == null || time.isAfter(current)) {
+          _resumeResetAt[item.id] = time;
+          changed = true;
+        }
+      }
+      changed = _forgetResetProgress() || changed;
       final snapshot = <String, DriveResumeEntry>{};
       void include(String key, String id, {String? seriesKey}) {
-        final incoming = remote[key]?.progress;
+        final remoteEntry = remote[key];
+        final incoming = remoteEntry?.reset == false
+            ? remoteEntry!.progress
+            : null;
         final current = _progress[id];
+        final cutoff = _resetFor(id);
         if (incoming != null &&
+            (cutoff == null || incoming.lastWatched.isAfter(cutoff)) &&
             (current == null ||
                 incoming.lastWatched.isAfter(current.lastWatched))) {
           _progress[id] = incoming;
@@ -1048,6 +1159,8 @@ class AppController extends ChangeNotifier {
       for (final item in allItems) {
         final key = itemKey(item);
         if (key == null) continue;
+        final reset = _resumeResetAt[item.id];
+        if (reset != null) snapshot[key] = DriveResumeEntry.reset(reset);
         if (item.kind == MediaKind.movie) {
           include(key, item.id);
         } else {
@@ -1100,7 +1213,7 @@ class AppController extends ChangeNotifier {
     _settings = const AppSettings();
     _catalogPreferences = const CatalogPreferences();
     _platformPreferences = const PlatformPreferences();
-    _dismissedResumeIds.clear();
+    _resumeResetAt.clear();
     _preferencesRevision++;
     _favorites.clear();
     _watchlist.clear();
@@ -1130,7 +1243,10 @@ class AppController extends ChangeNotifier {
     'catalogPreferences': _catalogPreferences.toJson(),
     'androidTvSourceOrderVersion': _androidTvSourceOrderVersion,
     'platformPreferences': _platformPreferences.toJson(),
-    'dismissedResumeIds': _dismissedResumeIds.toList(),
+    'resumeResetAt': {
+      for (final entry in _resumeResetAt.entries)
+        entry.key: entry.value.toUtc().toIso8601String(),
+    },
     'favorites': _favorites.toList(),
     'watchlist': _watchlist.toList(),
     'progress': {

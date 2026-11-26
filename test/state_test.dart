@@ -12,17 +12,17 @@ void main() {
       await controller.init();
       addTearDown(controller.dispose);
       controller.toggleFavorite('film-orbite');
-      WatchProgress progress(int position, {bool completed = false}) =>
-          WatchProgress(
-            positionSeconds: position,
-            durationSeconds: 200,
-            lastWatched: DateTime.utc(
-              2026,
-              11,
-              11,
-            ).add(Duration(seconds: position)),
-            completed: completed,
-          );
+      WatchProgress progress(
+        int position, {
+        bool completed = false,
+        DateTime? date,
+      }) => WatchProgress(
+        positionSeconds: position,
+        durationSeconds: 200,
+        lastWatched:
+            date ?? DateTime.utc(2026, 11, 11).add(Duration(seconds: position)),
+        completed: completed,
+      );
       controller.recordProgress('horizons-s1-e2', progress(60));
       await controller.flush();
       final favorites = controller.favorites;
@@ -41,12 +41,16 @@ void main() {
 
       controller.dismissResume(seriesId);
       expect(controller.resumeItems, isEmpty);
-      controller.recordProgress('horizons-s1-e2', progress(63));
+      final resumedAt = DateTime.now().add(const Duration(seconds: 1));
+      controller.recordProgress(
+        'horizons-s1-e2',
+        progress(63, date: resumedAt),
+      );
       expect(controller.resumeItems.single.id, seriesId);
       expect(notifications, 3);
       controller.recordProgress(
         'horizons-s1-e2',
-        progress(64, completed: true),
+        progress(64, completed: true, date: resumedAt),
       );
       expect(controller.resumeItems, isEmpty);
       expect(notifications, 4);

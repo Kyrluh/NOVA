@@ -31,13 +31,24 @@ String driveMediaKey(String code, List<String> parts) => Hmac(
 ).convert(utf8.encode(jsonEncode(parts))).toString();
 
 class DriveResumeEntry {
-  const DriveResumeEntry(this.progress, {this.seriesKey});
+  const DriveResumeEntry(this.progress, {this.seriesKey}) : reset = false;
+  DriveResumeEntry.reset(DateTime resetAt)
+    : progress = WatchProgress(
+        positionSeconds: 0,
+        durationSeconds: 0,
+        lastWatched: resetAt,
+      ),
+      seriesKey = null,
+      reset = true;
+
   final WatchProgress progress;
   final String? seriesKey;
+  final bool reset;
 
   Map<String, dynamic> toJson() => {
     ...progress.toJson(),
     if (seriesKey != null) 'series': seriesKey,
+    if (reset) 'reset': true,
   };
 
   static DriveResumeEntry? fromJson(Object? value, DateTime now) {
@@ -51,7 +62,9 @@ class DriveResumeEntry {
         (series != null && (series is! String || !_digest.hasMatch(series)))) {
       return null;
     }
-    return DriveResumeEntry(progress, seriesKey: series as String?);
+    return value['reset'] == true
+        ? DriveResumeEntry.reset(progress.lastWatched)
+        : DriveResumeEntry(progress, seriesKey: series as String?);
   }
 }
 
@@ -613,7 +626,11 @@ class DriveResumeSync extends ChangeNotifier {
           if (previous == null ||
               value.progress.lastWatched.isAfter(
                 previous.progress.lastWatched,
-              )) {
+              ) ||
+              (value.reset &&
+                  value.progress.lastWatched.isAtSameMomentAs(
+                    previous.progress.lastWatched,
+                  ))) {
             remote[key] = value;
           }
         }
