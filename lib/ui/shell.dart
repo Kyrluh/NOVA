@@ -682,7 +682,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
       ListTile(
         leading: ProfileAvatar(avatar: app.activeProfile.avatar, size: 32),
         title: const Text('Changer de profil'),
-        subtitle: Text(app.activeProfile.name),
+        subtitle: Text(app.activeProfile.displayName),
         onTap: app.showProfilePicker,
       ),
       _moreHeading('Sources et fichiers'),

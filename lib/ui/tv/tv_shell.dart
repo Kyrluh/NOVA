@@ -314,7 +314,7 @@ class _NovaTvShellState extends State<NovaTvShell> {
                                 Expanded(
                                   child: Text(
                                     _section == 'home'
-                                        ? 'Bonjour ${app.activeProfile.name}'
+                                        ? 'Bonjour ${app.activeProfile.displayName}'
                                         : _sections[_section]!.$1,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -12,6 +13,7 @@ import '../domain/catalog_defaults.dart';
 import '../domain/models.dart';
 import '../domain/user_profile.dart';
 import '../domain/media_variants.dart';
+import '../domain/internet_catalog.dart' show internetTitleKey;
 import '../domain/recent_catalog.dart';
 import '../domain/artwork_identity.dart';
 import '../domain/platform_catalog.dart';
@@ -62,11 +64,70 @@ class AppController extends ChangeNotifier {
               .toSet(),
           genresConfigured: entry.value['genresConfigured'] == true,
           avatar: entry.value['avatar'] as String? ?? '',
+          synced:
+              driveResume?.codeFor(entry.key) != null &&
+              entry.value['driveProfileEnabled'] == true,
         ),
       )
       .toList(growable: false);
   UserProfile get activeProfile =>
       profiles.firstWhere((p) => p.id == _activeProfileId);
+  bool get driveProfileEnabled =>
+      _profiles[_activeProfileId]?['driveProfileEnabled'] == true;
+
+  Future<void> associateDriveProfile(
+    String code, {
+    required bool createLocal,
+    required bool importExisting,
+  }) async {
+    final drive = driveResume;
+    if (drive == null || !isDriveProfileCode(code)) return;
+    final current = _activeProfileId;
+    final target = createLocal ? createProfile('Profil NOVA') : current;
+    if (target.isEmpty) return;
+    final previousBinding = drive.codeFor(current);
+    final moveBinding = createLocal && previousBinding == code;
+    if (moveBinding) await drive.unbind(current);
+    await drive.bind(target, code);
+    if (drive.codeFor(target) != code) {
+      if (moveBinding) await drive.bind(current, code);
+      if (createLocal) {
+        _profiles.remove(target);
+        _changed();
+      }
+      return;
+    }
+    if (_disposed || current != _activeProfileId) return;
+    _profiles[target]!
+      ..remove('driveProfile')
+      ..remove('driveProfileBaseline')
+      ..['driveProfileEnabled'] = true
+      ..['driveJoinPending'] = importExisting;
+    if (createLocal) {
+      // Association downloads the real name and preferences before the user
+      // sees the ordinary profile onboarding.
+      _profiles[target]!['genresConfigured'] = true;
+      selectProfile(target, sync: false);
+    }
+    _changed();
+    await syncDriveResume(force: true);
+    if (_disposed) return;
+    if (_profiles[target]?['driveJoinPending'] == true) {
+      final problem = drive.problem;
+      await drive.unbind(target);
+      _profiles[target]?.remove('driveJoinPending');
+      _profiles[target]?.remove('driveProfileEnabled');
+      if ((!createLocal || moveBinding) && previousBinding != null) {
+        await drive.bind(current, previousBinding);
+        drive.problem = problem;
+      }
+      if (createLocal) {
+        if (_activeProfileId == target) selectProfile(current, sync: false);
+        _profiles.remove(target);
+      }
+      _changed();
+    }
+  }
 
   void showProfilePicker() {
     _profileChosen = false;
@@ -86,7 +147,7 @@ class AppController extends ChangeNotifier {
     return id;
   }
 
-  void selectProfile(String id) {
+  void selectProfile(String id, {bool sync = true}) {
     if (!_profiles.containsKey(id)) return;
     _profiles[_activeProfileId] = {
       ...?_profiles[_activeProfileId],
@@ -99,7 +160,7 @@ class AppController extends ChangeNotifier {
     _preferencesRevision++;
     _recommendationInput = null;
     _changed();
-    unawaited(syncDriveResume());
+    if (sync) unawaited(syncDriveResume());
   }
 
   void updateProfile(String name, Set<String> genres, {String? avatar}) {
@@ -1022,6 +1083,123 @@ class AppController extends ChangeNotifier {
 
   /// Progress is keyed by the Xtream content ID, independently of each
   /// installation's source and profile UUIDs.
+  List<String>? _portableIdentity(MediaItem item) {
+    if (item.isDemo || item.kind == MediaKind.live) return null;
+    final title = internetTitleKey(variantTitle(item.title));
+    if (title.isEmpty) return null;
+    return ['title', item.kind.name, title, '${variantYear(item)}'];
+  }
+
+  Map<String, dynamic> _exchangeDriveProfile(
+    String code,
+    Map<String, dynamic>? remote,
+  ) {
+    final profile = _profiles[_activeProfileId]!;
+    final joining = profile['driveJoinPending'] == true;
+    List<String> strings(Object? value) =>
+        value is List ? value.whereType<String>().take(3000).toList() : [];
+    final previous = profile['driveProfile'] as Map?;
+    final ids = <String, String>{};
+    for (final item in allItems) {
+      final parts = _portableIdentity(item);
+      if (parts != null) ids[item.id] = driveMediaKey(code, parts);
+    }
+    final known = ids.values.toSet();
+    List<String> portableList(Set<String> local, String field) => {
+      for (final id in local)
+        if (ids[id] case final key?) key,
+      for (final key
+          in ((previous?['data'] as Map?)?[field] as List? ?? [])
+              .whereType<String>())
+        if (!known.contains(key)) key,
+    }.toList()..sort();
+
+    Map<String, dynamic> current() => {
+      'name': activeProfile.name,
+      'avatar': activeProfile.avatar,
+      'genres': activeProfile.genres.toList()..sort(),
+      'genresConfigured': activeProfile.genresConfigured,
+      'settings': _settings.toJson(),
+      'catalogPreferences': _catalogPreferences.toJson(),
+      'platformPreferences': _platformPreferences.toJson(),
+      'favorites': portableList(_favorites, 'favorites'),
+      'watchlist': portableList(_watchlist, 'watchlist'),
+    };
+    final local = current();
+    final localChanged =
+        previous != null &&
+        jsonEncode(local) !=
+            jsonEncode(profile['driveProfileBaseline'] ?? previous['data']);
+    final previousDate = DateTime.tryParse('${previous?['updatedAt'] ?? ''}');
+    final remoteDate = DateTime.tryParse('${remote?['updatedAt'] ?? ''}');
+    if (remote != null &&
+        remoteDate != null &&
+        (previousDate == null ||
+            (!localChanged && remoteDate.isAfter(previousDate)))) {
+      final data = remote['data'] as Map<String, dynamic>;
+      final name = data['name'];
+      final settings = data['settings'];
+      if (name is String &&
+          name.trim().isNotEmpty &&
+          settings is Map<String, dynamic>) {
+        if (joining) {
+          _progress.clear();
+          _resumeResetAt.clear();
+          _recentIds.clear();
+          _favorites.clear();
+          _watchlist.clear();
+          profile.remove('driveJoinPending');
+          profile['useInitialCatalogFilters'] = false;
+        }
+        profile['name'] = name.trim().substring(0, min(name.trim().length, 32));
+        profile['avatar'] = data['avatar'] is String
+            ? (data['avatar'] as String).split('').take(64).join()
+            : '';
+        profile['genres'] = strings(data['genres'])
+            .where(preferredGenres.containsKey)
+            .toList();
+        profile['genresConfigured'] = data['genresConfigured'] == true;
+        _settings = AppSettings.fromJson(settings);
+        _catalogPreferences = CatalogPreferences.fromJson(
+          data['catalogPreferences'],
+        );
+        _platformPreferences = PlatformPreferences.fromJson(
+          data['platformPreferences'],
+        );
+        for (final (target, field) in [
+          (_favorites, 'favorites'),
+          (_watchlist, 'watchlist'),
+        ]) {
+          final keys = strings(data[field]).toSet();
+          // Keep TV favorites local to their source.
+          target.removeWhere(ids.containsKey);
+          target.addAll(
+            ids.entries
+                .where((entry) => keys.contains(entry.value))
+                .map((entry) => entry.key),
+          );
+        }
+        profile['driveProfile'] = remote;
+        profile['driveProfileBaseline'] = current();
+        _preferencesRevision++;
+        _recommendationInput = null;
+        _changed();
+        return remote;
+      }
+    }
+    if (previous != null && !localChanged) {
+      return Map<String, dynamic>.from(previous);
+    }
+    final next = {
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      'data': local,
+    };
+    profile['driveProfile'] = next;
+    profile['driveProfileBaseline'] = local;
+    _changed();
+    return next;
+  }
+
   Future<void> syncDriveResume({bool force = false}) async {
     final drive = driveResume;
     final manager = sources;
@@ -1049,140 +1227,215 @@ class AppController extends ChangeNotifier {
         _profileChosen &&
         profile == _activeProfileId &&
         generation == _driveProfileGeneration;
-    await drive.sync(profile, (code, remote) async {
-      if (!stillActive()) return null;
-      if (remote.isEmpty && _progress.isEmpty && _resumeResetAt.isEmpty) {
-        return {};
-      }
-      final namespaces = <String, List<String>>{};
-      for (final source in manager.sources) {
-        final draft = manager.draftFor(source.id);
-        if (draft?.kind != SourceKind.xtream) continue;
-        final uri = Uri.tryParse(draft!.address);
-        if (uri == null || uri.host.isEmpty) continue;
-        namespaces[source.id] = [
-          uri.host.toLowerCase(),
-          if (uri.hasPort && uri.port != 80 && uri.port != 443) '${uri.port}',
-          uri.path.replaceFirst(RegExp(r'/+$'), ''),
-          draft.username,
-        ];
-      }
-      String? itemKey(MediaItem item) {
-        final namespace = namespaces[item.sourceId];
-        if (namespace == null ||
-            item.providerId == null ||
-            item.kind == MediaKind.live) {
-          return null;
+    drive.exchangeProfile = driveProfileEnabled
+        ? (code, remote) =>
+              stillActive() ? _exchangeDriveProfile(code, remote) : null
+        : null;
+    drive.requireRemoteProfile =
+        _profiles[profile]?['driveJoinPending'] == true;
+    try {
+      await drive.sync(profile, (code, remote) async {
+        if (!stillActive()) return null;
+        if (remote.isEmpty && _progress.isEmpty && _resumeResetAt.isEmpty) {
+          return {};
         }
-        return driveMediaKey(code, [
-          ...namespace,
-          item.kind.name,
-          item.providerId!,
-        ]);
-      }
-
-      final unresolved = <String, DateTime>{};
-      for (final entry in remote.values) {
-        final key = entry.seriesKey;
-        if (key == null || entry.progress.completed) continue;
-        final date = entry.progress.lastWatched;
-        final cutoff = remote[key];
-        if (cutoff?.reset == true &&
-            !date.isAfter(cutoff!.progress.lastWatched)) {
-          continue;
+        final namespaces = <String, List<String>>{};
+        for (final source in manager.sources) {
+          final draft = manager.draftFor(source.id);
+          if (draft?.kind != SourceKind.xtream) continue;
+          final uri = Uri.tryParse(draft!.address);
+          if (uri == null || uri.host.isEmpty) continue;
+          namespaces[source.id] = [
+            uri.host.toLowerCase(),
+            if (uri.hasPort && uri.port != 80 && uri.port != 443) '${uri.port}',
+            uri.path.replaceFirst(RegExp(r'/+$'), ''),
+            draft.username,
+          ];
         }
-        if (unresolved[key]?.isAfter(date) != true) unresolved[key] = date;
-      }
-      if (unresolved.isNotEmpty && !manager.catalogLoading) {
-        final missing =
-            allItems
-                .where(
-                  (item) =>
-                      item.kind == MediaKind.series &&
-                      !item.detailsLoaded &&
-                      item.seasons.isEmpty &&
-                      unresolved.containsKey(itemKey(item)),
-                )
-                .toList()
-              ..sort(
-                (a, b) =>
-                    unresolved[itemKey(b)]!.compareTo(unresolved[itemKey(a)]!),
-              );
-        // Only hydrate a few recent remote series, never the entire catalogue.
-        for (final item in missing.take(2)) {
-          if (!stillActive()) return null;
-          try {
-            await manager.details(item);
-          } catch (_) {
-            // Retain the remote progress for a later attempt.
+        String? legacyItemKey(MediaItem item) {
+          final namespace = namespaces[item.sourceId];
+          if (namespace == null ||
+              item.providerId == null ||
+              item.kind == MediaKind.live) {
+            return null;
           }
+          return driveMediaKey(code, [
+            ...namespace,
+            item.kind.name,
+            item.providerId!,
+          ]);
         }
-      }
-      if (!stillActive()) return null;
-      var changed = false;
-      for (final item in allItems) {
-        final key = itemKey(item);
-        final marker = remote[key];
-        if (marker?.reset != true) continue;
-        final time = marker!.progress.lastWatched;
-        final current = _resumeResetAt[item.id];
-        if (current == null || time.isAfter(current)) {
-          _resumeResetAt[item.id] = time;
-          changed = true;
-        }
-      }
-      changed = _forgetResetProgress() || changed;
-      final snapshot = <String, DriveResumeEntry>{};
-      void include(String key, String id, {String? seriesKey}) {
-        final remoteEntry = remote[key];
-        final incoming = remoteEntry?.reset == false
-            ? remoteEntry!.progress
-            : null;
-        final current = _progress[id];
-        final cutoff = _resetFor(id);
-        if (incoming != null &&
-            (cutoff == null || incoming.lastWatched.isAfter(cutoff)) &&
-            (current == null ||
-                incoming.lastWatched.isAfter(current.lastWatched))) {
-          _progress[id] = incoming;
-          changed = true;
-        }
-        final progress = _progress[id];
-        if (progress != null &&
-            (snapshot[key]?.progress.lastWatched.isAfter(
-                  progress.lastWatched,
-                ) !=
-                true)) {
-          snapshot[key] = DriveResumeEntry(progress, seriesKey: seriesKey);
-        }
-      }
 
-      for (final item in allItems) {
-        final key = itemKey(item);
-        if (key == null) continue;
-        final reset = _resumeResetAt[item.id];
-        if (reset != null) snapshot[key] = DriveResumeEntry.reset(reset);
-        if (item.kind == MediaKind.movie) {
-          include(key, item.id);
-        } else {
-          final namespace = namespaces[item.sourceId]!;
-          final prefix = '${item.sourceId}:episode:';
-          for (final season in item.seasons) {
-            for (final episode in season.episodes) {
-              if (!episode.id.startsWith(prefix)) continue;
-              final episodeKey = driveMediaKey(code, [
-                ...namespace,
-                'episode',
-                episode.id.substring(prefix.length),
-              ]);
-              include(episodeKey, episode.id, seriesKey: key);
+        String? itemKey(MediaItem item) {
+          final parts = _portableIdentity(item);
+          return parts == null ? null : driveMediaKey(code, parts);
+        }
+
+        final unresolved = <String, DateTime>{};
+        for (final entry in remote.values) {
+          final key = entry.seriesKey;
+          if (key == null || entry.progress.completed) continue;
+          final date = entry.progress.lastWatched;
+          final cutoff = remote[key];
+          if (cutoff?.reset == true &&
+              !date.isAfter(cutoff!.progress.lastWatched)) {
+            continue;
+          }
+          if (unresolved[key]?.isAfter(date) != true) unresolved[key] = date;
+        }
+        if (unresolved.isNotEmpty && !manager.catalogLoading) {
+          final missing =
+              allItems
+                  .where(
+                    (item) =>
+                        item.kind == MediaKind.series &&
+                        !item.detailsLoaded &&
+                        item.seasons.isEmpty &&
+                        (unresolved.containsKey(itemKey(item)) ||
+                            unresolved.containsKey(legacyItemKey(item))),
+                  )
+                  .toList()
+                ..sort(
+                  (a, b) =>
+                      (unresolved[itemKey(b)] ?? unresolved[legacyItemKey(b)]!)
+                          .compareTo(
+                            unresolved[itemKey(a)] ??
+                                unresolved[legacyItemKey(a)]!,
+                          ),
+                );
+          // Only hydrate a few recent remote series, never the entire catalogue.
+          for (final item in missing.take(2)) {
+            if (!stillActive()) return null;
+            try {
+              await manager.details(item);
+            } catch (_) {
+              // Retain the remote progress for a later attempt.
             }
           }
         }
-      }
-      if (changed) _changed(invalidateFavorites: false);
-      return snapshot;
-    });
+        if (!stillActive()) return null;
+        var changed = false;
+        for (final item in allItems) {
+          final key = itemKey(item);
+          final markers =
+              [remote[key], remote[legacyItemKey(item)]]
+                  .whereType<DriveResumeEntry>()
+                  .where((entry) => entry.reset)
+                  .toList()
+                ..sort(
+                  (a, b) =>
+                      b.progress.lastWatched.compareTo(a.progress.lastWatched),
+                );
+          final marker = markers.firstOrNull;
+          if (marker?.reset != true) continue;
+          final time = marker!.progress.lastWatched;
+          final current = _resumeResetAt[item.id];
+          if (current == null || time.isAfter(current)) {
+            _resumeResetAt[item.id] = time;
+            changed = true;
+          }
+        }
+        changed = _forgetResetProgress() || changed;
+        final snapshot = Map<String, DriveResumeEntry>.of(remote);
+        void include(
+          String key,
+          String id, {
+          String? seriesKey,
+          String? legacyKey,
+        }) {
+          final candidates =
+              [remote[key], remote[legacyKey]]
+                  .whereType<DriveResumeEntry>()
+                  .where((entry) => !entry.reset)
+                  .toList()
+                ..sort(
+                  (a, b) =>
+                      b.progress.lastWatched.compareTo(a.progress.lastWatched),
+                );
+          final remoteEntry = candidates.firstOrNull;
+          final incoming = remoteEntry?.reset == false
+              ? remoteEntry!.progress
+              : null;
+          final current = _progress[id];
+          final cutoff = _resetFor(id);
+          if (legacyKey != null && legacyKey != key) snapshot.remove(legacyKey);
+          if (cutoff != null &&
+              snapshot[key]?.reset == false &&
+              snapshot[key]!.progress.lastWatched.isAfter(cutoff) == false) {
+            snapshot.remove(key);
+          }
+          if (incoming != null &&
+              (cutoff == null || incoming.lastWatched.isAfter(cutoff)) &&
+              (current == null ||
+                  incoming.lastWatched.isAfter(current.lastWatched))) {
+            _progress[id] = incoming;
+            changed = true;
+          }
+          final progress = _progress[id];
+          if (progress != null &&
+              (snapshot[key]?.progress.lastWatched.isAfter(
+                    progress.lastWatched,
+                  ) !=
+                  true)) {
+            snapshot[key] = DriveResumeEntry(progress, seriesKey: seriesKey);
+          }
+        }
+
+        for (final item in allItems) {
+          final key = itemKey(item);
+          if (key == null) continue;
+          final reset = _resumeResetAt[item.id];
+          if (reset != null) snapshot[key] = DriveResumeEntry.reset(reset);
+          if (item.kind == MediaKind.movie) {
+            include(key, item.id, legacyKey: legacyItemKey(item));
+          } else {
+            final namespace = namespaces[item.sourceId];
+            final prefix = '${item.sourceId}:episode:';
+            for (final season in item.seasons) {
+              for (final episode in season.episodes) {
+                final episodeKey = driveMediaKey(code, [
+                  key,
+                  'episode',
+                  '${season.number}',
+                  '${episode.number}',
+                ]);
+                final legacy =
+                    namespace != null && episode.id.startsWith(prefix)
+                    ? driveMediaKey(code, [
+                        ...namespace,
+                        'episode',
+                        episode.id.substring(prefix.length),
+                      ])
+                    : null;
+                include(
+                  episodeKey,
+                  episode.id,
+                  seriesKey: key,
+                  legacyKey: legacy,
+                );
+              }
+            }
+          }
+        }
+        if (changed) {
+          _recentIds
+            ..clear()
+            ..addAll(
+              (_progress.entries.toList()..sort(
+                    (a, b) =>
+                        b.value.lastWatched.compareTo(a.value.lastWatched),
+                  ))
+                  .take(20)
+                  .map((entry) => entry.key),
+            );
+          _changed(invalidateFavorites: false);
+        }
+        return snapshot;
+      });
+    } finally {
+      drive.exchangeProfile = null;
+      drive.requireRemoteProfile = false;
+    }
   }
 
   void markWatched(String id) {

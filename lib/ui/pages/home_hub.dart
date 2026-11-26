@@ -48,7 +48,7 @@ class HomeHub extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Bonjour ${controller.activeProfile.name}',
+                  'Bonjour ${controller.activeProfile.displayName}',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),

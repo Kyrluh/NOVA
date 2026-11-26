@@ -18,6 +18,53 @@ class _DriveResumePanelState extends State<DriveResumePanel> {
   final _clientId = TextEditingController();
   final _clientSecret = TextEditingController();
   final _profileCode = TextEditingController();
+  String? _generatedCode;
+
+  Future<void> _associate(AppController app, {String? existingCode}) async {
+    final code = existingCode ?? _profileCode.text.trim().toLowerCase();
+    if (!isDriveProfileCode(code)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saisissez le code de profil de 32 caractères.'),
+        ),
+      );
+      return;
+    }
+    final bool? createLocal;
+    if (existingCode == null && code == _generatedCode) {
+      createLocal = false;
+    } else {
+      createLocal = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Associer le profil synchronisé'),
+          content: const Text(
+            'Remplace le profil actuel par celui du Drive ou crée un profil séparé. Les sources de cet appareil restent en place.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Remplacer le profil actuel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Créer un nouveau profil'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (!mounted || createLocal == null) return;
+    await app.associateDriveProfile(
+      code,
+      createLocal: createLocal,
+      importExisting: code != _generatedCode,
+    );
+  }
 
   @override
   void dispose() {
@@ -113,7 +160,7 @@ class _DriveResumePanelState extends State<DriveResumePanel> {
                   child: const Text('Connecter Google Drive'),
                 ),
             ] else ...[
-              Text('Profil NOVA : ${app.activeProfile.name}'),
+              Text('Profil NOVA : ${app.activeProfile.displayName}'),
               if (code == null) ...[
                 const Text(
                   'Copiez le même code de profil sur l’autre appareil, avec le même compte Google.',
@@ -135,25 +182,46 @@ class _DriveResumePanelState extends State<DriveResumePanel> {
                     OutlinedButton(
                       onPressed: drive.busy
                           ? null
-                          : () => _profileCode.text = newDriveProfileCode(),
+                          : () {
+                              _generatedCode = newDriveProfileCode();
+                              _profileCode.text = _generatedCode!;
+                            },
                       child: const Text('Générer un code'),
                     ),
                     FilledButton(
-                      onPressed: drive.busy
-                          ? null
-                          : () async {
-                              await drive.bind(
-                                profile,
-                                _profileCode.text.trim().toLowerCase(),
-                              );
-                              await app.syncDriveResume(force: true);
-                            },
+                      onPressed: drive.busy ? null : () => _associate(app),
                       child: const Text('Associer ce profil'),
                     ),
                   ],
                 ),
               ] else ...[
                 SelectableText(code),
+                if (!app.driveProfileEnabled) ...[
+                  const Text(
+                    'Ce code synchronise déjà la reprise. Choisis quel profil doit servir de référence pour les réglages et les listes.',
+                  ),
+                  Wrap(
+                    spacing: 10,
+                    children: [
+                      FilledButton(
+                        onPressed: drive.busy
+                            ? null
+                            : () => app.associateDriveProfile(
+                                code,
+                                createLocal: false,
+                                importExisting: false,
+                              ),
+                        child: const Text('Publier ce profil comme référence'),
+                      ),
+                      OutlinedButton(
+                        onPressed: drive.busy
+                            ? null
+                            : () => _associate(app, existingCode: code),
+                        child: const Text('Importer le profil associé'),
+                      ),
+                    ],
+                  ),
+                ],
                 Wrap(
                   spacing: 10,
                   runSpacing: 8,

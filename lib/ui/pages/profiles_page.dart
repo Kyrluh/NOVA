@@ -91,7 +91,7 @@ class ProfilesPage extends StatelessWidget {
                             ProfileAvatar(avatar: profile.avatar),
                             const SizedBox(height: 12),
                             Text(
-                              profile.name,
+                              profile.displayName,
                               maxLines: 2,
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
@@ -345,7 +345,7 @@ class ProfileSettingsTile extends StatelessWidget {
           avatar: controller.activeProfile.avatar,
           size: 40,
         ),
-        title: Text('Profil : ${controller.activeProfile.name}'),
+        title: Text('Profil : ${controller.activeProfile.displayName}'),
         subtitle: Text(
           controller.activeProfile.genres.isEmpty
               ? 'Modifier le profil et les genres préférés'

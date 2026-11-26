@@ -5,12 +5,15 @@ class UserProfile {
     required this.genres,
     required this.genresConfigured,
     this.avatar = '',
+    this.synced = false,
   });
   final String id;
   final String name;
   final Set<String> genres;
   final bool genresConfigured;
   final String avatar;
+  final bool synced;
+  String get displayName => synced ? '$name (Sync.)' : name;
 }
 
 const preferredGenres = <String, List<String>>{

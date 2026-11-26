@@ -1,5 +1,11 @@
 # Essai NOVA IPTV 0.11.10 — reprise avec Google Drive
 
+## Profil complet à partir de la 0.11.17
+
+Sur l’appareil qui contient le bon profil, ouvrez **Profil et envies**. Si un code est déjà associé, choisissez **Publier ce profil comme référence**. Sur l’autre appareil, saisissez le même code ou choisissez **Importer le profil associé**. Vous pouvez remplacer le profil actif ou créer un profil séparé. Les profils associés portent la mention **(Sync.)**.
+
+Le nom, l’avatar, les goûts, les réglages, les favoris films et séries, « Ma liste » et la progression sont associés au profil Drive. Les sources, leurs identifiants, les liens de lecture et les favoris des chaînes en direct restent locaux. Pour afficher une liste ou reprendre une vidéo sur une autre source, NOVA doit retrouver le titre dans le catalogue de cet appareil. Les films et séries sont rapprochés par titre normalisé et année. Les épisodes sont rapprochés par numéro de saison et d’épisode. Gardez la même version de NOVA sur les appareils associés.
+
 Cet essai couvre Windows, les téléphones Android avec les services Google Play, et Android TV / Fire TV. La reprise et les épisodes vus sont synchronisés pour les sources Xtream. Les favoris et « Ma liste » restent locaux.
 
 ## Essayer sur un téléphone Android

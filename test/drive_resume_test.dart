@@ -108,6 +108,38 @@ void main() {
     await app.syncDriveResume(force: true);
     expect(app.progress[episode.id]?.positionSeconds, 120);
     expect(app.resumeItems.single.id, series.id);
+
+    final original = app.activeProfileId;
+    final importedCode = newDriveProfileCode();
+    final portableSeries = driveMediaKey(importedCode, [
+      'title',
+      'series',
+      'series',
+      '2026',
+    ]);
+    drive.remote.clear();
+    drive.remoteProfile = {
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      'data': {
+        'name': 'Profil importé',
+        'genresConfigured': true,
+        'genres': ['Animation'],
+        'settings': const AppSettings().copyWith(playbackRate: 1.5).toJson(),
+        'watchlist': [portableSeries],
+      },
+    };
+    await app.associateDriveProfile(
+      importedCode,
+      createLocal: true,
+      importExisting: true,
+    );
+    expect(app.activeProfile.displayName, 'Profil importé (Sync.)');
+    expect(app.settings.playbackRate, 1.5);
+    expect(app.watchlistItems.single.id, series.id);
+    expect(app.progress[episode.id], isNull);
+    expect(manager.sources.single.id, source.id);
+    app.selectProfile(original, sync: false);
+    expect(app.progress[episode.id]?.positionSeconds, 120);
   });
 
   test('Desktop OAuth rejects wrong state, exchanges via PKCE and stores only a protected envelope', () async {
@@ -308,6 +340,8 @@ class _FixtureDrive extends DriveResumeSync {
 
   final code = newDriveProfileCode();
   final remote = <String, DriveResumeEntry>{};
+  final bindings = <String, String>{};
+  Map<String, dynamic>? remoteProfile;
   Map<String, DriveResumeEntry> uploaded = {};
   bool enabled = false;
 
@@ -315,7 +349,13 @@ class _FixtureDrive extends DriveResumeSync {
   bool get connected => enabled;
 
   @override
-  String? codeFor(String profile) => code;
+  String? codeFor(String profile) =>
+      bindings[profile] ?? (profile == 'main' ? code : null);
+
+  @override
+  Future<void> bind(String profile, String code) async {
+    bindings[profile] = code;
+  }
 
   @override
   Future<void> sync(
@@ -326,6 +366,8 @@ class _FixtureDrive extends DriveResumeSync {
     )
     merge,
   ) async {
-    uploaded = await merge(code, remote) ?? {};
+    final key = codeFor(profile)!;
+    exchangeProfile?.call(key, remoteProfile);
+    uploaded = await merge(key, remote) ?? {};
   }
 }

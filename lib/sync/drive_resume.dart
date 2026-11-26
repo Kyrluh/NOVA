@@ -112,6 +112,9 @@ class DriveResumeSync extends ChangeNotifier {
   (Uri, String)? deviceConsent;
   String? problem;
   DateTime? lastSync;
+  bool requireRemoteProfile = false;
+  Map<String, dynamic>? Function(String code, Map<String, dynamic>? remote)?
+  exchangeProfile;
 
   bool get connected => mobile ? _androidAccount != null : _refresh != null;
   bool get busy => _busy;
@@ -318,6 +321,20 @@ class DriveResumeSync extends ChangeNotifier {
     _profiles.clear();
     lastSync = null;
   });
+
+  Future<void> unbind(String profile) async {
+    final message = problem;
+    await _operation(() async {
+      final code = _profiles.remove(profile);
+      try {
+        await _save();
+      } catch (_) {
+        if (code != null) _profiles[profile] = code;
+        rethrow;
+      }
+      problem = message;
+    });
+  }
 
   Future<Map<String, dynamic>> _authorizeDesktop(
     String id,
@@ -591,6 +608,8 @@ class DriveResumeSync extends ChangeNotifier {
       ),
     );
     final remote = <String, DriveResumeEntry>{};
+    Map<String, dynamic>? remoteProfile;
+    DateTime? profileDate;
     String? ownId;
     String? ownBody;
     final now = DateTime.now();
@@ -617,6 +636,18 @@ class DriveResumeSync extends ChangeNotifier {
       try {
         final entries = _object(text);
         if (entries['version'] != 1 || entries['entries'] is! Map) continue;
+        final shared = entries['profile'];
+        if (shared is Map<String, dynamic> &&
+            shared['updatedAt'] is String &&
+            shared['data'] is Map<String, dynamic>) {
+          final date = DateTime.tryParse(shared['updatedAt'] as String);
+          if (date != null &&
+              !date.isAfter(now.add(const Duration(minutes: 5))) &&
+              (profileDate == null || date.isAfter(profileDate))) {
+            remoteProfile = shared;
+            profileDate = date;
+          }
+        }
         for (final entry in (entries['entries'] as Map).entries.take(600)) {
           final key = entry.key;
           if (key is! String || !_digest.hasMatch(key)) continue;
@@ -641,6 +672,17 @@ class DriveResumeSync extends ChangeNotifier {
       }
     }
     if (_disposed) return;
+    final imported = remoteProfile?['data'];
+    if (requireRemoteProfile &&
+        (imported is! Map ||
+            imported['name'] is! String ||
+            (imported['name'] as String).trim().isEmpty ||
+            imported['settings'] is! Map)) {
+      throw const DriveSyncException(
+        'Profil introuvable dans ce Drive. Synchronisez-le d’abord sur l’appareil d’origine.',
+      );
+    }
+    final sharedProfile = exchangeProfile?.call(code, remoteProfile);
     final local = await merge(code, remote);
     if (_disposed || local == null) return;
     final entries = local.entries.toList()
@@ -650,9 +692,10 @@ class DriveResumeSync extends ChangeNotifier {
         );
         return time == 0 ? a.key.compareTo(b.key) : time;
       });
-    if (entries.isNotEmpty) {
+    if (entries.isNotEmpty || sharedProfile != null) {
       final body = jsonEncode({
         'version': 1,
+        if (sharedProfile != null) 'profile': sharedProfile,
         'entries': {
           for (final entry in entries.take(600))
             entry.key: entry.value.toJson(),
