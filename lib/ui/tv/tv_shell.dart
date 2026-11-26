@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/drive_resume_panel.dart';
+
 import 'package:flutter/services.dart';
 
 import '../widgets/platform_logo.dart';
@@ -723,7 +726,15 @@ class _NovaTvShellState extends State<NovaTvShell> {
           Icons.person_outline,
           () => _settingsPanel(
             'Profil et envies',
-            () => ListView(children: [ProfileSettingsTile(controller: app)]),
+            () => ListView(
+              children: [
+                ProfileSettingsTile(controller: app),
+                if (app.driveResume != null) ...[
+                  const SizedBox(height: 20),
+                  DriveResumePanel(controller: app),
+                ],
+              ],
+            ),
           ),
         ),
         _settingCard(

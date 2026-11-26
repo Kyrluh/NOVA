@@ -18,6 +18,7 @@ import '../domain/platform_catalog.dart';
 import '../domain/source_models.dart';
 import 'source_controller.dart';
 import 'internet_catalog_controller.dart';
+import '../sync/drive_resume.dart';
 
 class AppController extends ChangeNotifier {
   // Keep the injected store's public argument independent of the private field.
@@ -25,6 +26,7 @@ class AppController extends ChangeNotifier {
     required LocalStore store,
     this.sources,
     this.internetCatalog,
+    this.driveResume,
     this.refreshSourcesOnStartup = false,
     this.television = false,
     bool? android,
@@ -38,6 +40,10 @@ class AppController extends ChangeNotifier {
   }
 
   final LocalStore _store;
+  final DriveResumeSync? driveResume;
+  DateTime? _driveAttempt;
+  Timer? _driveTimer;
+  int _driveProfileGeneration = 0;
   Timer? _selectionRefreshTimer;
   final Map<String, Map<String, dynamic>> _profiles = {};
   String _activeProfileId = 'main';
@@ -87,11 +93,13 @@ class AppController extends ChangeNotifier {
       ..._profileState(),
     };
     _activeProfileId = id;
+    _driveProfileGeneration++;
     _restoreProfile(_profiles[id]!);
     _profileChosen = true;
     _preferencesRevision++;
     _recommendationInput = null;
     _changed();
+    unawaited(syncDriveResume());
   }
 
   void updateProfile(String name, Set<String> genres, {String? avatar}) {
@@ -620,6 +628,17 @@ class AppController extends ChangeNotifier {
       await internetCatalog?.init();
       await sources?.init();
       final root = await _store.load();
+      if (driveResume != null) {
+        unawaited(
+          driveResume!.init().then((_) {
+            if (_disposed) return;
+            _driveTimer ??= Timer.periodic(
+              const Duration(minutes: 1),
+              (_) => unawaited(syncDriveResume()),
+            );
+          }),
+        );
+      }
       for (final raw in (root['profiles'] as List? ?? []).take(20)) {
         if (raw is! Map || raw['id'] is! String || raw['name'] is! String) {
           continue;
@@ -913,6 +932,145 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  /// Progress is keyed by the Xtream content ID, independently of each
+  /// installation's source and profile UUIDs.
+  Future<void> syncDriveResume({bool force = false}) async {
+    final drive = driveResume;
+    final manager = sources;
+    final profile = _activeProfileId;
+    final generation = _driveProfileGeneration;
+    if (_disposed ||
+        !_isReady ||
+        !_profileChosen ||
+        drive == null ||
+        manager == null ||
+        !drive.connected ||
+        drive.codeFor(profile) == null ||
+        drive.busy) {
+      return;
+    }
+    final now = DateTime.now();
+    if (!force &&
+        _driveAttempt != null &&
+        now.difference(_driveAttempt!) < const Duration(seconds: 15)) {
+      return;
+    }
+    _driveAttempt = now;
+    bool stillActive() =>
+        !_disposed &&
+        _profileChosen &&
+        profile == _activeProfileId &&
+        generation == _driveProfileGeneration;
+    await drive.sync(profile, (code, remote) async {
+      if (!stillActive()) return null;
+      if (remote.isEmpty && _progress.isEmpty) return {};
+      final namespaces = <String, List<String>>{};
+      for (final source in manager.sources) {
+        final draft = manager.draftFor(source.id);
+        if (draft?.kind != SourceKind.xtream) continue;
+        final uri = Uri.tryParse(draft!.address);
+        if (uri == null || uri.host.isEmpty) continue;
+        namespaces[source.id] = [
+          uri.host.toLowerCase(),
+          if (uri.hasPort && uri.port != 80 && uri.port != 443) '${uri.port}',
+          uri.path.replaceFirst(RegExp(r'/+$'), ''),
+          draft.username,
+        ];
+      }
+      String? itemKey(MediaItem item) {
+        final namespace = namespaces[item.sourceId];
+        if (namespace == null ||
+            item.providerId == null ||
+            item.kind == MediaKind.live) {
+          return null;
+        }
+        return driveMediaKey(code, [
+          ...namespace,
+          item.kind.name,
+          item.providerId!,
+        ]);
+      }
+
+      final unresolved = <String, DateTime>{};
+      for (final entry in remote.values) {
+        final key = entry.seriesKey;
+        if (key == null || entry.progress.completed) continue;
+        final date = entry.progress.lastWatched;
+        if (unresolved[key]?.isAfter(date) != true) unresolved[key] = date;
+      }
+      if (unresolved.isNotEmpty && !manager.catalogLoading) {
+        final missing =
+            allItems
+                .where(
+                  (item) =>
+                      item.kind == MediaKind.series &&
+                      !item.detailsLoaded &&
+                      item.seasons.isEmpty &&
+                      unresolved.containsKey(itemKey(item)),
+                )
+                .toList()
+              ..sort(
+                (a, b) =>
+                    unresolved[itemKey(b)]!.compareTo(unresolved[itemKey(a)]!),
+              );
+        // Only hydrate a few recent remote series, never the entire catalogue.
+        for (final item in missing.take(2)) {
+          if (!stillActive()) return null;
+          try {
+            await manager.details(item);
+          } catch (_) {
+            // Retain the remote progress for a later attempt.
+          }
+        }
+      }
+      if (!stillActive()) return null;
+      var changed = false;
+      final snapshot = <String, DriveResumeEntry>{};
+      void include(String key, String id, {String? seriesKey}) {
+        final incoming = remote[key]?.progress;
+        final current = _progress[id];
+        if (incoming != null &&
+            (current == null ||
+                incoming.lastWatched.isAfter(current.lastWatched))) {
+          _progress[id] = incoming;
+          changed = true;
+        }
+        final progress = _progress[id];
+        if (progress != null &&
+            (snapshot[key]?.progress.lastWatched.isAfter(
+                  progress.lastWatched,
+                ) !=
+                true)) {
+          snapshot[key] = DriveResumeEntry(progress, seriesKey: seriesKey);
+        }
+      }
+
+      for (final item in allItems) {
+        final key = itemKey(item);
+        if (key == null) continue;
+        if (item.kind == MediaKind.movie) {
+          include(key, item.id);
+        } else {
+          final namespace = namespaces[item.sourceId]!;
+          final prefix = '${item.sourceId}:episode:';
+          for (final season in item.seasons) {
+            for (final episode in season.episodes) {
+              if (!episode.id.startsWith(prefix)) continue;
+              final episodeKey = driveMediaKey(code, [
+                ...namespace,
+                'episode',
+                episode.id.substring(prefix.length),
+              ]);
+              include(episodeKey, episode.id, seriesKey: key);
+            }
+          }
+        }
+      }
+      if (changed) _changed(invalidateFavorites: false);
+      return snapshot;
+    });
+  }
+
   void markWatched(String id) {
     if (!_knownIds.contains(id)) return;
     var duration = _progress[id]?.durationSeconds ?? 0;
@@ -1028,6 +1186,7 @@ class AppController extends ChangeNotifier {
 
   Future<void> shutdown() async {
     _selectionRefreshTimer?.cancel();
+    _driveTimer?.cancel();
     await internetCatalog?.close();
     await flush();
     await sources?.close();
@@ -1039,6 +1198,8 @@ class AppController extends ChangeNotifier {
     _detailPrefetchTimer?.cancel();
     _detailQueue.clear();
     _disposed = true;
+    _driveTimer?.cancel();
+    driveResume?.dispose();
     _progressNotificationTimer?.cancel();
     sources?.removeListener(_sourceChanged);
     internetCatalog?.removeListener(_internetChanged);

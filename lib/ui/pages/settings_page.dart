@@ -9,6 +9,7 @@ import 'profiles_page.dart';
 import 'app_updates_page.dart';
 import '../widgets/catalog_columns_setting.dart';
 import '../widgets/source_reload_button.dart';
+import '../widgets/drive_resume_panel.dart';
 
 import '../../domain/models.dart';
 import '../../state/app_controller.dart';
@@ -396,6 +397,11 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 22),
           if (_selected == _SettingsCategory.profile)
             ProfileSettingsTile(controller: widget.controller),
+          if (_selected == _SettingsCategory.profile &&
+              widget.controller.driveResume != null) ...[
+            const SizedBox(height: 20),
+            DriveResumePanel(controller: widget.controller),
+          ],
           if (_selected == _SettingsCategory.library) ...[
             _SettingsSection(
               icon: Icons.palette_outlined,

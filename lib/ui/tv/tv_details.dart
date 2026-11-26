@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -132,6 +134,7 @@ class _TvDetailsState extends State<TvDetails> {
       ),
     );
     if (mounted) {
+      unawaited(widget.controller.syncDriveResume(force: true));
       setState(() {
         _playing = false;
         _lastResumeId = null;

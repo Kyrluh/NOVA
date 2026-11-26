@@ -15,6 +15,7 @@ import 'sources/iptv_client.dart';
 import 'state/app_controller.dart';
 import 'state/source_controller.dart';
 import 'state/internet_catalog_controller.dart';
+import 'sync/drive_resume.dart';
 import 'player/android_video_environment.dart';
 import 'updates/app_updates.dart';
 
@@ -64,6 +65,7 @@ Future<void> main() async {
   LocalStore store;
   SourceRepository repository;
   LocalStore internetStore;
+  DriveResumeSync? driveResume;
   try {
     final folder = await getApplicationSupportDirectory();
     store = FileLocalStore(
@@ -72,11 +74,24 @@ Future<void> main() async {
     internetStore = FileLocalStore(
       '${folder.path}${Platform.pathSeparator}internet-catalogs.json',
     );
+    final secrets = Platform.isAndroid
+        ? const AndroidKeystoreSecretStore()
+        : const DpapiSecretStore();
+    if (Platform.isWindows || (Platform.isAndroid && television)) {
+      driveResume = DriveResumeSync(
+        store: FileLocalStore(
+          '${folder.path}${Platform.pathSeparator}drive-resume.json',
+        ),
+        secrets: secrets,
+        television: Platform.isAndroid,
+        openBrowser: (uri) =>
+            const MethodChannel('nova/window')
+                .invokeMethod<void>('openDriveConsent', uri.toString()),
+      );
+    }
     repository = SQLiteSourceRepository(
       path: '${folder.path}${Platform.pathSeparator}sources.sqlite',
-      secrets: Platform.isAndroid
-          ? const AndroidKeystoreSecretStore()
-          : const DpapiSecretStore(),
+      secrets: secrets,
     );
   } catch (_) {
     store = _UnavailableStore();
@@ -87,6 +102,7 @@ Future<void> main() async {
     television: television,
     refreshSourcesOnStartup: true,
     store: store,
+    driveResume: driveResume,
     internetCatalog: InternetCatalogController(store: internetStore),
     sources: SourceController(repository: repository, client: IptvClient()),
   );

@@ -59,6 +59,22 @@ bool FlutterWindow::OnCreate() {
               {flutter::EncodableValue("version"), flutter::EncodableValue(FLUTTER_VERSION)},
               {flutter::EncodableValue("build"), flutter::EncodableValue(FLUTTER_VERSION_BUILD)},
           }));
+        } else if (call.method_name() == "openDriveConsent") {
+          const auto* url = call.arguments() ? std::get_if<std::string>(call.arguments()) : nullptr;
+          const std::string prefix = "https://accounts.google.com/o/oauth2/v2/auth?";
+          if (!url || url->rfind(prefix, 0) != 0 || url->size() > 4096 ||
+              url->find_first_of("\r\n") != std::string::npos) {
+            result->Error("invalid_url", "Invalid Google authorization URL.");
+          } else {
+            const std::wstring address(url->begin(), url->end());
+            const auto opened = ::ShellExecuteW(GetHandle(), L"open", address.c_str(),
+                                                nullptr, nullptr, SW_SHOWNORMAL);
+            if (reinterpret_cast<INT_PTR>(opened) > 32) {
+              result->Success();
+            } else {
+              result->Error("browser_unavailable", "Unable to open Google authorization.");
+            }
+          }
         } else if (call.method_name() == "openUpdateUrl") {
           const auto* url = call.arguments() ? std::get_if<std::string>(call.arguments()) : nullptr;
           const std::string prefix = "https://github.com/Kyrluh/NOVA/releases/download/";

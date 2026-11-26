@@ -448,6 +448,7 @@ class _NovaShellState extends State<NovaShell> with WindowListener {
       }());
     }
     await app.flush();
+    if (!live) unawaited(app.syncDriveResume(force: true));
   }
 
   void _details(MediaItem item) {
