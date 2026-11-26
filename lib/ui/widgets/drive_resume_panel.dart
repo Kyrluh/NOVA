@@ -47,7 +47,15 @@ class _DriveResumePanelState extends State<DriveResumePanel> {
               'Synchronise la reprise et les épisodes vus pour les sources Xtream. Les identifiants IPTV restent sur cet appareil.',
             ),
             const SizedBox(height: 12),
-            if (!drive.connected) ...[
+            if (!drive.connected && drive.mobile) ...[
+              const Text(
+                'Choisissez sur Android le même compte Google que sur vos autres appareils.',
+              ),
+              FilledButton(
+                onPressed: drive.busy ? null : drive.connectMobile,
+                child: const Text('Connecter Google Drive'),
+              ),
+            ] else if (!drive.connected) ...[
               Text(
                 drive.television
                     ? 'Utilisez le client OAuth « TV et périphériques à saisie limitée » de votre projet Google Cloud.'

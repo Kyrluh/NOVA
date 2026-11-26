@@ -31,6 +31,10 @@ import android.text.InputFilter
 import android.text.InputType
 import android.widget.EditText
 import android.widget.LinearLayout
+import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.auth.api.identity.AuthorizationResult
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.common.api.Scope
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -60,6 +64,8 @@ class MainActivity : FlutterActivity() {
     private var noisyRegistered = false
     private var focusRequest: AudioFocusRequest? = null
     private var exportResult: MethodChannel.Result? = null
+    private var driveResult: MethodChannel.Result? = null
+    private val driveScope = "https://www.googleapis.com/auth/drive.appdata"
     private var sourceEditor: AlertDialog? = null
     private var sourceEditorResult: MethodChannel.Result? = null
     private var sourceEditorField: EditText? = null
@@ -136,6 +142,7 @@ class MainActivity : FlutterActivity() {
                         setPlaybackActive(call.arguments == true)
                         result.success(null)
                     }
+                    "authorizeDrive" -> authorizeDrive(call.arguments == true, result)
                     "exportDocument" -> {
                         if (exportResult != null) {
                             result.error("document_busy", "Un export est déjà ouvert.", null)
@@ -274,7 +281,52 @@ class MainActivity : FlutterActivity() {
     }
 
     @Deprecated("Activity result bridge for the Flutter channel")
+    private fun authorizeDrive(interactive: Boolean, result: MethodChannel.Result) {
+        if (driveResult != null) {
+            result.error("drive_busy", "Authorization already in progress.", null)
+            return
+        }
+        driveResult = result
+        val request = AuthorizationRequest.builder()
+            .setRequestedScopes(listOf(Scope(driveScope)))
+            .build()
+        Identity.getAuthorizationClient(this).authorize(request)
+            .addOnSuccessListener { authorization ->
+                val pendingIntent = authorization.pendingIntent
+                if (authorization.hasResolution() && interactive && pendingIntent != null) {
+                    try {
+                        startIntentSenderForResult(pendingIntent.intentSender, 914, null, 0, 0, 0)
+                    } catch (_: Exception) {
+                        finishDrive(null)
+                    }
+                } else {
+                    finishDrive(authorization)
+                }
+            }
+            .addOnFailureListener { finishDrive(null) }
+    }
+
+    private fun finishDrive(authorization: AuthorizationResult?) {
+        val result = driveResult ?: return
+        driveResult = null
+        val access = authorization?.accessToken
+        if (access.isNullOrBlank() || authorization?.grantedScopes?.contains(driveScope) != true) {
+            result.error("drive_authorization", "Drive authorization is unavailable.", null)
+        } else {
+            result.success(access)
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == 914) {
+            val authorization = if (resultCode == RESULT_OK && data != null) {
+                runCatching {
+                    Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(data)
+                }.getOrNull()
+            } else null
+            finishDrive(authorization)
+            return
+        }
         if (requestCode != 910) { super.onActivityResult(requestCode, resultCode, data); return }
         val result = exportResult
         val text = exportText

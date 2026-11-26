@@ -77,13 +77,18 @@ Future<void> main() async {
     final secrets = Platform.isAndroid
         ? const AndroidKeystoreSecretStore()
         : const DpapiSecretStore();
-    if (Platform.isWindows || (Platform.isAndroid && television)) {
+    if (Platform.isWindows || Platform.isAndroid) {
       driveResume = DriveResumeSync(
         store: FileLocalStore(
           '${folder.path}${Platform.pathSeparator}drive-resume.json',
         ),
         secrets: secrets,
-        television: Platform.isAndroid,
+        television: Platform.isAndroid && television,
+        androidAuthorize: Platform.isAndroid && !television
+            ? (interactive) =>
+                  const MethodChannel('nova/android')
+                      .invokeMethod<String>('authorizeDrive', interactive)
+            : null,
         openBrowser: (uri) =>
             const MethodChannel('nova/window')
                 .invokeMethod<void>('openDriveConsent', uri.toString()),

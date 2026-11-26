@@ -70,6 +70,7 @@ class DriveResumeSync extends ChangeNotifier {
     required SecretStore secrets,
     required this.television,
     required this.openBrowser,
+    this.androidAuthorize,
     http.Client? client,
   }) : _store = store,
        _secrets = secrets,
@@ -79,6 +80,9 @@ class DriveResumeSync extends ChangeNotifier {
   final SecretStore _secrets;
   final bool television;
   final Future<void> Function(Uri) openBrowser;
+  final Future<String?> Function(bool interactive)? androidAuthorize;
+  bool get mobile => androidAuthorize != null;
+  String? _androidAccount;
   final http.Client _http;
   final Map<String, String> _profiles = {};
   String _device = newDriveProfileCode();
@@ -96,7 +100,7 @@ class DriveResumeSync extends ChangeNotifier {
   String? problem;
   DateTime? lastSync;
 
-  bool get connected => _refresh != null;
+  bool get connected => mobile ? _androidAccount != null : _refresh != null;
   bool get busy => _busy;
   String? codeFor(String profile) => _profiles[profile];
 
@@ -114,6 +118,7 @@ class DriveResumeSync extends ChangeNotifier {
       _clientId = data['clientId'] as String?;
       _clientSecret = data['clientSecret'] as String?;
       _refresh = data['refresh'] as String?;
+      _androidAccount = data['androidAccount'] as String?;
       final profiles = data['profiles'];
       if (profiles is Map) {
         for (final entry in profiles.entries.take(20)) {
@@ -137,6 +142,7 @@ class DriveResumeSync extends ChangeNotifier {
         'clientId': _clientId,
         'clientSecret': _clientSecret,
         'refresh': _refresh,
+        'androidAccount': _androidAccount,
         'profiles': _profiles,
       }),
     );
@@ -163,6 +169,51 @@ class DriveResumeSync extends ChangeNotifier {
       _busy = false;
       _notify();
     }
+  }
+
+  Future<void> connectMobile() => _operation(() async {
+    if (!mobile || connected) return;
+    final token = await _mobileToken(true);
+    _androidAccount = await _driveAccount(token);
+    try {
+      await _save();
+    } catch (_) {
+      _androidAccount = null;
+      rethrow;
+    }
+    _access = token;
+    _expires = DateTime.now().add(const Duration(minutes: 20));
+  });
+
+  Future<String> _mobileToken(bool interactive) async {
+    try {
+      final token = await androidAuthorize!(interactive);
+      if (token != null && token.isNotEmpty) return token;
+    } catch (_) {
+      // Keep native authorization details and tokens out of the UI.
+    }
+    throw const DriveSyncException(
+      'Autorisation Drive indisponible. Vérifiez le client OAuth Android, puis reconnectez Drive.',
+    );
+  }
+
+  Future<String> _driveAccount(String token) async {
+    final data = _object(
+      await _drive(
+        token,
+        'GET',
+        '/drive/v3/about',
+        query: {'fields': 'user(permissionId)'},
+      ),
+    );
+    final user = data['user'];
+    final id = user is Map ? user['permissionId'] : null;
+    if (id is! String || id.isEmpty || id.length > 128) {
+      throw const DriveSyncException(
+        'Impossible de vérifier le compte Google.',
+      );
+    }
+    return id;
   }
 
   Future<void> connect(String clientId, String clientSecret) =>
@@ -250,6 +301,7 @@ class DriveResumeSync extends ChangeNotifier {
     await _store.save({});
     await _store.save({});
     _clientId = _clientSecret = _refresh = _access = null;
+    _androidAccount = null;
     _profiles.clear();
     lastSync = null;
   });
@@ -431,6 +483,17 @@ class DriveResumeSync extends ChangeNotifier {
   Future<String> _bearer() async {
     if (_access != null && _expires?.isAfter(DateTime.now()) == true) {
       return _access!;
+    }
+    if (mobile) {
+      final token = await _mobileToken(false);
+      if (await _driveAccount(token) != _androidAccount) {
+        throw const DriveSyncException(
+          'Le compte Google a changé. Reconnectez Drive pour choisir le compte.',
+        );
+      }
+      _access = token;
+      _expires = DateTime.now().add(const Duration(minutes: 20));
+      return token;
     }
     final response = await _token({
       'client_id': _clientId!,

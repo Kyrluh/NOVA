@@ -81,6 +81,7 @@ flutter {
 }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-auth:22.0.0")
     if (novaTv) {
         val media3Version = "1.11.1"
         implementation("androidx.media3:media3-exoplayer:$media3Version")

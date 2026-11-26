@@ -1,6 +1,16 @@
-# Essai NOVA IPTV 0.11.9 — reprise avec Google Drive
+# Essai NOVA IPTV 0.11.10 — reprise avec Google Drive
 
-Cet essai couvre le passage entre Windows et Android TV / Fire TV. La reprise et les épisodes vus sont synchronisés pour les sources Xtream. Les favoris et « Ma liste » restent locaux.
+Cet essai couvre Windows, les téléphones Android avec les services Google Play, et Android TV / Fire TV. La reprise et les épisodes vus sont synchronisés pour les sources Xtream. Les favoris et « Ma liste » restent locaux.
+
+## Essayer sur un téléphone Android
+
+Dans **Clients** du même projet Google Cloud, créez un client OAuth de type **Android**. Utilisez le paquet `app.nova.iptv` et l’empreinte SHA-1 du certificat des APK de cette release :
+
+```text
+33:DD:CF:F8:C3:D7:F2:37:E5:66:F8:11:B6:EC:4D:F8:CC:91:A9:2E
+```
+
+Installez l’APK mobile. Dans **Paramètres → Profil et envies**, choisissez **Connecter Google Drive**, sélectionnez le même compte Google que sur le PC, puis associez le même code de profil NOVA. La connexion Android utilise l’autorisation native de Google. Aucun secret de client n’est à saisir sur le téléphone.
 
 ## Configurer l’accès Google
 
