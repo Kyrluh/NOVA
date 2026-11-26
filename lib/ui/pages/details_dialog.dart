@@ -545,77 +545,97 @@ class _DetailsDialogState extends State<_DetailsDialog> {
     final watched = progress?.completed == true;
     final accent = Theme.of(context).colorScheme.primary;
     final url = episode.mediaUrl;
+    final android = NovaAdaptiveScope.isAndroid(context);
     return Padding(
       key: resume ? _resumeKey : ValueKey('episode-${episode.id}'),
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Material(
-        color: resume ? accent.withValues(alpha: .16) : novaSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: resume ? accent : Colors.white24),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          selected: resume,
-          onTap: url == null || url.isEmpty
-              ? null
-              : () =>
-                    _play(url, '${_item.title} · ${episode.title}', episode.id),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          minVerticalPadding: 10,
-          leading: Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .05),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Text('${episode.number}'.padLeft(2, '0')),
-          ),
-          title: Text(
-            episode.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                [
-                  if (episode.durationMinutes > 0)
-                    '${episode.durationMinutes} min',
-                  if (demo) 'Épisode fictif',
-                  if (resume) 'À reprendre',
-                  if (watched) 'Vu',
-                ].join(' • '),
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        child: Builder(
+          builder: (context) {
+            final focused = Focus.of(context).hasFocus;
+            return Material(
+              color: resume ? accent.withValues(alpha: .16) : novaSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: focused
+                      ? novaHighlight
+                      : resume && !android
+                      ? accent
+                      : Colors.white24,
+                  width: focused ? 3 : 1,
+                ),
               ),
-              if (episode.description.trim().isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    episode.description.trim(),
-                    style: const TextStyle(color: novaMuted),
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                selected: resume,
+                onTap: url == null || url.isEmpty
+                    ? null
+                    : () => _play(
+                        url,
+                        '${_item.title} · ${episode.title}',
+                        episode.id,
+                      ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                minVerticalPadding: 10,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .05),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text('${episode.number}'.padLeft(2, '0')),
+                ),
+                title: Text(
+                  episode.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      [
+                        if (episode.durationMinutes > 0)
+                          '${episode.durationMinutes} min',
+                        if (demo) 'Épisode fictif',
+                        if (resume) 'À reprendre',
+                        if (watched) 'Vu',
+                      ].join(' • '),
+                    ),
+                    if (episode.description.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          episode.description.trim(),
+                          style: const TextStyle(color: novaMuted),
+                        ),
+                      ),
+                    if (progress != null && progress.fraction > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: LinearProgressIndicator(
+                          value: progress.fraction,
+                          minHeight: 2,
+                        ),
+                      ),
+                  ],
+                ),
+                trailing: IconButton(
+                  tooltip: watched ? 'Épisode vu' : 'Marquer comme vu',
+                  onPressed: watched ? null : () => app.markWatched(episode.id),
+                  icon: Icon(
+                    watched ? Icons.check_circle : Icons.check_circle_outline,
                   ),
                 ),
-              if (progress != null && progress.fraction > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: LinearProgressIndicator(
-                    value: progress.fraction,
-                    minHeight: 2,
-                  ),
-                ),
-            ],
-          ),
-          trailing: IconButton(
-            tooltip: watched ? 'Épisode vu' : 'Marquer comme vu',
-            onPressed: watched ? null : () => app.markWatched(episode.id),
-            icon: Icon(
-              watched ? Icons.check_circle : Icons.check_circle_outline,
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

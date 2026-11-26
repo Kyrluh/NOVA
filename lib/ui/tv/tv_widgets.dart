@@ -57,6 +57,7 @@ class TvTile extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.selected = false,
+    this.highlightSelection = true,
     this.onFocused,
     this.label,
   });
@@ -65,6 +66,7 @@ class TvTile extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final bool selected;
+  final bool highlightSelection;
   final VoidCallback? onFocused;
   final String? label;
   @override
@@ -91,10 +93,12 @@ class _TvTileState extends State<TvTile> {
           side: BorderSide(
             color: _focused
                 ? novaHighlight
-                : widget.selected
+                : widget.selected && widget.highlightSelection
                 ? novaHighlight
-                : Colors.transparent,
-            width: 3,
+                : widget.highlightSelection
+                ? Colors.transparent
+                : Colors.white24,
+            width: _focused || widget.highlightSelection ? 3 : 1,
           ),
         ),
         clipBehavior: Clip.antiAlias,

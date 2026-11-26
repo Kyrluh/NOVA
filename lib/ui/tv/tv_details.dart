@@ -408,6 +408,7 @@ class _TvDetailsState extends State<TvDetails> {
                               child: TvTile(
                                 key: ValueKey('tv-episode-${episode.id}'),
                                 selected: highlighted,
+                                highlightSelection: false,
                                 focusNode: highlighted ? _resumeFocus : null,
                                 label:
                                     'Épisode ${episode.number} : ${episode.title}',
