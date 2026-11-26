@@ -251,6 +251,8 @@ void main() {
       ),
     });
     var uploads = 0;
+    var downloads = 0;
+    var remoteVersion = '1';
     final client = MockClient((request) async {
       if (request.url.host == 'oauth2.googleapis.com') {
         expect(request.bodyFields['grant_type'], 'refresh_token');
@@ -270,8 +272,16 @@ void main() {
         return http.Response(
           jsonEncode({
             'files': [
-              {'name': 'nova-resume-v1-$scope-other.json', 'id': 'remote'},
-              {'name': 'nova-resume-v1-$scope-older.json', 'id': 'old'},
+              {
+                'name': 'nova-resume-v1-$scope-other.json',
+                'id': 'remote',
+                'version': remoteVersion,
+              },
+              {
+                'name': 'nova-resume-v1-$scope-older.json',
+                'id': 'old',
+                'version': '1',
+              },
               {'name': 'unrelated.json', 'id': 'unrelated'},
             ],
           }),
@@ -280,6 +290,7 @@ void main() {
       }
       if (request.url.path == '/drive/v3/files/remote' ||
           request.url.path == '/drive/v3/files/old') {
+        downloads++;
         final entry = request.url.path.endsWith('old') ? old : position;
         return http.Response(
           jsonEncode({
@@ -317,6 +328,12 @@ void main() {
     });
     expect(drive.problem, isNull);
     expect(uploads, 1);
+    expect(downloads, 2);
+    await drive.sync('local-profile', (_, entries) async => entries);
+    expect(downloads, 2);
+    remoteVersion = '2';
+    await drive.sync('local-profile', (_, entries) async => entries);
+    expect(downloads, 3);
   });
 }
 

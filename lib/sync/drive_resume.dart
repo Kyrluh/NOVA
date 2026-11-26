@@ -112,6 +112,8 @@ class DriveResumeSync extends ChangeNotifier {
   (Uri, String)? deviceConsent;
   String? problem;
   DateTime? lastSync;
+  String? _cachedProfile;
+  final _fileCache = <String, ({String version, String body})>{};
   bool requireRemoteProfile = false;
   Map<String, dynamic>? Function(String code, Map<String, dynamic>? remote)?
   exchangeProfile;
@@ -312,6 +314,8 @@ class DriveResumeSync extends ChangeNotifier {
   });
 
   Future<void> disconnect() => _operation(() async {
+    _fileCache.clear();
+    _cachedProfile = null;
     // Clear both copies of the local encrypted store. Other linked devices
     // keep their own sessions and Drive retains the resume files.
     await _store.save({});
@@ -591,6 +595,10 @@ class DriveResumeSync extends ChangeNotifier {
     final code = _profiles[profile];
     if (!connected || code == null) return;
     final prefix = 'nova-resume-v1-${driveMediaKey(code, ['profile'])}-';
+    if (_cachedProfile != prefix) {
+      _fileCache.clear();
+      _cachedProfile = prefix;
+    }
     final ownName = '$prefix$_device.json';
     final bearer = await _bearer();
     final listed = _object(
@@ -601,7 +609,7 @@ class DriveResumeSync extends ChangeNotifier {
         query: {
           'spaces': 'appDataFolder',
           'q': "trashed = false and name contains '$prefix'",
-          'fields': 'nextPageToken,files(id,name,modifiedTime)',
+          'fields': 'nextPageToken,files(id,name,version)',
           'orderBy': 'modifiedTime desc',
           'pageSize': '100',
         },
@@ -613,6 +621,7 @@ class DriveResumeSync extends ChangeNotifier {
     String? ownId;
     String? ownBody;
     final now = DateTime.now();
+    final seen = <String>{};
     for (final file in (listed['files'] as List? ?? []).take(24)) {
       if (_disposed || file is! Map) break;
       final name = file['name'];
@@ -623,12 +632,18 @@ class DriveResumeSync extends ChangeNotifier {
           !RegExp(r'^[a-zA-Z0-9_-]{1,180}$').hasMatch(id)) {
         continue;
       }
-      final text = await _drive(
-        bearer,
-        'GET',
-        '/drive/v3/files/$id',
-        query: {'alt': 'media'},
-      );
+      seen.add(id);
+      final version = file['version'];
+      final cached = _fileCache[id];
+      final text = version is String && cached?.version == version
+          ? cached!.body
+          : await _drive(
+              bearer,
+              'GET',
+              '/drive/v3/files/$id',
+              query: {'alt': 'media'},
+            );
+      if (version is String) _fileCache[id] = (version: version, body: text);
       if (name == ownName && ownId == null) {
         ownId = id;
         ownBody = text;
@@ -671,6 +686,7 @@ class DriveResumeSync extends ChangeNotifier {
         continue;
       }
     }
+    _fileCache.removeWhere((id, _) => !seen.contains(id));
     if (_disposed) return;
     final imported = remoteProfile?['data'];
     if (requireRemoteProfile &&
@@ -719,13 +735,21 @@ class DriveResumeSync extends ChangeNotifier {
               '$body\r\n--$boundary--\r\n',
         );
       } else if (ownBody != body) {
-        await _drive(
-          bearer,
-          'PATCH',
-          '/upload/drive/v3/files/$ownId',
-          query: {'uploadType': 'media', 'fields': 'id'},
-          body: body,
+        final updated = _object(
+          await _drive(
+            bearer,
+            'PATCH',
+            '/upload/drive/v3/files/$ownId',
+            query: {'uploadType': 'media', 'fields': 'id,version'},
+            body: body,
+          ),
         );
+        final version = updated['version'];
+        if (version is String) {
+          _fileCache[ownId] = (version: version, body: body);
+        } else {
+          _fileCache.remove(ownId);
+        }
       }
     }
     lastSync = DateTime.now();
