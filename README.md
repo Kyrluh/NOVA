@@ -1,5 +1,7 @@
 # NOVA IPTV
 
+**NOVA IPTV 1.0** pour Windows, Android mobile et Android TV / Fire TV. [Téléchargements](https://github.com/Kyrluh/NOVA/releases/tag/v1.0.0) · [Notes de version](docs/RELEASE-1.0.0.md).
+
 **Version 0.11.2+43 — Windows, Android mobile et TV** : logo N et popcorn plus imposant, marque agrandie dans les en-têtes et version plus lisible. Sur PC, les barres de défilement du menu des chaînes sont plus faciles à saisir à la souris. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.11.2) · [Notes de version](docs/RELEASE-0.11.2.md).
 
 **Version 0.11.1+42 — Windows, Android mobile et TV** : logo cinéma validé, N lumineux et popcorn rouge/blanc, guide dans les listes de chaînes, 30 avatars illustrés et commandes PC améliorées. [Télécharger la release](https://github.com/Kyrluh/NOVA/releases/tag/v0.11.1) · [Notes de version](docs/RELEASE-0.11.1.md).
