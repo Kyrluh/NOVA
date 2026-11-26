@@ -16,7 +16,13 @@ class PlatformLogo extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     width: width,
     height: height,
-    child: platform.asset.isNotEmpty
+    child: width < 50 && platform == CatalogPlatform.canalPlus
+        ? Image.asset(
+            'assets/platforms/canal-plus.png',
+            fit: BoxFit.contain,
+            semanticLabel: 'Logo CANAL+',
+          )
+        : platform.asset.isNotEmpty
         ? Image.asset(
             platform.assetPath,
             fit: BoxFit.contain,
@@ -25,10 +31,10 @@ class PlatformLogo extends StatelessWidget {
         : DecoratedBox(
             decoration: BoxDecoration(
               color: Color(platform.color).withAlpha(28),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(width < 50 ? 4 : 10),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(7),
+              padding: EdgeInsets.all(width < 50 ? 2 : 7),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(

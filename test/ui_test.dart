@@ -83,50 +83,60 @@ void main() {
     expect(find.byType(HomeHub), findsOneWidget);
   });
 
-  testWidgets('Favorites and the chosen playback speed survive saving', (
-    tester,
-  ) async {
-    final session = await _startApp(tester);
-    await _navigate(tester, 'Films');
-    await tester.tap(find.byTooltip('Ajouter Dernière orbite aux favoris'));
-    await tester.pumpAndSettle();
-    expect(session.controller.favorites, contains('film-orbite'));
+  testWidgets(
+    'The poster saves to Ma liste and the chosen playback speed survives saving',
+    (tester) async {
+      final session = await _startApp(tester);
+      await _navigate(tester, 'Films');
+      await tester.tap(find.byTooltip('Ajouter Dernière orbite à Ma liste'));
+      await tester.pumpAndSettle();
+      expect(
+        session.controller.watchlistItems.map((item) => item.id),
+        contains('film-orbite'),
+      );
+      expect(session.controller.favorites, isNot(contains('film-orbite')));
 
-    await _navigate(tester, 'Favoris');
-    expect(find.byType(CollectionPage), findsOneWidget);
-    expect(find.byType(MediaPoster), findsOneWidget);
-    expect(
-      tester.widget<MediaPoster>(find.byType(MediaPoster)).item.id,
-      'film-orbite',
-    );
+      await _navigate(tester, 'Ma liste');
+      expect(find.byType(CollectionPage), findsOneWidget);
+      expect(find.byType(MediaPoster), findsOneWidget);
+      expect(
+        tester.widget<MediaPoster>(find.byType(MediaPoster)).item.id,
+        'film-orbite',
+      );
 
-    await _navigate(tester, 'Paramètres');
-    final speed = find.byKey(const ValueKey('playback-speed'));
-    await tester.scrollUntilVisible(
-      speed,
-      300,
-      scrollable: find
-          .descendant(
-            of: find.byType(SettingsPage),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    expect(speed, findsOneWidget);
-    await tester.tap(speed);
+      await _navigate(tester, 'Paramètres');
+    await tester.tap(find.byKey(const ValueKey('settings-category-playback')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('1,5×').last);
-    await tester.pumpAndSettle();
-    expect(session.controller.settings.playbackRate, 1.5);
-    await session.controller.flush();
+      final speed = find.byKey(const ValueKey('playback-speed'));
+      await tester.scrollUntilVisible(
+        speed,
+        300,
+        scrollable: find
+            .descendant(
+              of: find.byType(SettingsPage),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(speed, findsOneWidget);
+      await tester.tap(speed);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1,5×').last);
+      await tester.pumpAndSettle();
+      expect(session.controller.settings.playbackRate, 1.5);
+      await session.controller.flush();
 
-    final restored = AppController(store: session.store);
-    await restored.init();
-    expect(restored.favorites, contains('film-orbite'));
-    expect(restored.settings.playbackRate, 1.5);
-    restored.dispose();
-    expect(tester.takeException(), isNull);
-  });
+      final restored = AppController(store: session.store);
+      await restored.init();
+      expect(
+        restored.watchlistItems.map((item) => item.id),
+        contains('film-orbite'),
+      );
+      expect(restored.settings.playbackRate, 1.5);
+      restored.dispose();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Live categories, instant search and favorites filter channels', (
     tester,

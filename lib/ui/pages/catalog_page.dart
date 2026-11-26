@@ -4,10 +4,13 @@ import '../../domain/catalog_preferences.dart';
 import '../../domain/models.dart';
 import '../../domain/recent_catalog.dart';
 import '../../domain/catalog_layout.dart';
+import '../../domain/platform_catalog.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
 import '../adaptive.dart';
 import '../widgets/media_artwork.dart';
+import '../widgets/platform_logo.dart';
+import '../widgets/profile_avatar.dart';
 
 class MediaCatalogPage extends StatefulWidget {
   const MediaCatalogPage({
@@ -892,7 +895,13 @@ class _MediaPosterState extends State<MediaPoster> {
       animation: widget.controller,
       builder: (context, child) {
         final item = widget.item;
-        final favorite = widget.controller.favorites.contains(item.id);
+        final isLive = item.kind == MediaKind.live;
+        final saved = isLive
+            ? widget.controller.favorites.contains(item.id)
+            : widget.controller.isWatchlisted(item);
+        final platforms = widget.controller.platformPreferences.platformsFor(
+          item,
+        );
         final progress =
             widget.controller.latestProgressFor(item, unfinishedOnly: true) ??
             widget.controller.latestProgressFor(item);
@@ -1008,23 +1017,33 @@ class _MediaPosterState extends State<MediaPoster> {
                           top: 6,
                           right: 6,
                           child: IconButton.filledTonal(
-                            tooltip: favorite
-                                ? 'Retirer ${item.title} des favoris'
-                                : 'Ajouter ${item.title} aux favoris',
-                            onPressed: () =>
-                                widget.controller.toggleFavorite(item.id),
+                            tooltip: isLive
+                                ? (saved
+                                      ? 'Retirer ${item.title} des favoris'
+                                      : 'Ajouter ${item.title} aux favoris')
+                                : (saved
+                                      ? 'Retirer ${item.title} de Ma liste'
+                                      : 'Ajouter ${item.title} à Ma liste'),
+                            onPressed: isLive
+                                ? () =>
+                                      widget.controller.toggleFavorite(item.id)
+                                : () => widget.controller.toggleWatchlist(item),
                             style: IconButton.styleFrom(
                               backgroundColor: Colors.black.withAlpha(135),
-                              foregroundColor: favorite
+                              foregroundColor: saved
                                   ? novaHighlight
                                   : Colors.white,
                               minimumSize: const Size(36, 36),
                               padding: const EdgeInsets.all(8),
                             ),
                             icon: Icon(
-                              favorite
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
+                              isLive
+                                  ? (saved
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded)
+                                  : (saved
+                                        ? Icons.bookmark_rounded
+                                        : Icons.bookmark_border_rounded),
                               size: 18,
                             ),
                           ),
@@ -1081,13 +1100,40 @@ class _MediaPosterState extends State<MediaPoster> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  item.kind == MediaKind.live
-                      ? '${item.category}${item.isDemo ? ' · Chaîne fictive' : ''}'
-                      : '${item.year > 0 ? '${item.year} · ' : ''}${item.category}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: novaMuted, fontSize: 12),
+                Row(
+                  children: [
+                    if (platforms.contains(CatalogPlatform.kids))
+                      const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: ProfileAvatar(avatar: 'luffy', size: 18),
+                      ),
+                    for (final platform
+                        in platforms
+                            .where(
+                              (platform) => platform != CatalogPlatform.kids,
+                            )
+                            .take(
+                              platforms.contains(CatalogPlatform.kids) ? 1 : 2,
+                            ))
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: PlatformLogo(
+                          platform: platform,
+                          width: 32,
+                          height: 18,
+                        ),
+                      ),
+                    Flexible(
+                      child: Text(
+                        isLive
+                            ? '${item.category}${item.isDemo ? ' · Chaîne fictive' : ''}'
+                            : '${item.year > 0 ? '${item.year} · ' : ''}${item.category}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: novaMuted, fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

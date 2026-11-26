@@ -4,4 +4,6 @@ PNG inchangés issus de [homarr-labs/dashboard-icons](https://github.com/homarr-
 
 Fichiers : `netflix`, `amazon-prime`, `disney-plus`, `apple-tv-plus-light`, `hbo-light`, `paramount-plus-light`, `crunchyroll`, `hulu`, `peacock-light`.
 
+`canal-plus.png` reprend le [logo CANAL+ publié sur Wikimedia Commons](https://commons.wikimedia.org/wiki/File:CanalPlus.png), attribué à Canal+ et Étienne Robial, pour le repère compact du catalogue.
+
 Copyright (c) 2024 Bjorn Lammers, Meier Lukas, Thomas Camlong and Homarr Labs. Apache-2.0 ; texte complet dans `licenses/Dashboard-Icons-Apache-2.0.txt`. Les marques appartiennent à leurs titulaires. Les ressources sont embarquées pour l'affichage hors ligne.

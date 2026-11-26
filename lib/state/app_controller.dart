@@ -790,6 +790,7 @@ class AppController extends ChangeNotifier {
       _platformPreferences = PlatformPreferences.fromJson(
         data['platformPreferences'],
       );
+      _watchlist.addAll((data['watchlist'] as List? ?? []).whereType<String>());
       final favorites = data['favorites'];
       if (favorites is List) {
         _ensureIndex();
