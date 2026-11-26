@@ -21,7 +21,7 @@ class PlatformCategoryLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kids = platforms.contains(CatalogPlatform.kids);
-    final height = details ? 26.0 : 18.0;
+    final height = details ? 30.0 : 23.0;
     return Row(
       children: [
         if (kids)
@@ -32,12 +32,14 @@ class PlatformCategoryLine extends StatelessWidget {
         for (final platform
             in platforms
                 .where((platform) => platform != CatalogPlatform.kids)
-                .take(kids ? 1 : 2))
+                .take(details && !kids ? 2 : 1))
           Padding(
             padding: const EdgeInsets.only(right: 5),
             child: PlatformLogo(
               platform: platform,
-              width: details ? 54 : 34,
+              width: platform == CatalogPlatform.netflix
+                  ? (details ? 38 : 30)
+                  : (details ? 64 : 49),
               height: height,
               categoryBadge: true,
             ),
@@ -69,51 +71,26 @@ class PlatformLogo extends StatelessWidget {
   final bool categoryBadge;
   @override
   Widget build(BuildContext context) {
-    final path = categoryBadge && platform == CatalogPlatform.canalPlus
-        ? 'assets/platforms/canal-plus.png'
-        : platform.asset.isNotEmpty
-        ? platform.assetPath
-        : null;
+    final path = switch (platform) {
+      CatalogPlatform.canalPlus when categoryBadge =>
+        'assets/platforms/canal-plus.png',
+      CatalogPlatform.disneyPlus when categoryBadge =>
+        'assets/platforms/disney-plus-wordmark.png',
+      _ => platform.asset.isNotEmpty ? platform.assetPath : null,
+    };
     if (!categoryBadge || path == null) return _logo(path);
     final background = switch (platform) {
       CatalogPlatform.disneyPlus => const Color(0xFF315ACC),
       CatalogPlatform.paramountPlus => const Color(0xFFD6EBFF),
       CatalogPlatform.netflix => const Color(0xFFFFE8E9),
+      CatalogPlatform.primeVideo => const Color(0xFF142A40),
       _ => const Color(0xFF29364D),
     };
-    Widget logo = Image.asset(
+    final logo = Image.asset(
       path,
       fit: BoxFit.contain,
       semanticLabel: 'Logo ${platform.label}',
     );
-    if (platform == CatalogPlatform.disneyPlus) {
-      // The supplied Disney+ artwork includes its own near-black background.
-      logo = ColorFiltered(
-        colorFilter: const ColorFilter.matrix([
-          .88,
-          0,
-          0,
-          0,
-          24,
-          0,
-          .74,
-          0,
-          0,
-          60,
-          0,
-          0,
-          .44,
-          0,
-          140,
-          0,
-          0,
-          0,
-          1,
-          0,
-        ]),
-        child: logo,
-      );
-    }
     return Container(
       width: width,
       height: height,
