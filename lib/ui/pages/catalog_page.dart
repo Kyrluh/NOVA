@@ -4,13 +4,11 @@ import '../../domain/catalog_preferences.dart';
 import '../../domain/models.dart';
 import '../../domain/recent_catalog.dart';
 import '../../domain/catalog_layout.dart';
-import '../../domain/platform_catalog.dart';
 import '../../state/app_controller.dart';
 import '../theme.dart';
 import '../adaptive.dart';
 import '../widgets/media_artwork.dart';
 import '../widgets/platform_logo.dart';
-import '../widgets/profile_avatar.dart';
 
 class MediaCatalogPage extends StatefulWidget {
   const MediaCatalogPage({
@@ -1100,40 +1098,12 @@ class _MediaPosterState extends State<MediaPoster> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (platforms.contains(CatalogPlatform.kids))
-                      const Padding(
-                        padding: EdgeInsets.only(right: 4),
-                        child: ProfileAvatar(avatar: 'luffy', size: 18),
-                      ),
-                    for (final platform
-                        in platforms
-                            .where(
-                              (platform) => platform != CatalogPlatform.kids,
-                            )
-                            .take(
-                              platforms.contains(CatalogPlatform.kids) ? 1 : 2,
-                            ))
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: PlatformLogo(
-                          platform: platform,
-                          width: 32,
-                          height: 18,
-                        ),
-                      ),
-                    Flexible(
-                      child: Text(
-                        isLive
-                            ? '${item.category}${item.isDemo ? ' · Chaîne fictive' : ''}'
-                            : '${item.year > 0 ? '${item.year} · ' : ''}${item.category}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: novaMuted, fontSize: 12),
-                      ),
-                    ),
-                  ],
+                PlatformCategoryLine(
+                  platforms: platforms,
+                  label: isLive
+                      ? '${item.category}${item.isDemo ? ' · Chaîne fictive' : ''}'
+                      : '${item.year > 0 ? '${item.year} · ' : ''}${item.category}',
+                  style: const TextStyle(color: novaMuted, fontSize: 12),
                 ),
               ],
             ),

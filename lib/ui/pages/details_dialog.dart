@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../adaptive.dart';
 import '../widgets/media_artwork.dart';
 import '../widgets/page_widgets.dart';
+import '../widgets/platform_logo.dart';
 import '../widgets/variant_picker.dart';
 
 void showMediaDetails(
@@ -302,9 +303,11 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                             }
                           },
                         ),
-                        Text(
-                          metadata,
+                        PlatformCategoryLine(
+                          platforms: app.platformPreferences.platformsFor(item),
+                          label: metadata,
                           style: const TextStyle(color: novaMuted),
+                          details: true,
                         ),
                         const SizedBox(height: 14),
                         Wrap(
