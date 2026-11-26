@@ -255,7 +255,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                       ],
                     ),
                   ),
-                  if (_loading) const LinearProgressIndicator(minHeight: 2),
+                  if (_loading && app.needsDetailLoadingIndicator(_item))
+                    const LinearProgressIndicator(minHeight: 2),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       compact

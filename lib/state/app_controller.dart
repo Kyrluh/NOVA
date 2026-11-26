@@ -495,6 +495,17 @@ class AppController extends ChangeNotifier {
         '';
   }
 
+  bool needsDetailLoadingIndicator(MediaItem item) {
+    if (item.detailsLoaded ||
+        itemById(item.id)?.detailsLoaded == true ||
+        sources?.prefetchedDetails(item) != null) {
+      return false;
+    }
+    return item.kind == MediaKind.series
+        ? item.seasons.isEmpty || descriptionFor(item).trim().isEmpty
+        : descriptionFor(item).trim().isEmpty;
+  }
+
   List<EpgProgramme> guideFor(MediaItem item) {
     final manager = sources;
     if (manager == null || item.sourceId == null) return const [];

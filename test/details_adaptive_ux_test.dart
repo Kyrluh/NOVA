@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +16,24 @@ import 'package:nova_iptv/ui/pages/details_dialog.dart';
 import 'package:nova_iptv/ui/theme.dart';
 
 void main() {
+  testWidgets('A ready film synopsis hides the metadata progress bar', (
+    tester,
+  ) async {
+    final client = _PendingMovieDetails();
+    await _mount(
+      tester,
+      _movie(),
+      size: const Size(1280, 850),
+      android: false,
+      detailClient: client,
+    );
+    expect(client.calls, 1);
+    expect(find.text(_longSynopsis), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    client.release.complete();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('Phone detail actions remain accessible before a long synopsis', (
     tester,
   ) async {
@@ -174,13 +194,14 @@ Future<AppController> _mount(
   required Size size,
   required bool android,
   String? resumeId,
+  IptvClient? detailClient,
   void Function(String uri, String title, String id)? onPlay,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
   final item = original.copyWith(
     sourceId: 'details-adaptive-ux',
-    detailsLoaded: true,
+    detailsLoaded: detailClient == null,
     mediaUrl: 'https://example.test/movie.mp4',
   );
   final sources = SourceController(
@@ -197,7 +218,7 @@ Future<AppController> _mount(
         updatedAt: DateTime.utc(2026),
       ),
     ]),
-    client: IptvClient(),
+    client: detailClient ?? IptvClient(),
   );
   final app = AppController(
     store: MemoryLocalStore({
@@ -247,4 +268,20 @@ Future<AppController> _mount(
     tester.view.resetDevicePixelRatio();
   });
   return app;
+}
+
+class _PendingMovieDetails extends IptvClient {
+  final release = Completer<void>();
+  int calls = 0;
+
+  @override
+  Future<MediaItem> loadDetails(
+    SourceConfig config,
+    MediaItem item, {
+    CancellationToken? cancel,
+  }) async {
+    calls++;
+    await release.future;
+    return item.copyWith(detailsLoaded: true);
+  }
 }

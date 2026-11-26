@@ -277,7 +277,9 @@ class _TvDetailsState extends State<TvDetails> {
                                     ),
                                 ],
                               ),
-                              if (_loading) const LinearProgressIndicator(),
+                              if (_loading &&
+                                  app.needsDetailLoadingIndicator(_item))
+                                const LinearProgressIndicator(),
                               if (_error != null)
                                 Row(
                                   children: [
