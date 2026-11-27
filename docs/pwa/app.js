@@ -1,4 +1,4 @@
-import { httpsUrl, loadDetails, loadSource, playlistLimit, xtreamBase } from './catalog.js?v=4';
+import { httpsUrl, loadDetails, loadSource, playlistLimit, xtreamBase } from './catalog.js?v=5';
 
 const $ = id => document.getElementById(id);
 const sourcesDialog = $('sources-dialog');
@@ -389,11 +389,18 @@ function stopHls() {
   hlsPlayer = null;
 }
 
+function streamHttpError(status) {
+  if (status === 401 || status === 403) {
+    return `Le fournisseur refuse l’accès au flux vidéo HTTPS (HTTP ${status}). Si le catalogue s’affiche, demande au fournisseur l’adresse HTTPS destinée à la lecture web.`;
+  }
+  return `Le serveur a répondu HTTP ${status} lors du chargement du flux.`;
+}
+
 function playbackFailed(code, detail) {
   const reason = detail || (code === 3
     ? 'Le navigateur a rencontré une erreur de décodage vidéo ou audio.'
     : 'Le navigateur n’a pas pu ouvrir ce flux. La cause exacte reste inconnue.');
-  $('player-status').textContent = `${reason} (NOVA Web 4)`;
+  $('player-status').textContent = `${reason} (NOVA Web 5)`;
   $('retry-video').hidden = false;
 }
 
@@ -405,7 +412,7 @@ async function inspectStream(url) {
       headers: { Range: 'bytes=0-511' }, credentials: 'omit', referrerPolicy: 'no-referrer',
       cache: 'no-store', signal: controller.signal,
     });
-    if (!response.ok) return { detail: `Le serveur a répondu HTTP ${response.status} à la vérification du flux.` };
+    if (!response.ok) return { status: response.status, detail: streamHttpError(response.status) };
     const type = response.headers.get('Content-Type') || '';
     const reader = response.body?.getReader();
     const first = reader && (await reader.read()).value;
@@ -447,6 +454,7 @@ async function recoverPlayback() {
   $('player-status').textContent = 'Vérification du flux…';
   const probe = await inspectStream(session.url);
   if (activeVideo !== session || !playerDialog.open) return;
+  if (probe.status === 401 || probe.status === 403) return playbackFailed(code, probe.detail);
   if (!probe.hls && !(/\.m3u8(?:$|[?#])/i.test(session.url) || session.live)) {
     return playbackFailed(code, probe.detail);
   }
@@ -462,7 +470,7 @@ async function recoverPlayback() {
       stopHls();
       const status = data.response?.code;
       const network = data.type === Hls.ErrorTypes.NETWORK_ERROR;
-      const detail = status >= 400 ? `Le serveur a répondu HTTP ${status} lors du chargement HLS.`
+      const detail = status >= 400 ? streamHttpError(status)
         : network ? probe.detail || 'Le navigateur ne peut pas charger la playlist HLS ou un de ses segments.' : null;
       playbackFailed(network ? 2 : 3, detail);
     });

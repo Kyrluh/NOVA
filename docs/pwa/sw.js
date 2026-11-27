@@ -1,6 +1,6 @@
-const cacheName = 'nova-pwa-shell-4';
+const cacheName = 'nova-pwa-shell-5';
 const shell = [
-  './', './index.html', './style.css', './app.js?v=4', './catalog.js?v=4',
+  './', './index.html', './style.css', './app.js?v=5', './catalog.js?v=5',
   './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png',
   './icons/icon-512.png',
   './vendor/hls.light.min.js',
