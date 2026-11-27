@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10101a">
+  <meta name="referrer" content="no-referrer">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https:; img-src 'self' https:; media-src https:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>NOVA IPTV</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Accueil NOVA IPTV">
+      <img src="./icons/icon-192.png" alt="">
+      <span>NOVA<span class="brand-accent"> IPTV</span></span>
+    </a>
+    <button id="open-sources" class="button" disabled>Mes sources</button>
+  </header>
+  <main>
+    <section id="welcome" class="welcome">
+      <p class="kicker">NOVA SUR LE WEB</p>
+      <h1>Ton catalogue,<br>sur ton iPhone.</h1>
+      <p>Ajoute une source Xtream ou M3U pour regarder tes chaînes, films et séries.</p>
+      <button id="add-first" class="button primary" disabled>Ajouter une source</button>
+      <p id="install-hint" class="secondary">Dans Safari, touche <strong>Partager</strong>, puis <strong>Sur l’écran d’accueil</strong>. Ouvre NOVA depuis son icône avant de saisir tes sources.</p>
+    </section>
+    <section id="library" hidden>
+      <nav aria-label="Catalogue" id="tabs" class="tabs">
+        <button data-tab="live" class="selected" aria-pressed="true">Direct</button>
+        <button data-tab="movie" aria-pressed="false">Films</button>
+        <button data-tab="series" aria-pressed="false">Séries</button>
+        <button data-tab="favorites" aria-pressed="false">Favoris</button>
+        <button data-tab="resume" aria-pressed="false">Reprendre</button>
+      </nav>
+      <div class="toolbar">
+        <input id="search" type="search" aria-label="Rechercher dans le catalogue" placeholder="Rechercher un titre">
+        <select id="categories" aria-label="Catégorie"></select>
+      </div>
+      <div class="section-heading">
+        <h1 id="section-title">En direct</h1>
+        <span id="result-count" class="secondary"></span>
+      </div>
+      <p id="catalog-status" class="status" role="status"></p>
+      <div id="cards" class="cards"></div>
+      <button id="more" class="button more" hidden>Afficher plus</button>
+    </section>
+  </main>
+  <dialog id="sources-dialog" aria-labelledby="sources-title">
+    <div class="dialog-heading">
+      <h2 id="sources-title">Mes sources</h2>
+      <button class="close" data-close aria-label="Fermer">×</button>
+    </div>
+    <p class="secondary">Les sources et les identifiants sont enregistrés dans cette application sur cet appareil.</p>
+    <div id="sources-list"></div>
+    <form id="source-form">
+      <h3 id="form-title">Ajouter une source</h3>
+      <label>Nom<input id="source-name" maxlength="64" placeholder="Mon catalogue" required></label>
+      <label>Type<select id="source-type">
+        <option value="xtream">Xtream Codes</option>
+        <option value="m3u">Lien de playlist M3U</option>
+        <option value="hls">Lien de flux HLS (.m3u8)</option>
+        <option value="file">Fichier M3U</option>
+      </select></label>
+      <label id="source-url-field">Adresse HTTPS<input id="source-url" type="url" inputmode="url" placeholder="https://…" autocapitalize="none" spellcheck="false"></label>
+      <fieldset id="xtream-fields">
+        <label>Nom d’utilisateur<input id="source-user" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="256"></label>
+        <label>Mot de passe<input id="source-pass" type="password" autocomplete="off" maxlength="256"></label>
+      </fieldset>
+      <label id="source-file-field" hidden>Fichier M3U<input id="source-file" type="file" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl"></label>
+      <div class="form-actions">
+        <button type="submit" class="button primary">Enregistrer</button>
+        <button type="button" id="cancel-edit" class="button" hidden>Annuler la modification</button>
+      </div>
+      <p id="source-status" class="status" role="status"></p>
+    </form>
+  </dialog>
+  <dialog id="details-dialog" aria-labelledby="details-title">
+    <div class="dialog-heading">
+      <h2 id="details-title"></h2>
+      <button class="close" data-close aria-label="Fermer">×</button>
+    </div>
+    <p id="details-category" class="secondary"></p>
+    <p id="details-summary" class="summary"></p>
+    <div class="form-actions" id="details-actions"></div>
+    <p id="details-status" class="status" role="status"></p>
+    <div id="episodes"></div>
+  </dialog>
+  <dialog id="player-dialog" class="player-dialog" aria-labelledby="player-title">
+    <div class="dialog-heading">
+      <h2 id="player-title"></h2>
+      <button class="close" data-close aria-label="Fermer la vidéo">×</button>
+    </div>
+    <video id="video" controls playsinline preload="metadata"></video>
+    <p id="player-status" class="status" role="status"></p>
+  </dialog>
+</body>
+</html>
