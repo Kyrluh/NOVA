@@ -18,6 +18,7 @@ let tab = 'live';
 let visible = pageSize;
 let editing = null;
 let activeVideo = null;
+let hlsPlayer = null;
 let requestNumber = 0;
 let detailsNumber = 0;
 let lastRecordedAt = 0;
@@ -362,17 +363,89 @@ function playVideo(item, parentId, live = false) {
   const url = httpsUrl(item.stream);
   if (!url) return;
   if (activeVideo) recordVideo();
-  activeVideo = { id: item.id, parentId, live };
+  activeVideo = { id: item.id, parentId, live, item, url: url.href, triedHls: false };
   lastRecordedAt = 0;
   seekPending = true;
   $('player-title').textContent = item.title;
   $('player-status').textContent = '';
-  playerDialog.showModal();
+  $('retry-video').hidden = true;
+  if (!playerDialog.open) playerDialog.showModal();
   video.src = url.href;
-  video.play().catch(() => {
-    if (playerDialog.open && !video.error) $('player-status').textContent = 'Touche ▶ pour lancer la vidéo.';
+  video.load();
+  startPlayback();
+}
+
+function startPlayback() {
+  const session = activeVideo;
+  video.play().catch(error => {
+    if (session === activeVideo && error.name === 'NotAllowedError') {
+      $('player-status').textContent = 'Touche ▶ pour lancer la vidéo.';
+    }
   });
 }
+
+function stopHls() {
+  hlsPlayer?.destroy();
+  hlsPlayer = null;
+}
+
+function playbackFailed(code) {
+  $('player-status').textContent = code === 2
+    ? 'La connexion au flux a échoué. Tu peux relancer la lecture.'
+    : 'Le flux est inaccessible ou son format vidéo ou audio est incompatible avec ce navigateur.';
+  $('retry-video').hidden = false;
+}
+
+async function recoverPlayback() {
+  const session = activeVideo;
+  if (!playerDialog.open || !session || !video.error || hlsPlayer) return;
+  let alternate = httpsUrl(session.item.providerStream)?.href;
+  if (!alternate && session.live) {
+    const candidate = httpsUrl(session.item.stream);
+    if (candidate && /\/live\/[^/]+\/[^/]+\/\d+(?:\.ts)?$/i.test(candidate.pathname)) {
+      candidate.pathname = candidate.pathname.replace(/(?:\.ts)?$/i, '.m3u8');
+      alternate = candidate.href;
+    }
+  }
+  if (alternate && alternate !== session.url) {
+    session.url = alternate;
+    video.src = alternate;
+    video.load();
+    startPlayback();
+    return;
+  }
+  const code = video.error.code;
+  if (session.triedHls || !(/\.m3u8(?:$|[?#])/i.test(session.url) || session.live)) {
+    playbackFailed(code);
+    return;
+  }
+  session.triedHls = true;
+  try {
+    await import('./vendor/hls.light.min.js');
+    if (activeVideo !== session) return;
+    const Hls = window.Hls;
+    if (!Hls?.isSupported()) return playbackFailed(code);
+    const player = new Hls();
+    hlsPlayer = player;
+    player.on(Hls.Events.ERROR, (_event, data) => {
+      if (!data.fatal || hlsPlayer !== player) return;
+      stopHls();
+      playbackFailed(data.type === Hls.ErrorTypes.NETWORK_ERROR ? 2 : 3);
+    });
+    player.on(Hls.Events.MANIFEST_PARSED, startPlayback);
+    player.loadSource(session.url);
+    if ('disableRemotePlayback' in video) video.disableRemotePlayback = true;
+    player.attachMedia(video);
+  } catch {
+    if (activeVideo === session) playbackFailed(code);
+  }
+}
+
+$('retry-video').addEventListener('click', () => {
+  if (!activeVideo) return;
+  stopHls();
+  playVideo(activeVideo.item, activeVideo.parentId, activeVideo.live);
+});
 
 video.addEventListener('loadedmetadata', () => {
   const saved = activeVideo && !activeVideo.live && progress[activeVideo.id];
@@ -386,13 +459,16 @@ video.addEventListener('timeupdate', () => {
 });
 video.addEventListener('pause', () => recordVideo(video.ended));
 video.addEventListener('ended', () => recordVideo(true));
-video.addEventListener('error', () => {
-  if (!playerDialog.open || !activeVideo) return;
-  $('player-status').textContent = 'Lecture impossible dans Safari. Vérifie que le flux et ses segments utilisent HTTPS et essaie un flux HLS (.m3u8) ou un MP4 compatible.';
+video.addEventListener('error', recoverPlayback);
+video.addEventListener('playing', () => {
+  $('player-status').textContent = '';
+  $('retry-video').hidden = true;
 });
 playerDialog.addEventListener('close', () => {
   recordVideo(video.ended);
   activeVideo = null;
+  stopHls();
+  if ('disableRemotePlayback' in video) video.disableRemotePlayback = false;
   video.pause();
   video.removeAttribute('src');
   video.load();

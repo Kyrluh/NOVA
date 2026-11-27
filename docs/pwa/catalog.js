@@ -126,6 +126,8 @@ async function loadXtream(source) {
       const title = text(row.name);
       if (!id || !title) continue;
       const direct = httpsUrl(row.direct_source, base)?.href;
+      const providerStream = kind === 'series' ? null :
+        streamUrl(source, kind, id, kind === 'live' ? 'm3u8' : extension(row.container_extension));
       items.push({
         id: `${source.id}:${kind}:${id}`,
         providerId: id,
@@ -136,8 +138,8 @@ async function loadXtream(source) {
         category: categoryNames.get(String(row.category_id)) || fallback,
         description: text(row.plot ?? row.description),
         image: safeImage(row.cover ?? row.stream_icon, base),
-        stream: kind === 'series' ? null : direct ||
-          streamUrl(source, kind, id, kind === 'live' ? 'm3u8' : extension(row.container_extension)),
+        providerStream,
+        stream: kind === 'series' ? null : direct || providerStream,
       });
     }
     return items;
@@ -277,14 +279,15 @@ export async function loadDetails(item, source) {
       const id = providerId(row?.id);
       if (!id || parsed.size >= itemLimit) continue;
       const number = Number(row.episode_num) || 0;
+      const providerStream = streamUrl(source, 'series', id, extension(row.container_extension));
       parsed.set(id, {
         id: `${source.id}:episode:${id}`,
         season: Number(row.season ?? season) || 0,
         number,
         title: text(row.title) || `Épisode ${number || parsed.size + 1}`,
         description: text(row.info?.plot ?? row.info?.description),
-        stream: httpsUrl(row.direct_source, base)?.href ||
-          streamUrl(source, 'series', id, extension(row.container_extension)),
+        providerStream,
+        stream: httpsUrl(row.direct_source, base)?.href || providerStream,
       });
     }
   }

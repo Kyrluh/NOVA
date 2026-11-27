@@ -7,7 +7,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https:; img-src 'self' https:; media-src https:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https:; img-src 'self' https:; media-src https: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
   <title>NOVA IPTV</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
@@ -99,6 +99,7 @@
     </div>
     <video id="video" controls playsinline preload="metadata"></video>
     <p id="player-status" class="status" role="status"></p>
+    <button id="retry-video" class="button" hidden>Relancer la lecture</button>
   </dialog>
 </body>
 </html>
