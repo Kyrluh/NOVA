@@ -1,4 +1,4 @@
-import { httpsUrl, loadDetails, loadSource, playlistLimit, xtreamBase } from './catalog.js';
+import { httpsUrl, loadDetails, loadSource, playlistLimit, xtreamBase } from './catalog.js?v=4';
 
 const $ = id => document.getElementById(id);
 const sourcesDialog = $('sources-dialog');
@@ -390,9 +390,10 @@ function stopHls() {
 }
 
 function playbackFailed(code, detail) {
-  $('player-status').textContent = detail || (code === 3
+  const reason = detail || (code === 3
     ? 'Le navigateur a rencontré une erreur de décodage vidéo ou audio.'
     : 'Le navigateur n’a pas pu ouvrir ce flux. La cause exacte reste inconnue.');
+  $('player-status').textContent = `${reason} (NOVA Web 4)`;
   $('retry-video').hidden = false;
 }
 

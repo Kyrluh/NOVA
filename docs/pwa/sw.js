@@ -1,6 +1,6 @@
-const cacheName = 'nova-pwa-shell-3';
+const cacheName = 'nova-pwa-shell-4';
 const shell = [
-  './', './index.html', './style.css', './app.js', './catalog.js',
+  './', './index.html', './style.css', './app.js?v=4', './catalog.js?v=4',
   './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png',
   './icons/icon-512.png',
   './vendor/hls.light.min.js',
@@ -8,7 +8,9 @@ const shell = [
 const shellUrls = new Set(shell.map(path => new URL(path, self.registration.scope).href));
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(shell)));
+  event.waitUntil(caches.open(cacheName)
+    .then(cache => cache.addAll(shell.map(path => new Request(new URL(path, self.registration.scope), { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(
@@ -19,5 +21,5 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   // Cache the public app shell only. No playlists, provider requests or video.
   if (event.request.method !== 'GET' || !shellUrls.has(event.request.url)) return;
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  event.respondWith(fetch(event.request, { cache: 'no-cache' }).catch(() => caches.match(event.request)));
 });
