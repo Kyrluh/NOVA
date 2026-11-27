@@ -31,6 +31,21 @@ function streamUrl(source, kind, id, extension) {
   return new URL(`${path}.${extension}`, xtreamBase(source.url)).href;
 }
 
+// Some panels return an HTTP media link even when their HTTPS entry point works.
+function directStream(value, base) {
+  const secure = httpsUrl(value, base);
+  if (secure) return secure.href;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' || url.hostname !== base.hostname || url.username || url.password) return null;
+    url.protocol = 'https:';
+    url.port = base.port;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 async function request(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25000);
@@ -125,7 +140,7 @@ async function loadXtream(source) {
       const id = providerId(kind === 'series' ? row.series_id : row.stream_id);
       const title = text(row.name);
       if (!id || !title) continue;
-      const direct = httpsUrl(row.direct_source, base)?.href;
+      const direct = directStream(row.direct_source, base);
       const providerStream = kind === 'series' ? null :
         streamUrl(source, kind, id, kind === 'live' ? 'm3u8' : extension(row.container_extension));
       items.push({
@@ -259,7 +274,7 @@ export async function loadDetails(item, source) {
   const base = xtreamBase(source.url);
   if (item.kind === 'movie') {
     const result = await json(source, 'get_vod_info', { vod_id: item.providerId });
-    const direct = httpsUrl(result?.movie_data?.direct_source, base)?.href;
+    const direct = directStream(result?.movie_data?.direct_source, base);
     return {
       ...item,
       description: text(result?.info?.plot ?? result?.info?.description) || item.description,
@@ -287,7 +302,7 @@ export async function loadDetails(item, source) {
         title: text(row.title) || `Épisode ${number || parsed.size + 1}`,
         description: text(row.info?.plot ?? row.info?.description),
         providerStream,
-        stream: httpsUrl(row.direct_source, base)?.href || providerStream,
+        stream: directStream(row.direct_source, base) || providerStream,
       });
     }
   }

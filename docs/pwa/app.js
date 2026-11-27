@@ -389,11 +389,37 @@ function stopHls() {
   hlsPlayer = null;
 }
 
-function playbackFailed(code) {
-  $('player-status').textContent = code === 2
-    ? 'La connexion au flux a échoué. Tu peux relancer la lecture.'
-    : 'Le flux est inaccessible ou son format vidéo ou audio est incompatible avec ce navigateur.';
+function playbackFailed(code, detail) {
+  $('player-status').textContent = detail || (code === 3
+    ? 'Le navigateur a rencontré une erreur de décodage vidéo ou audio.'
+    : 'Le navigateur n’a pas pu ouvrir ce flux. La cause exacte reste inconnue.');
   $('retry-video').hidden = false;
+}
+
+async function inspectStream(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    const response = await fetch(url, {
+      headers: { Range: 'bytes=0-511' }, credentials: 'omit', referrerPolicy: 'no-referrer',
+      cache: 'no-store', signal: controller.signal,
+    });
+    if (!response.ok) return { detail: `Le serveur a répondu HTTP ${response.status} à la vérification du flux.` };
+    const type = response.headers.get('Content-Type') || '';
+    const reader = response.body?.getReader();
+    const first = reader && (await reader.read()).value;
+    const prefix = first ? new TextDecoder().decode(first.subarray(0, 512)).trimStart() : '';
+    if (/^#EXTM3U/.test(prefix) || /mpegurl/i.test(type)) return { hls: true };
+    if (/^(?:<!doctype html|<html)/i.test(prefix) || /text\/html/i.test(type)) {
+      return { detail: 'Le fournisseur renvoie une page web à la place de la vidéo.' };
+    }
+    return {};
+  } catch {
+    return { detail: 'Le navigateur ne peut pas vérifier le flux. La connexion, une redirection ou les règles d’accès web du fournisseur peuvent en être la cause.' };
+  } finally {
+    controller.abort();
+    clearTimeout(timeout);
+  }
 }
 
 async function recoverPlayback() {
@@ -415,22 +441,29 @@ async function recoverPlayback() {
     return;
   }
   const code = video.error.code;
-  if (session.triedHls || !(/\.m3u8(?:$|[?#])/i.test(session.url) || session.live)) {
-    playbackFailed(code);
-    return;
-  }
+  if (session.triedHls) return;
   session.triedHls = true;
+  $('player-status').textContent = 'Vérification du flux…';
+  const probe = await inspectStream(session.url);
+  if (activeVideo !== session || !playerDialog.open) return;
+  if (!probe.hls && !(/\.m3u8(?:$|[?#])/i.test(session.url) || session.live)) {
+    return playbackFailed(code, probe.detail);
+  }
   try {
     await import('./vendor/hls.light.min.js');
     if (activeVideo !== session) return;
     const Hls = window.Hls;
-    if (!Hls?.isSupported()) return playbackFailed(code);
+    if (!Hls?.isSupported()) return playbackFailed(code, probe.detail);
     const player = new Hls();
     hlsPlayer = player;
     player.on(Hls.Events.ERROR, (_event, data) => {
       if (!data.fatal || hlsPlayer !== player) return;
       stopHls();
-      playbackFailed(data.type === Hls.ErrorTypes.NETWORK_ERROR ? 2 : 3);
+      const status = data.response?.code;
+      const network = data.type === Hls.ErrorTypes.NETWORK_ERROR;
+      const detail = status >= 400 ? `Le serveur a répondu HTTP ${status} lors du chargement HLS.`
+        : network ? probe.detail || 'Le navigateur ne peut pas charger la playlist HLS ou un de ses segments.' : null;
+      playbackFailed(network ? 2 : 3, detail);
     });
     player.on(Hls.Events.MANIFEST_PARSED, startPlayback);
     player.loadSource(session.url);
